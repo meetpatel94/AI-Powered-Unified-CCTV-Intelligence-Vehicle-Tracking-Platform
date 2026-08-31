@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-base-900 text-ink antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1f2f4c;
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2c4066;
+  }
+}
+
+@layer components {
+  /* Standard command-center panel shell */
+  .panel {
+    @apply rounded-md border border-edge bg-panel shadow-panel;
+  }
+
+  /* Small uppercase section label used on every panel header */
+  .panel-title {
+    @apply text-[11px] font-semibold uppercase tracking-[0.09em] text-ink;
+  }
+
+  .link-action {
+    @apply text-[10px] font-medium text-accent-blue transition-colors hover:text-cyan-300;
+  }
+
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
