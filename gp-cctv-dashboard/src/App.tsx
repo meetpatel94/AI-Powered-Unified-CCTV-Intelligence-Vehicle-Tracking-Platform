@@ -5,6 +5,7 @@ import { TopHeader } from '@/components/layout/TopHeader';
 import { CameraMap } from '@/pages/CameraMap';
 import { Dashboard } from '@/pages/Dashboard';
 import { LiveView } from '@/pages/LiveView';
+import { Watchlist } from '@/pages/Watchlist';
 
 /**
  * App shell. Dashboard, Live View and Camera Map are implemented; the remaining
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/live-view" element={<LiveView />} />
           <Route path="/camera-map" element={<CameraMap />} />
+          <Route path="/watchlist" element={<Watchlist />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
