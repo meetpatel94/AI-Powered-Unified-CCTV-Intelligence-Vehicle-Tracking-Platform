@@ -1,12 +1,14 @@
 # Gujarat Police — Unified AI CCTV Intelligence Platform
 
 Desktop-first, dark command-center frontend for the Gujarat Police AI CCTV programme.
-**Implemented screens: Dashboard, Live View and Camera Map.** The remaining modules
-(Vehicle Search, Watchlist, Alerts, Analytics, Investigation, Camera Health, Reports,
-Users & Roles, System Settings) are inert sidebar placeholders until they are built.
+**Implemented screens: Dashboard, Live View, Camera Map, Watchlist and Alerts.**
+The remaining modules (Vehicle Search, Analytics, Investigation, Camera Health,
+Reports, Users & Roles, System Settings) are inert sidebar placeholders until they
+are built.
 
 Routing is `react-router-dom`: `/` → Dashboard, `/live-view` → Live CCTV Monitoring,
-`/camera-map` → GIS Camera Map.
+`/camera-map` → GIS Camera Map, `/watchlist` → Watchlist Management,
+`/alerts` → Alert Management & Response.
 
 Stack: **React 19 + TypeScript + Vite + Tailwind CSS 3 + lucide-react**. Frontend-only,
 realistic mock data, no backend calls.
