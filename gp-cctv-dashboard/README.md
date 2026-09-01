@@ -1,14 +1,14 @@
 # Gujarat Police — Unified AI CCTV Intelligence Platform
 
 Desktop-first, dark command-center frontend for the Gujarat Police AI CCTV programme.
-**Implemented screens: Dashboard, Live View, Camera Map, Watchlist, Alerts and Analytics.**
-The remaining modules (Vehicle Search, Investigation, Camera Health,
-Reports, Users & Roles, System Settings) are inert sidebar placeholders until they
-are built.
+**Implemented screens: Dashboard, Live View, Camera Map, Watchlist, Alerts, Analytics
+and Investigation.** The remaining modules (Vehicle Search, Camera Health, Reports,
+Users & Roles, System Settings) are inert sidebar placeholders until they are built.
 
 Routing is `react-router-dom`: `/` → Dashboard, `/live-view` → Live CCTV Monitoring,
 `/camera-map` → GIS Camera Map, `/watchlist` → Watchlist Management,
-`/alerts` → Alert Management & Response, `/analytics` → AI Analytics & Intelligence.
+`/alerts` → Alert Management & Response, `/analytics` → AI Analytics & Intelligence,
+`/investigation` → Investigation & Vehicle Intelligence.
 
 Stack: **React 19 + TypeScript + Vite + Tailwind CSS 3 + lucide-react**. Frontend-only,
 realistic mock data, no backend calls.
@@ -100,6 +100,76 @@ drive a pure `computeAnalytics(filters)` snapshot so the page is ready to swap o
 
 ---
 
+## Investigation composition (`/investigation`)
+
+Dedicated **INVESTIGATION & VEHICLE INTELLIGENCE** workspace: an analyst console for
+reconstructing one vehicle's movement across the camera network, reviewing the AI events
+it triggered and filing a case with its evidence.
+
+| Region | Contents |
+| --- | --- |
+| Page header | `INVESTIGATION` + subtitle, live case chip (`INV-2026-0914 · ACTIVE · opened … · Gandhinagar Command`), plate search, date + time-range picker, location and camera filters, wall-clock readout, Refresh, Export Case, New Investigation |
+| Search area | Oversized plate entry prefilled `GJ01AB1234`, Vehicle / Camera / Person-Event mode switch, fuzzy-match · watchlist-only · include-re-reads toggles, index candidate cards, recent-investigation chips (`INV-2026-0914`, `INV-2026-0898`, `INV-2026-0871`, `INV-2026-0799`, `INV-2026-0755`) |
+| **TARGET VEHICLE** | Snapshot with AI + ANPR boxes, `GJ01AB1234`, `White Swift Dzire`, White, LMV · Sedan, owner / registration / insurance / fitness, AI attribute confidence bars, **WATCHLIST MATCH** badge (High Priority Vehicles · WL-001 · critical), 98.7% peak confidence, First Seen `10:21:15 AM`, Last Seen `10:44:03 AM`, 14 total sightings across 10 cameras, current position + last ping |
+| **CROSS-CAMERA JOURNEY** | Horizontal reconstruction C-001 Shahibaug Road Ahmedabad → C-007 Naranpura Road Ahmedabad → C-015 Kudasan Road Gandhinagar → C-038 Gift City Road Gandhinagar — numbered nodes, snapshots, per-leg duration / distance / average speed, replay control, paired with a pan-zoom GIS mini-map (shared `useMapViewport` + `BaseMap`) whose cyan route turns red on the watchlist leg |
+| **INVESTIGATION DETAILS** rail | Target status, watchlist category + entry, matching-camera chips (route nodes tagged), detection count, ANPR confidence (peak / mean + share of reads ≥ 95%), first / last / current location with lat-lng, movement corridor, investigation status, case reference, escalate action |
+| **SIGHTING HISTORY** | All 14 reads — timestamp, camera ID + department, location / area / city / zone, plate confidence bar, vehicle type + lane + speed, direction arrow, evidence snapshot — with sortable columns and camera / city / confidence / route-node filters |
+| **RELATED EVENTS** | Watchlist Match (ALRT-2461), Speed Violation (ALRT-2458), Wrong Direction (ALRT-2452), Red Light Violation (ALRT-2449), ANPR Plate Variance (ALRT-2444) with metric, evidence and acknowledge actions |
+| **ROUTE ANALYSIS** | Journey duration `22 min 48 s`, cameras crossed 10, distance estimate `21.8 km`, average time between cameras `1 min 45 s`, movement direction `Ahmedabad → Gandhinagar · bearing 072° ENE`, per-leg bars, longest gap |
+| **RELATED VEHICLES / POSSIBLE ASSOCIATIONS** | Derived co-detection cards — `GJ27RS3391` convoy (7 shared gantries), `GJ05JK6789` stolen-vehicle read on 5 shared gantries, `GJ18CD4521` time-correlated, `Arjun Rathod` registered owner — each with a dossier deep link and watchlist action |
+| **EVIDENCE GALLERY** | One archived frame per sighting with camera ID, timestamp, clip reference, OCR confidence and tags; All / Route nodes / Watchlist / per-camera filters; View and Fullscreen controls |
+| Bottom analytics | **Sightings Over Time** (5-minute buckets, peak 10:30) · **Camera Frequency** (reads per camera, route nodes highlighted, click to filter) · **Location Distribution** (donut by area + city totals) |
+| Action bar | Track Live · View Camera · Add to Watchlist · Create Case · Export Evidence · Close Investigation (with reopen) |
+
+Interactions: clicking a journey node, timeline card or step chip focuses that location on
+the mini-map; clicking a sighting row, gallery card, evidence button or "view frame" opens
+the detailed evidence viewer (frames, filmstrip, telemetry, fullscreen, prev/next); Create
+Case opens a case form (title, priority, offence, FIR, unit, officer, notes and a
+multi-select evidence set) and files `CR-118/2026`.
+
+Everything on the screen is derived by pure functions in `data/investigationData.ts`
+(`buildRouteLegs`, `computeRouteAnalysis`, `computeInvestigationAnalytics`,
+`buildEvidence`, `filterSightings`, `sortSightings`, `caseBundle`), so the four seeded
+dossiers stay internally consistent and the page can be pointed at
+`GET /api/v1/investigations/:id` + an `investigation:tick` WebSocket topic without
+component changes. Every sighting already carries `lat`/`lng` derived from one affine
+fit (`worldToLatLng`) ready for real GIS.
+
+---
+
+## Camera Health composition (`/camera-health`)
+
+Dedicated **CAMERA HEALTH & STREAM MONITORING** workspace: an infrastructure console for
+camera connectivity, ingest-pipeline quality and AI-processing health across the fleet.
+
+| Region | Contents |
+| --- | --- |
+| Page header | `CAMERA HEALTH` + `stream monitoring` badge + subtitle, auto-refresh state and sync clock, Refresh, Auto Refresh (pause / resume), Export Report (CSV of the visible grid), Settings |
+| KPI strip | Total Cameras **12,842** · Online **11,243 (87%)** · Offline **1,128 (9%)** · Poor Signal **471 (4%)** · Reconnecting **86** (`of 471 poor-signal · retrying now`) — every card is a live filter with a share-of-fleet bar |
+| Toolbar | Status chips (All Cameras / Online / Offline / Poor Signal / Reconnecting / Critical, each with counts), department + location selects, codec (H.264 / H.265 / MJPEG) and resolution (720p–4K) filters, search by camera ID / location / area / IP, sort by status, health score, ID, location, department, latency, FPS, bitrate or heartbeat + direction, reset, visible-feed tally |
+| **CAMERA HEALTH MONITOR** | 23 monitored feeds including `C-001` Shahibaug Road, `C-007` Naranpura Road, `C-015` Kudasan Road, `C-038` Gift City Road, `C-089` Maninagar Junction, `C-115` S.G. Highway and `C-207` Vadodara City Center — Camera ID, Location (+ area / city / zone), Department, Status pill, Stream transport, FPS vs target, Resolution, Codec, Latency + jitter, Bitrate + buffer, Packet Loss, Last Heartbeat + uptime, AI / ANPR state and a live 0–100 health bar carrying the reason for the flag; sticky ID column, green / red / amber / blue indicators, row click selects |
+| **SELECTED CAMERA HEALTH** | Preview with LIVE badge or `no video signal`, identity + health score, actions **Restart Stream · View Live · Snapshot · Camera Details**; ingest-pipeline cards for **RTSP** (state, TCP/UDP, `:554`), **WebRTC** (state, latency, ICE candidate) and **HLS** (state, segment size, playlist lag); codec, resolution, FPS, bitrate, latency, jitter, packet loss, buffer, last heartbeat, uptime; fps + latency sparklines; AI / ANPR pipeline (model, version, inference ms, queue depth, GPU util, frames processed); "requires attention" reasons; expandable details (IP, edge node, firmware, install date, 24 h restarts, zone, geo, RTSP URL) |
+| **STREAM QUALITY** | Fleet FPS / latency / bitrate / packet-loss trends — 24 five-minute buckets (`08:50–10:45`) with avg / low / peak readouts and the operator's warning thresholds drawn as dashed reference lines |
+| **CAMERA STATUS DISTRIBUTION** | Donut of the three fleet buckets + legend, with Reconnecting (86, *of Poor Signal*) and Critical (214, *of Offline / Poor Signal*) callouts — the sub-states are live states rather than extra cameras, and the three shares are largest-remainder rounded to exactly 100% |
+| **HEALTH BY LOCATION** | Every monitored area ranked worst-first (Aslali 0 → Shahibaug / Kudasan / Vadodara 100) with mean score, ok · degraded · down split and camera count; clicking drills the monitor search into that area |
+| **CRITICAL CAMERAS** | Feeds needing an operator, longest incident first — location, issue, evidence line, duration and a per-feed action (Restart Stream / Re-pair ANPR / Escalate) |
+| **RECENT HEALTH EVENTS** | Timeline of disconnects, reconnect attempts, signal degradation, recoveries, codec changes and AI / ANPR processing events with timestamps, camera links and `auto` resolved badges; per-kind filters |
+| Settings modal | Latency warn / critical, packet-loss warn / critical, min FPS %, heartbeat warn, telemetry refresh interval, auto-restart / critical-alert / ANPR-alert toggles, a live "would flag N of M feeds" preview and restore-defaults |
+
+Health is not stored: `evaluateCamera(camera, settings)` in `data/cameraHealthData.ts`
+derives per-metric tone, the 0–100 score and the "requires attention" list purely from the
+thresholds, so the Settings modal genuinely drives the grid tones, the location ranking and
+the critical list. Telemetry breathes through `liveCamera(camera, tick)` (frozen while Auto
+Refresh is paused), and the monitor grid is fed by the same 23-camera registry used by the
+Camera Map, so IDs, locations, departments, codecs and thumbnails stay consistent.
+
+Backend seams already in place: `getCameraHealthDetail` / `restartCameraStream` in
+`services/api.ts`, the `camera:health` topic in `services/realtime.ts`, per-camera
+`streamUrl` (RTSP) plus `rtsp` / `webrtc` / `hls` state objects on `HealthCamera`, and
+`worldToLatLng` from `data/gisProjection.ts` giving every feed a lat/lng.
+
+---
+
 ## Structure
 
 ```
@@ -116,20 +186,38 @@ src/
 │  ├─ cameramap/           # BaseMap, CameraMarkerLayer (+ buildClusters), CameraPopup,
 │                          # RouteLayer, MapControls, MapFilterPanel,
 │                          # MapCameraIntelPanel, JourneyPanel, MapStatsStrip/MapLegend
-│  └─ analytics/           # AnalyticsHeader, AnalyticsKpiRow, trend/types/events/ANPR
-│                          # camera activity, locations, watchlist trend, heatmap,
-│                          # intelligence summary + detailed report drawer
+│  ├─ analytics/           # AnalyticsHeader, AnalyticsKpiRow, trend/types/events/ANPR
+│  │                       # camera activity, locations, watchlist trend, heatmap,
+│  │                       # intelligence summary + detailed report drawer
+│  ├─ camerahealth/        # CameraHealthHeader/KpiRow/Toolbar, CameraHealthMonitorTable,
+│  │                       # SelectedCameraHealthPanel, StreamQualityPanel,
+│  │                       # StatusDistributionPanel, HealthByLocationPanel,
+│  │                       # RecentHealthEventsPanel, CriticalCamerasPanel,
+│  │                       # CameraHealthSettingsModal, HealthPrimitives, healthTones
+│  └─ investigation/       # InvestigationHeader, InvestigationSearchPanel,
+│                          # TargetVehicleCard, CrossCameraJourneyPanel, JourneyRouteMap,
+│                          # InvestigationDetailsPanel, SightingHistoryPanel,
+│                          # RelatedEventsPanel, RouteAnalysisPanel, RelatedVehiclesPanel,
+│                          # EvidenceGalleryPanel, EvidenceViewerModal, CreateCaseModal,
+│                          # InvestigationAnalytics, InvestigationActionBar
 ├─ data/
 │  ├─ mockData.ts          # dashboard values + navigation (single source of truth)
 │  ├─ mapData.ts           # GIS geometry: roads, river, labels, markers, tracked route
 │  ├─ liveViewData.ts      # 12-camera fleet, ANPR seed rows, stream health metrics
 │  ├─ gisGeometry.ts       # 1600×1000 world: roads, water, rail, blocks, place labels
 │  ├─ cameraMapData.ts     # 68 map cameras, fleet stats, tracked route + alert payload
-│  └─ analyticsData.ts     # Gujarat analytics snapshot + computeAnalytics(filters)
+│  ├─ analyticsData.ts     # Gujarat analytics snapshot + computeAnalytics(filters)
+│  ├─ investigationData.ts # 4 investigation dossiers + route / analytics / evidence
+│  │                       #   / case-bundle selectors (pure, API-ready)
+│  ├─ cameraHealthData.ts  # 23 monitored feeds, fleet totals, thresholds, events,
+│  │                       #   evaluate/filter/sort/location/critical selectors (pure)
+│  └─ gisProjection.ts     # one affine world → lat/lng fit shared by every screen
 ├─ hooks/                  # useLiveClock, useAnprFeed, useTelemetryTick, useMapViewport
-├─ pages/                  # Dashboard, LiveView, CameraMap, Watchlist, Alerts, Analytics
+├─ pages/                  # Dashboard, LiveView, CameraMap, Watchlist, Alerts, Analytics,
+│                          # Investigation, CameraHealth
 ├─ services/               # integration seams (see below)
-├─ types/                  # index.ts (shared) + liveView / cameraMap / watchlist / alerts / analytics
+├─ types/                  # index.ts (shared) + liveView / cameraMap / watchlist / alerts /
+│                          #   analytics / investigation / cameraHealth
 └─ index.css               # Tailwind layers + .panel / .panel-title primitives
 ```
 
@@ -142,8 +230,8 @@ import with a data hook touches one file.
 
 | File | Purpose |
 | --- | --- |
-| `services/api.ts` | Typed REST client (`VITE_API_BASE_URL`, default `/api/v1`) returning the same types the UI already consumes |
-| `services/realtime.ts` | WebSocket channel for `alert:new`, `camera:state`, `anpr:hit`, `kpi:tick`, `analytics:tick` (`VITE_WS_URL`) |
+| `services/api.ts` | Typed REST client (`VITE_API_BASE_URL`, default `/api/v1`) returning the same types the UI already consumes — includes `getInvestigation`, `getInvestigationSightings` and `createInvestigationCase` for the investigation console plus `getCameraHealthDetail` and `restartCameraStream` for the health console |
+| `services/realtime.ts` | WebSocket channel for `alert:new`, `camera:state`, `anpr:hit`, `kpi:tick`, `analytics:tick`, `investigation:tick`, `camera:health` (`VITE_WS_URL`) |
 | `services/streams.ts` | RTSP → HLS/WHEP URL helpers (`VITE_STREAM_GATEWAY`); cameras already carry `streamUrl` |
 
 The GIS layers are hand-authored SVG in fixed world coordinate spaces — `1000 × 700` for
@@ -155,14 +243,19 @@ route and decks are unchanged. `MapCameraNode` already carries `lat`/`lng` place
 for real camera coordinates.
 
 ### Suggested next steps
-1. Add `react-router-dom` and promote the sidebar items to real routes.
+1. ~~Add `react-router-dom` and promote the sidebar items to real routes.~~ Done — eight
+   routes are live; the remaining sidebar items are still inert placeholders.
 2. Introduce TanStack Query wrapping `services/api.ts`, then delete the mock imports.
 3. Replace wall thumbnails with `<video>` + `hls.js` / WebRTC using `toHlsUrl(camera.id)`
    or `toWhepUrl(camera.id)` — `LiveCamera.streamUrl` already carries the RTSP source.
 4. Wire `createRealtimeChannel()` into the alerts rail, KPI strip, ANPR ticker and the
    Camera Map (`camera:state` → marker status, `alert:new` → map alert callout).
-5. Build the next module (Camera Map or Vehicle Search) and flip its `available` flag
-   in `data/mockData.ts` to make the sidebar item routable.
+5. Build the next module (Vehicle Search or Reports) and flip its `available` flag in
+   `data/mockData.ts` to make the sidebar item routable.
+6. Point the Investigation console at the tracking service: replace the
+   `investigationDossiers` import with `GET /api/v1/investigations/:plate` and feed
+   `investigation:tick` frames into `setSightings` — the selectors, map and case form
+   are unchanged.
 
 ---
 
@@ -173,3 +266,6 @@ for real camera coordinates.
   checks: `node scripts/screenshot.mjs /live-view shots/live-view.png`.
 - Adding a screen: build it under `pages/`, register the route in `App.tsx`, then set
   `available: true` on its `navItems` entry. Existing screens are untouched by this.
+- Runtime smoke checks (dev-only, no browser needed) render each screen through
+  `react-dom/server` and assert its content — see `scripts/*-smoke.tsx`:
+  `npx vite build --ssr scripts/investigation-smoke.tsx --outDir node_modules/.ssr-inv --emptyOutDir && node node_modules/.ssr-inv/investigation-smoke.js`.

@@ -12,7 +12,10 @@ export type RealtimeEvent =
   | 'camera:state'
   | 'anpr:hit'
   | 'kpi:tick'
-  | 'analytics:tick';
+  | 'analytics:tick'
+  | 'investigation:tick'
+  /** Per-camera stream health frame (fps, latency, loss, RTSP/WebRTC/HLS state). */
+  | 'camera:health';
 
 type Handler = (payload: unknown) => void;
 
