@@ -1,14 +1,14 @@
 # Gujarat Police — Unified AI CCTV Intelligence Platform
 
 Desktop-first, dark command-center frontend for the Gujarat Police AI CCTV programme.
-**Implemented screens: Dashboard, Live View, Camera Map, Watchlist and Alerts.**
-The remaining modules (Vehicle Search, Analytics, Investigation, Camera Health,
+**Implemented screens: Dashboard, Live View, Camera Map, Watchlist, Alerts and Analytics.**
+The remaining modules (Vehicle Search, Investigation, Camera Health,
 Reports, Users & Roles, System Settings) are inert sidebar placeholders until they
 are built.
 
 Routing is `react-router-dom`: `/` → Dashboard, `/live-view` → Live CCTV Monitoring,
 `/camera-map` → GIS Camera Map, `/watchlist` → Watchlist Management,
-`/alerts` → Alert Management & Response.
+`/alerts` → Alert Management & Response, `/analytics` → AI Analytics & Intelligence.
 
 Stack: **React 19 + TypeScript + Vite + Tailwind CSS 3 + lucide-react**. Frontend-only,
 realistic mock data, no backend calls.
@@ -83,6 +83,23 @@ to jump the map to that sighting.
 
 ---
 
+## Analytics composition (`/analytics`)
+
+Dedicated **AI ANALYTICS & INTELLIGENCE** workspace. Date / location / camera filters
+drive a pure `computeAnalytics(filters)` snapshot so the page is ready to swap onto
+`GET /api/v1/analytics` and `analytics:tick`.
+
+| Region | Contents |
+| --- | --- |
+| Page header | `AI ANALYTICS` + subtitle, Date Range / Location / Camera selects, Export Report, Refresh, wall clock |
+| KPI strip | Vehicles Detected 18,729 · ANPR Reads 14,382 · AI Events 2,846 · Watchlist Matches 7 · Active Cameras 11,243 |
+| Row 1 | **Vehicle Detection Trend** (area) · **Vehicle Types** donut (Cars / Two Wheelers / Heavy Vehicles / Buses) · **AI Events by Type** (Speed, Wrong Direction, Crowd, No Helmet, Signal Jump, Other) |
+| Row 2 | **ANPR Performance** (processed / successful / OCR confidence / unreadable) · **Camera Activity** ranked by detections · **Top Detection Locations** (Gift City Road, S.G. Highway, Shahibaug Road, Naranpura Road, Vadodara City Center) |
+| Row 3 | **Watchlist Match Trend** (daily matches + critical overlay) · **Hourly Activity** 7×24 heatmap |
+| Bottom | **Intelligence Summary** — peak traffic, highest location, highest alert category, ANPR confidence, fleet mix, unusual-activity flags + `View Detailed Report` |
+
+---
+
 ## Structure
 
 ```
@@ -96,19 +113,23 @@ src/
 │  │                       # VehicleSearchPanel, JourneyTimelinePanel, AiAnalyticsPanel
 │  ├─ liveview/            # LiveViewHeader, LiveCameraCard, SelectedCameraPanel,
 │  │                       # AnprFeedPanel, StreamHealthPanel
-│  └─ cameramap/           # BaseMap, CameraMarkerLayer (+ buildClusters), CameraPopup,
+│  ├─ cameramap/           # BaseMap, CameraMarkerLayer (+ buildClusters), CameraPopup,
 │                          # RouteLayer, MapControls, MapFilterPanel,
 │                          # MapCameraIntelPanel, JourneyPanel, MapStatsStrip/MapLegend
+│  └─ analytics/           # AnalyticsHeader, AnalyticsKpiRow, trend/types/events/ANPR
+│                          # camera activity, locations, watchlist trend, heatmap,
+│                          # intelligence summary + detailed report drawer
 ├─ data/
 │  ├─ mockData.ts          # dashboard values + navigation (single source of truth)
 │  ├─ mapData.ts           # GIS geometry: roads, river, labels, markers, tracked route
 │  ├─ liveViewData.ts      # 12-camera fleet, ANPR seed rows, stream health metrics
 │  ├─ gisGeometry.ts       # 1600×1000 world: roads, water, rail, blocks, place labels
-│  └─ cameraMapData.ts     # 68 map cameras, fleet stats, tracked route + alert payload
+│  ├─ cameraMapData.ts     # 68 map cameras, fleet stats, tracked route + alert payload
+│  └─ analyticsData.ts     # Gujarat analytics snapshot + computeAnalytics(filters)
 ├─ hooks/                  # useLiveClock, useAnprFeed, useTelemetryTick, useMapViewport
-├─ pages/                  # Dashboard.tsx, LiveView.tsx, CameraMap.tsx (composition only)
+├─ pages/                  # Dashboard, LiveView, CameraMap, Watchlist, Alerts, Analytics
 ├─ services/               # integration seams (see below)
-├─ types/                  # index.ts (shared) + liveView.ts (camera/stream/ANPR)
+├─ types/                  # index.ts (shared) + liveView / cameraMap / watchlist / alerts / analytics
 └─ index.css               # Tailwind layers + .panel / .panel-title primitives
 ```
 
@@ -122,7 +143,7 @@ import with a data hook touches one file.
 | File | Purpose |
 | --- | --- |
 | `services/api.ts` | Typed REST client (`VITE_API_BASE_URL`, default `/api/v1`) returning the same types the UI already consumes |
-| `services/realtime.ts` | WebSocket channel for `alert:new`, `camera:state`, `anpr:hit`, `kpi:tick` (`VITE_WS_URL`) |
+| `services/realtime.ts` | WebSocket channel for `alert:new`, `camera:state`, `anpr:hit`, `kpi:tick`, `analytics:tick` (`VITE_WS_URL`) |
 | `services/streams.ts` | RTSP → HLS/WHEP URL helpers (`VITE_STREAM_GATEWAY`); cameras already carry `streamUrl` |
 
 The GIS layers are hand-authored SVG in fixed world coordinate spaces — `1000 × 700` for

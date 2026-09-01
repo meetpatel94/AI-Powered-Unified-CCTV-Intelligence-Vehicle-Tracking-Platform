@@ -16,6 +16,7 @@ import type {
   KpiStat,
   VehicleRecord,
 } from '@/types';
+import type { AnalyticsFilters, AnalyticsSnapshot } from '@/types/analytics';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
@@ -41,4 +42,12 @@ export const api = {
   getVehicleJourney: (plate: string) =>
     request<JourneyStop[]>(`/vehicles/${encodeURIComponent(plate)}/journey`),
   getAnalyticsToday: () => request<AnalyticsBar[]>('/analytics/today'),
+  getAnalyticsSnapshot: (filters: AnalyticsFilters) => {
+    const params = new URLSearchParams({
+      range: filters.range,
+      location: filters.location,
+      camera: filters.camera,
+    });
+    return request<AnalyticsSnapshot>(`/analytics?${params.toString()}`);
+  },
 };

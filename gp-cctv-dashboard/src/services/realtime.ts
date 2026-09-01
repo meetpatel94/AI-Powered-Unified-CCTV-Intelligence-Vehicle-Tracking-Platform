@@ -11,7 +11,8 @@ export type RealtimeEvent =
   | 'alert:ack'
   | 'camera:state'
   | 'anpr:hit'
-  | 'kpi:tick';
+  | 'kpi:tick'
+  | 'analytics:tick';
 
 type Handler = (payload: unknown) => void;
 
