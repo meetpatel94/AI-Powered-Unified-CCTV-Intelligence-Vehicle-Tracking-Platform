@@ -3,14 +3,15 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { TopHeader } from '@/components/layout/TopHeader';
 import { Alerts } from '@/pages/Alerts';
+import { Analytics } from '@/pages/Analytics';
 import { CameraMap } from '@/pages/CameraMap';
 import { Dashboard } from '@/pages/Dashboard';
 import { LiveView } from '@/pages/LiveView';
 import { Watchlist } from '@/pages/Watchlist';
 
 /**
- * App shell. Dashboard, Live View, Camera Map, Watchlist and Alerts are
- * implemented; the remaining sidebar modules are inert placeholders until
+ * App shell. Dashboard, Live View, Camera Map, Watchlist, Alerts and Analytics
+ * are implemented; the remaining sidebar modules are inert placeholders until
  * they are built.
  */
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="/camera-map" element={<CameraMap />} />
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/alerts" element={<Alerts />} />
+          <Route path="/analytics" element={<Analytics />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

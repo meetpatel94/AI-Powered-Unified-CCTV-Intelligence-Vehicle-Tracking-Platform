@@ -1,0 +1,171 @@
+import { useMemo, useRef, useState } from 'react';
+
+import { AiEventsByTypePanel } from '@/components/analytics/AiEventsByTypePanel';
+import { AnalyticsHeader } from '@/components/analytics/AnalyticsHeader';
+import { AnalyticsKpiRow } from '@/components/analytics/AnalyticsKpiRow';
+import { AnprPerformancePanel } from '@/components/analytics/AnprPerformancePanel';
+import { CameraActivityPanel } from '@/components/analytics/CameraActivityPanel';
+import { DetailedReportDrawer } from '@/components/analytics/DetailedReportDrawer';
+import { HourlyActivityHeatmap } from '@/components/analytics/HourlyActivityHeatmap';
+import { IntelligenceSummaryPanel } from '@/components/analytics/IntelligenceSummaryPanel';
+import { TopDetectionLocationsPanel } from '@/components/analytics/TopDetectionLocationsPanel';
+import { VehicleDetectionTrend } from '@/components/analytics/VehicleDetectionTrend';
+import { VehicleTypesPanel } from '@/components/analytics/VehicleTypesPanel';
+import { WatchlistMatchTrendPanel } from '@/components/analytics/WatchlistMatchTrendPanel';
+import { computeAnalytics, defaultAnalyticsFilters } from '@/data/analyticsData';
+import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
+import type { AnalyticsFilters } from '@/types/analytics';
+
+function exportSnapshot(filters: AnalyticsFilters) {
+  const snapshot = computeAnalytics(filters);
+  const lines = [
+    '# Gujarat Police — AI Analytics & Intelligence',
+    `# Range,${snapshot.rangeLabel}`,
+    `# Location,${snapshot.locationLabel}`,
+    `# Camera,${snapshot.cameraLabel}`,
+    `# Generated,01 Sep 2026 ${snapshot.generatedAt}`,
+    '',
+    'kpi,value',
+    `vehicles_detected,${snapshot.kpis.vehicles}`,
+    `anpr_reads,${snapshot.kpis.anpr}`,
+    `ai_events,${snapshot.kpis.events}`,
+    `watchlist_matches,${snapshot.kpis.watchlist}`,
+    `active_cameras,${snapshot.kpis.cameras}`,
+    `anpr_confidence_pct,${snapshot.anpr.confidence}`,
+    `anpr_unreadable,${snapshot.anpr.unreadable}`,
+    '',
+    'vehicle_type,count',
+    ...snapshot.vehicleTypes.map((slice) => `${slice.label},${slice.value}`),
+    '',
+    'ai_event_type,count',
+    ...snapshot.eventTypes.map((bar) => `${bar.label},${bar.value}`),
+    '',
+    'camera,location,city,detections,events,status',
+    ...snapshot.cameras.map(
+      (camera) => `${camera.code},${camera.location},${camera.city},${camera.detections},${camera.events},${camera.status}`,
+    ),
+    '',
+    'location,city,detections,share_pct',
+    ...snapshot.locations.map((row) => `${row.name},${row.city},${row.detections},${row.share.toFixed(1)}`),
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'gp-analytics-2026-09-01.csv';
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * AI ANALYTICS & INTELLIGENCE workspace: KPI strip, dense chart grid and an
+ * auto-generated briefing. Frontend mock data only — `computeAnalytics(filters)`
+ * is the seam for a future `/analytics` API + `analytics:tick` websocket.
+ */
+export function Analytics() {
+  const [filters, setFilters] = useState<AnalyticsFilters>(defaultAnalyticsFilters);
+  const [refreshing, setRefreshing] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const noticeTimer = useRef<number | undefined>(undefined);
+  const clock = formatClock(useLiveClock());
+
+  const flash = (message: string) => {
+    window.clearTimeout(noticeTimer.current);
+    setNotice(message);
+    noticeTimer.current = window.setTimeout(() => setNotice(null), 2600);
+  };
+
+  const snapshot = useMemo(() => computeAnalytics(filters), [filters]);
+
+  const patchFilters = (next: Partial<AnalyticsFilters>) => {
+    setFilters((prev) => ({ ...prev, ...next }));
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    window.setTimeout(() => setRefreshing(false), 800);
+    flash(`Analytics synced · ${snapshot.kpis.vehicles.toLocaleString('en-IN')} vehicles · ${snapshot.generatedAt}`);
+  };
+
+  const handleExport = () => {
+    exportSnapshot(filters);
+    flash(`Exported analytics briefing (${snapshot.rangeLabel})`);
+  };
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+      <AnalyticsHeader
+        filters={filters}
+        onFilters={patchFilters}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        onExport={handleExport}
+        clock={clock}
+      />
+
+      <AnalyticsKpiRow kpis={snapshot.kpis} />
+
+      {/* trend + mix + events */}
+      <div className="flex h-[272px] shrink-0 gap-2.5">
+        <div className="min-w-0 flex-[1.35]">
+          <VehicleDetectionTrend snapshot={snapshot} />
+        </div>
+        <div className="w-[26%] min-w-[240px]">
+          <VehicleTypesPanel types={snapshot.vehicleTypes} total={snapshot.kpis.vehicles} windowNote={snapshot.windowNote} />
+        </div>
+        <div className="w-[27%] min-w-[250px]">
+          <AiEventsByTypePanel events={snapshot.eventTypes} total={snapshot.kpis.events} windowNote={snapshot.windowNote} />
+        </div>
+      </div>
+
+      {/* ANPR + cameras + locations */}
+      <div className="flex h-[236px] shrink-0 gap-2.5">
+        <div className="w-[28%] min-w-[260px]">
+          <AnprPerformancePanel anpr={snapshot.anpr} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <CameraActivityPanel cameras={snapshot.cameras} onSelectCamera={(camera) => patchFilters({ camera })} />
+        </div>
+        <div className="w-[30%] min-w-[260px]">
+          <TopDetectionLocationsPanel
+            locations={snapshot.locations}
+            onSelectLocation={(location) => patchFilters({ location, camera: 'all' })}
+          />
+        </div>
+      </div>
+
+      {/* watchlist + heatmap */}
+      <div className="flex h-[228px] shrink-0 gap-2.5">
+        <div className="w-[40%] min-w-0">
+          <WatchlistMatchTrendPanel series={snapshot.watchlistTrend} windowNote={snapshot.windowNote} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <HourlyActivityHeatmap grid={snapshot.heatmap} />
+        </div>
+      </div>
+
+      {/* briefing */}
+      <div className="shrink-0">
+        <IntelligenceSummaryPanel
+          insights={snapshot.insights}
+          unusual={snapshot.unusual}
+          generatedAt={snapshot.generatedAt}
+          onViewReport={() => setReportOpen(true)}
+        />
+      </div>
+
+      <DetailedReportDrawer
+        snapshot={reportOpen ? snapshot : null}
+        onClose={() => setReportOpen(false)}
+        onExport={handleExport}
+      />
+
+      {notice ? (
+        <div className="fixed bottom-4 right-4 z-[60] animate-flash-in rounded-[6px] border border-accent-green/50 bg-[#0b2e26] px-3 py-2 text-[10.5px] font-medium text-[#6fe0b0] shadow-glow">
+          {notice}
+        </div>
+      ) : null}
+    </div>
+  );
+}
