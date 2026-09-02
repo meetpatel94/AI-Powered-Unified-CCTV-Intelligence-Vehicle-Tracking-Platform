@@ -323,8 +323,7 @@ export function Users() {
 
       {/* main workspace: directory + selected-user rail */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-[minmax(0,1fr)_minmax(320px,356px)]"
-        style={{ height: 'clamp(420px, 54vh, 640px)' }}
+        className="responsive-band min-h-[520px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-[minmax(0,1fr)_minmax(320px,356px)]"
       >
         <UserDirectoryTable
           users={visibleUsers}
@@ -344,8 +343,7 @@ export function Users() {
 
       {/* audit timeline + activity analytics */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]"
-        style={{ minHeight: 'clamp(320px, 34vh, 430px)' }}
+        className="responsive-band min-h-[360px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]"
       >
         <AccessActivityPanel />
         <UserActivityPanel />

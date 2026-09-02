@@ -262,8 +262,7 @@ export function CameraHealth() {
 
       {/* monitor grid + selected camera inspector */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(330px,370px)]"
-        style={{ height: 'clamp(480px, 52vh, 640px)' }}
+        className="responsive-band min-h-[560px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(330px,370px)]"
       >
         <div className="flex min-h-0 min-w-0 flex-col">
           <CameraHealthMonitorTable
@@ -288,14 +287,13 @@ export function CameraHealth() {
         </div>
       </div>
 
-      <div className="shrink-0" style={{ height: 'clamp(220px, 24vh, 300px)' }}>
+      <div className="flex min-h-[280px] shrink-0 flex-col [&>*]:flex-1">
         <StreamQualityPanel series={streamQualitySeries} settings={settings} />
       </div>
 
       {/* distribution · location ranking · critical feeds */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[30fr_34fr_36fr]"
-        style={{ height: 'clamp(300px, 32vh, 400px)' }}
+        className="responsive-band min-h-[340px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[30fr_34fr_36fr]"
       >
         <div className="min-w-0">
           <StatusDistributionPanel fleet={fleetHealth} active={filters.status} onSelect={(id) => patchFilters({ status: id as HealthFilters['status'] })} />
@@ -308,7 +306,7 @@ export function CameraHealth() {
         </div>
       </div>
 
-      <div className="shrink-0" style={{ height: 'clamp(260px, 28vh, 360px)' }}>
+      <div className="flex min-h-[320px] shrink-0 flex-col [&>*]:flex-1">
         <RecentHealthEventsPanel events={healthEvents} onSelectCamera={setSelectedId} selectedId={selectedId} />
       </div>
 

@@ -108,8 +108,7 @@ export function Analytics() {
 
       {/* trend + mix + events */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,26fr)_minmax(270px,27fr)]"
-        style={{ height: 'var(--row-mid)' }}
+        className="responsive-band responsive-band-mid grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,26fr)_minmax(270px,27fr)]"
       >
         <div className="min-w-0 md:col-span-2 xl:col-span-1">
           <VehicleDetectionTrend snapshot={snapshot} />
@@ -124,8 +123,7 @@ export function Analytics() {
 
       {/* ANPR + cameras + locations */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(270px,28fr)_minmax(0,1fr)_minmax(280px,30fr)]"
-        style={{ height: 'var(--row-charts)' }}
+        className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(270px,28fr)_minmax(0,1fr)_minmax(280px,30fr)]"
       >
         <div className="min-w-0">
           <AnprPerformancePanel anpr={snapshot.anpr} />
@@ -143,8 +141,7 @@ export function Analytics() {
 
       {/* watchlist + heatmap */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-10 xl:grid-cols-[40fr_60fr]"
-        style={{ height: 'var(--row-charts)' }}
+        className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-10 xl:grid-cols-[40fr_60fr]"
       >
         <div className="min-w-0 md:col-span-4 xl:col-span-1">
           <WatchlistMatchTrendPanel series={snapshot.watchlistTrend} windowNote={snapshot.windowNote} />

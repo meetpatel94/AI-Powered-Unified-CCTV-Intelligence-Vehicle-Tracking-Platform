@@ -232,7 +232,7 @@ export function CameraMap() {
       {/* map canvas */}
       <div
         ref={canvasRef}
-        className="relative min-h-0 flex-1 overflow-hidden rounded-md border border-edge bg-[#061224]"
+        className="relative min-h-[560px] flex-1 overflow-hidden rounded-md border border-edge bg-[#061224]"
       >
         <div
           ref={containerRef}
