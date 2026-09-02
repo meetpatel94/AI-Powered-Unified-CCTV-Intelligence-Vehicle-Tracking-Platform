@@ -24,6 +24,12 @@ import type {
   NewCasePayload,
   VehicleSighting,
 } from '@/types/investigation';
+import type {
+  GenerateReportConfig,
+  ReportPreviewDoc,
+  ReportRecord,
+  ScheduledReport,
+} from '@/types/reports';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
@@ -83,6 +89,30 @@ export const api = {
   restartCameraStream: (cameraId: string) =>
     request<{ cameraId: string; state: string }>(`/cameras/${encodeURIComponent(cameraId)}/stream/restart`, {
       method: 'POST',
+    }),
+
+  /* Reports workspace. `data/reportsData.ts` serves these exact shapes today.
+     The generation flow is: POST /reports/generate → 202 with the new report
+     id → `report:status` WebSocket events until `completed` → the signed
+     download URL from GET /reports/:id/download streams the rendered PDF. */
+  getReports: (limit = 25) => request<ReportRecord[]>(`/reports?limit=${limit}`),
+  generateReport: (config: GenerateReportConfig) =>
+    request<ReportRecord>('/reports/generate', { method: 'POST', body: JSON.stringify(config) }),
+  getReportPreview: (reportId: string) =>
+    request<ReportPreviewDoc>(`/reports/${encodeURIComponent(reportId)}/preview`),
+  getReportDownloadUrl: (reportId: string) =>
+    request<{ url: string; expiresAt: string }>(`/reports/${encodeURIComponent(reportId)}/download`),
+  shareReport: (reportId: string) =>
+    request<{ url: string; expiresAt: string }>(`/reports/${encodeURIComponent(reportId)}/share`, {
+      method: 'POST',
+    }),
+  getReportSchedules: () => request<ScheduledReport[]>('/reports/schedules'),
+  createReportSchedule: (config: GenerateReportConfig) =>
+    request<ScheduledReport>('/reports/schedules', { method: 'POST', body: JSON.stringify(config) }),
+  toggleReportSchedule: (scheduleId: string, active: boolean) =>
+    request<ScheduledReport>(`/reports/schedules/${encodeURIComponent(scheduleId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ active }),
     }),
 };
 

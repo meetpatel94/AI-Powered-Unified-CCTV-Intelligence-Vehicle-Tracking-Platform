@@ -51,7 +51,7 @@ export const navItems: NavItem[] = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics', available: true },
   { id: 'investigation', label: 'Investigation', icon: Siren, path: '/investigation', available: true },
   { id: 'camera-health', label: 'Camera Health', icon: Gauge, path: '/camera-health', available: true },
-  { id: 'reports', label: 'Reports', icon: FileText, path: '/reports' },
+  { id: 'reports', label: 'Reports', icon: FileText, path: '/reports', available: true },
   { id: 'users-roles', label: 'Users & Roles', icon: Users, path: '/users-roles', available: true },
   { id: 'system-settings', label: 'System Settings', icon: Settings, path: '/system-settings' },
 ];
