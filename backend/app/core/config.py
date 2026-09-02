@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import List
 
-from pydantic import Field, field_validator
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,6 +32,19 @@ class Settings(BaseSettings):
     sentinel_api_secret: str = ""
     sentinel_timeout_seconds: float = 15.0
     sentinel_verify_tls: bool = True
+
+    # Stream gateway — RTSP URLs always come from the Camera Registry / Sentinel.
+    ffmpeg_path: str = "ffmpeg"
+    stream_rtsp_transport: str = "tcp"
+    stream_connect_timeout_seconds: float = 10.0
+    stream_stale_seconds: float = 8.0
+    stream_backoff_min_seconds: float = 2.0
+    stream_backoff_max_seconds: float = 30.0
+    stream_jpeg_quality: int = 5
+    stream_ai_max_width: int = 1280
+    stream_auto_start: bool = True
+    stream_auto_start_limit: int = 1
+    stream_max_workers: int = 32
 
     @property
     def cors_origin_list(self) -> List[str]:

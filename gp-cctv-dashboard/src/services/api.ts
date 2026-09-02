@@ -32,6 +32,45 @@ import type {
 } from '@/types/reports';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
+const API_ROOT = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/v1\/?$/, '') || '/api';
+
+export interface RegistryCamera {
+  camera_id: string;
+  department: string | null;
+  location_name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  camera_type: string | null;
+  codec: string | null;
+  resolution: string | null;
+  status: string | null;
+  connectivity: string | null;
+  vms: string | null;
+  owner: string | null;
+  rtsp_url: string | null;
+  webrtc_url: string | null;
+  hls_url: string | null;
+}
+
+export interface StreamStatusDto {
+  camera_id: string;
+  state: string;
+  rtsp_configured: boolean;
+  codec: string | null;
+  width: number | null;
+  height: number | null;
+  resolution: string | null;
+  source_fps: number | null;
+  measured_fps: number;
+  frame_count: number;
+  last_pts_ms: number | null;
+  last_frame_at: string | null;
+  last_error: string | null;
+  reconnect_attempt: number;
+  next_retry_in_s: number | null;
+  live_frame_path: string;
+  live_mjpeg_path: string;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE_URL}${path}`, {

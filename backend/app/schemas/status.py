@@ -8,3 +8,5 @@ class BackendStatus(BaseModel):
     sentinel_catalogue: str
     sentinel_url: str
     camera_count: int | None = None
+    live_streams: int = 0
+    stream_states: dict[str, int] | None = None

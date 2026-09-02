@@ -44,8 +44,11 @@ export interface LiveCamera {
   vehicleCount: number;
   lastPlate?: string;
   alertLabel?: string;
-  /** Future: resolved through services/streams.ts (HLS / WHEP). */
+  /** Catalogue RTSP URL (never hard-coded). */
   streamUrl: string;
+  /** Latest JPEG from the stream gateway; polled by Live View. */
+  liveFrameUrl?: string;
+  gatewayState?: string;
   events: CameraEvent[];
 }
 

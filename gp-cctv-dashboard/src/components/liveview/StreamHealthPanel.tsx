@@ -1,6 +1,13 @@
 import { Panel } from '@/components/common/Panel';
-import { streamHealthMetrics, streamStates } from '@/data/liveViewData';
+import { streamHealthMetrics, streamStates as mockStates } from '@/data/liveViewData';
 import { drift } from '@/hooks/useTelemetryTick';
+
+export interface GatewayHealth {
+  states: { online: number; reconnecting: number; offline: number; degraded: number };
+  avgFps: number;
+  liveCount: number;
+  gatewayOnline: boolean;
+}
 
 const toneBar: Record<string, string> = {
   green: '#22c55e',
@@ -20,7 +27,15 @@ const toneText: Record<string, string> = {
  * Fleet-level ingest telemetry strip that sits under the camera wall:
  * state counters on the left, live quality metrics on the right.
  */
-export function StreamHealthPanel({ tick }: { tick: number }) {
+export function StreamHealthPanel({ tick, health }: { tick: number; health?: GatewayHealth }) {
+  const streamStates = health
+    ? [
+        { id: 'online', label: 'Online', count: health.states.online, color: '#22c55e' },
+        { id: 'reconnecting', label: 'Reconnecting', count: health.states.reconnecting, color: '#f59e0b' },
+        { id: 'offline', label: 'Offline', count: health.states.offline, color: '#ef4444' },
+        { id: 'degraded', label: 'Degraded', count: health.states.degraded, color: '#eab308' },
+      ]
+    : mockStates;
   return (
     <Panel
       title="Stream Health"
@@ -28,7 +43,7 @@ export function StreamHealthPanel({ tick }: { tick: number }) {
         <span className="flex items-center gap-2 text-3xs text-ink-dim">
           <span className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full bg-accent-green animate-pulse-dot" />
-            gateway connected
+            {health?.gatewayOnline ? 'gateway connected' : 'gateway standby'}
           </span>
           <span>last 5 min</span>
         </span>
@@ -60,7 +75,7 @@ export function StreamHealthPanel({ tick }: { tick: number }) {
         {streamHealthMetrics.map((metric) => {
           const live =
             metric.id === 'fps'
-              ? `${drift(24.6, 0.4, 'fleet-fps', tick, 1)}`
+              ? `${health ? health.avgFps.toFixed(1) : drift(24.6, 0.4, 'fleet-fps', tick, 1)}`
               : metric.id === 'latency'
                 ? `${drift(186, 12, 'fleet-lat', tick)} ms`
                 : metric.id === 'bitrate'

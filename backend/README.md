@@ -10,8 +10,8 @@ This layer implements:
 - **Camera Registry** (`cameras` table)
 - Dynamic integration with the official Gujarat Police Sentinel catalogue
   **`/api/ingest`** — camera URLs are **never hard-coded**
-- RTSP is the primary AI/inference feed (YOLO / ANPR / tracking are **not**
-  implemented yet)
+- RTSP stream gateway (FFmpeg, TCP, exponential backoff) — YOLO / ANPR **not**
+  implemented yet
 
 ## Layout
 
@@ -70,6 +70,12 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 | GET | `/api/cameras` | All Camera Registry rows |
 | GET | `/api/cameras/{camera_id}` | Single camera |
 | GET/POST | `/api/ingest` | Fetch Sentinel catalogue, validate, upsert registry |
+| GET | `/api/streams` | All stream workers + idle registry cameras |
+| GET | `/api/streams/{id}/status` | CONNECTING / LIVE / RECONNECTING / OFFLINE / ERROR |
+| POST | `/api/streams/{id}/start` | Start FFmpeg worker using catalogue RTSP URL |
+| POST | `/api/streams/{id}/stop` | Stop worker |
+| GET | `/api/streams/{id}/frame.jpg` | Latest in-memory JPEG (Live View) |
+| GET | `/api/streams/{id}/live` | MJPEG multipart for continuous preview |
 
 `POST /api/ingest` (and GET) calls the official Sentinel `/api/ingest`
 endpoint, normalizes metadata, and upserts by `camera_id`. Stream URLs
