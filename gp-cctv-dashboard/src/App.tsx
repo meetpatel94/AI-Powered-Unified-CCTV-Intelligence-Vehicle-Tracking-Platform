@@ -9,6 +9,7 @@ import { CameraMap } from '@/pages/CameraMap';
 import { Dashboard } from '@/pages/Dashboard';
 import { Investigation } from '@/pages/Investigation';
 import { LiveView } from '@/pages/LiveView';
+import { Reports } from '@/pages/Reports';
 import { Users } from '@/pages/Users';
 import { Watchlist } from '@/pages/Watchlist';
 
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/investigation" element={<Investigation />} />
             <Route path="/camera-health" element={<CameraHealth />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/users-roles" element={<Users />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
