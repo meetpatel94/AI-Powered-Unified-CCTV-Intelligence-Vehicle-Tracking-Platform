@@ -12,6 +12,7 @@ import { LiveView } from '@/pages/LiveView';
 import { Reports } from '@/pages/Reports';
 import { SystemSettings } from '@/pages/SystemSettings';
 import { Users } from '@/pages/Users';
+import { VehicleSearch } from '@/pages/VehicleSearch';
 import { Watchlist } from '@/pages/Watchlist';
 
 /**
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/live-view" element={<LiveView />} />
             <Route path="/camera-map" element={<CameraMap />} />
+            <Route path="/vehicle-search" element={<VehicleSearch />} />
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/alerts" element={<Alerts />} />
             <Route path="/analytics" element={<Analytics />} />
