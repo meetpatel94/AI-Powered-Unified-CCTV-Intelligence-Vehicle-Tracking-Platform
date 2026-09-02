@@ -40,12 +40,12 @@ export function AiEventsByTypePanel({ events, total, windowNote }: AiEventsByTyp
             title={`${bar.label}: ${formatIn(bar.value)} (${formatPct(pct)})`}
           >
             <div className="mb-[3px] flex items-center justify-between gap-2">
-              <span className={`truncate text-[9.5px] font-medium transition-colors ${active ? 'text-white' : 'text-[#9fb0cc]'}`}>
+              <span className={`truncate text-[11.5px] font-medium transition-colors ${active ? 'text-white' : 'text-[#9fb0cc]'}`}>
                 {bar.label}
               </span>
-              <span className="tnum shrink-0 text-[10px] font-bold text-white">
+              <span className="tnum shrink-0 text-[12px] font-bold text-white">
                 {formatIn(bar.value)}
-                <span className="ml-1 text-[8px] font-medium text-[#6d82a3]">{formatPct(pct, 0)}</span>
+                <span className="ml-1 text-[10px] font-medium text-[#6d82a3]">{formatPct(pct, 0)}</span>
               </span>
             </div>
             <span className="relative block h-[11px] overflow-hidden rounded-[2px] bg-[#0d1626] ring-1 ring-inset ring-edge-soft">

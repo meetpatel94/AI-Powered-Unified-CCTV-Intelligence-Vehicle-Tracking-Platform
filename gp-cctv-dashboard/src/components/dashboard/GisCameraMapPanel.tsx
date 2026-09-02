@@ -25,9 +25,9 @@ const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 
 const labelStyles = {
   city: 'text-[15px] font-semibold tracking-[0.06em] text-white/85',
-  town: 'text-[8.5px] font-medium tracking-[0.04em] text-[#8ea6c8]/85',
-  area: 'text-[9.5px] font-semibold tracking-[0.08em] text-[#a9c1e4]/85',
-  road: 'text-[7px] font-medium uppercase tracking-[0.12em] text-[#5f7fa8]',
+  town: 'text-[10.5px] font-medium tracking-[0.04em] text-[#8ea6c8]/85',
+  area: 'text-[11.5px] font-semibold tracking-[0.08em] text-[#a9c1e4]/85',
+  road: 'text-[9px] font-medium uppercase tracking-[0.12em] text-[#5f7fa8]',
 } as const;
 
 function MapControlButton({
@@ -241,7 +241,7 @@ export function GisCameraMapPanel() {
           ) : (
             <div
               key={point.step}
-              className="tnum absolute grid h-[19px] w-[19px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-white/80 bg-[#2563eb] text-[9px] font-bold text-white"
+              className="tnum absolute grid h-[19px] w-[19px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-white/80 bg-[#2563eb] text-[11px] font-bold text-white"
               style={{
                 left: pct(point.x, MAP_W),
                 top: pct(point.y, MAP_H),
@@ -256,10 +256,10 @@ export function GisCameraMapPanel() {
         {/* ---------------- alert popup ---------------- */}
         <div className="absolute left-[58%] top-[38%] w-[172px] overflow-hidden rounded-[5px] border border-accent-red/80 bg-[#2b0b10]/95 shadow-glow-red backdrop-blur-sm">
           <div className="flex items-center justify-between gap-1 border-b border-accent-red/40 bg-accent-red/12 px-2 py-1.5">
-            <span className="whitespace-nowrap text-[9.5px] font-bold tracking-wide text-[#ff8b96]">{mapAlert.title}</span>
+            <span className="whitespace-nowrap text-[11.5px] font-bold tracking-wide text-[#ff8b96]">{mapAlert.title}</span>
             <X size={10} className="shrink-0 cursor-pointer text-[#ff8b96]/70 hover:text-white" />
           </div>
-          <dl className="space-y-[3px] px-2 py-1.5 text-[9.5px] text-[#e3c6c9]">
+          <dl className="space-y-[3px] px-2 py-1.5 text-[11.5px] text-[#e3c6c9]">
             <div className="flex gap-1">
               <dt className="text-[#c78d95]">Vehicle:</dt>
               <dd className="font-semibold text-white">{mapAlert.vehicle}</dd>
@@ -280,7 +280,7 @@ export function GisCameraMapPanel() {
           <div className="px-2 pb-2">
             <button
               type="button"
-              className="w-full rounded-[4px] bg-accent-red py-[5px] text-[10px] font-semibold text-white transition-colors hover:bg-[#dc2626]"
+              className="w-full rounded-[4px] bg-accent-red py-[5px] text-[12px] font-semibold text-white transition-colors hover:bg-[#dc2626]"
             >
               View Details
             </button>

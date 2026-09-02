@@ -9,36 +9,48 @@ import { VehicleSearchPanel } from '@/components/dashboard/VehicleSearchPanel';
 
 /**
  * Operational dashboard: KPI strip, live wall + GIS map + alert rail,
- * then the vehicle intelligence row.
+ * then the vehicle intelligence row. Content scrolls the page when it is
+ * taller than the viewport; bands use minmax() grid columns so panels
+ * reflow instead of shrinking below readable sizes.
  */
 export function Dashboard() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
+    <div className="page">
       <KpiRow />
 
       {/* Situational awareness row */}
-      <div className="flex h-[464px] shrink-0 gap-3">
-        <div className="w-[34%] min-w-0">
+      <div
+        className="grid shrink-0 gap-[var(--page-gap)] grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(300px,34fr)_minmax(340px,39fr)_minmax(300px,27fr)]"
+        style={{ height: 'var(--row-main)' }}
+      >
+        <div className="min-w-0">
           <LiveFeedsPanel />
         </div>
-        <div className="w-[39%] min-w-0">
+        <div className="min-w-0">
           <GisCameraMapPanel />
         </div>
-        <div className="flex w-[27%] min-w-0 flex-col gap-3">
-          <RecentAlertsPanel />
-          <CameraHealthPanel />
+        <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] md:col-span-2 sm:grid-cols-2 xl:flex xl:col-span-1 xl:flex-col">
+          <div className="min-h-0 min-w-0 xl:flex-1">
+            <RecentAlertsPanel />
+          </div>
+          <div className="min-w-0 sm:col-span-2 xl:col-span-1">
+            <CameraHealthPanel />
+          </div>
         </div>
       </div>
 
       {/* Vehicle intelligence row */}
-      <div className="flex h-[280px] shrink-0 gap-3">
-        <div className="w-[20%] min-w-0">
+      <div
+        className="grid shrink-0 gap-[var(--page-gap)] grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(250px,20fr)_minmax(380px,47fr)_minmax(300px,33fr)]"
+        style={{ height: 'var(--row-mid)' }}
+      >
+        <div className="min-w-0">
           <VehicleSearchPanel />
         </div>
-        <div className="w-[47%] min-w-0">
+        <div className="min-w-0 md:col-span-2 xl:col-span-1">
           <JourneyTimelinePanel />
         </div>
-        <div className="w-[33%] min-w-0">
+        <div className="min-w-0">
           <AiAnalyticsPanel />
         </div>
       </div>

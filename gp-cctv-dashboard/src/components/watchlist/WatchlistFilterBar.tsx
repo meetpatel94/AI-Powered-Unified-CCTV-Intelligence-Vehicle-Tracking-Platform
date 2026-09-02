@@ -19,7 +19,7 @@ interface WatchlistFilterBarProps {
 }
 
 const selectCls =
-  'h-[28px] shrink-0 rounded-[4px] border border-edge bg-[#0c1424] px-2 text-[10.5px] text-[#c3cfe2] outline-none transition-colors hover:border-edge-strong focus:border-accent-blue/70';
+  'h-[32px] shrink-0 rounded-[4px] border border-edge bg-[#0c1424] px-2.5 text-[13px] text-[#c3cfe2] outline-none transition-colors hover:border-edge-strong focus:border-accent-blue/70';
 
 /** Filter strip: watchlist + type selects, search, sort and grid/list toggle. */
 export function WatchlistFilterBar({
@@ -58,7 +58,7 @@ export function WatchlistFilterBar({
           value={query}
           onChange={(event) => onQuery(event.target.value)}
           placeholder="Search by Number / Name / Alias..."
-          className="h-[28px] w-full rounded-[4px] border border-edge bg-[#0c1424] pl-7 pr-2 text-[10.5px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70"
+          className="h-[32px] w-full rounded-[4px] border border-edge bg-[#0c1424] pl-8 pr-2 text-[13px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70"
         />
       </div>
 
@@ -88,7 +88,7 @@ export function WatchlistFilterBar({
             type="button"
             title={title}
             onClick={() => onView(mode)}
-            className={`grid h-[26px] w-[28px] place-items-center transition-colors ${
+            className={`grid h-[30px] w-[32px] place-items-center transition-colors ${
               view === mode ? 'bg-[#1d6ce0] text-white' : 'bg-[#0c1424] text-[#8ea3c4] hover:text-white'
             }`}
           >

@@ -136,7 +136,7 @@ export function Watchlist() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+    <div className="page">
       <WatchlistHeader
         filtersVisible={filtersVisible}
         onToggleFilters={() => setFiltersVisible((value) => !value)}
@@ -163,28 +163,40 @@ export function Watchlist() {
       ) : null}
 
       {/* three-column body */}
-      <div className="flex h-[440px] shrink-0 gap-2.5">
-        <div className="w-[26%] min-w-[280px]">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(290px,26fr)_minmax(0,1fr)_minmax(310px,310px)]"
+        style={{ height: 'var(--row-main)' }}
+      >
+        <div className="min-w-0">
           <WatchlistCategoriesPanel activeCategory={categoryFilter} onSelectCategory={setCategoryFilter} />
         </div>
 
-        <RecentEntriesPanel entries={visibleEntries} total={entries.length} view={view} onOpen={setSelected} />
+        <div className="min-w-0">
+          <RecentEntriesPanel entries={visibleEntries} total={entries.length} view={view} onOpen={setSelected} />
+        </div>
 
-        <aside className="flex w-[292px] shrink-0 flex-col gap-2.5">
-          <WatchlistAlertsPanel />
-          <WatchlistSummaryPanel />
-        </aside>
+        <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] sm:grid-cols-2 md:col-span-2 xl:flex xl:flex-col xl:col-span-1">
+          <div className="min-h-0 min-w-0 xl:flex-1">
+            <WatchlistAlertsPanel />
+          </div>
+          <div className="min-w-0 sm:col-span-2 xl:col-span-1">
+            <WatchlistSummaryPanel />
+          </div>
+        </div>
       </div>
 
       {/* analytics bottom row */}
-      <div className="flex h-[224px] shrink-0 gap-2.5">
-        <div className="w-[33%] min-w-0">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[33fr_40fr_27fr]"
+        style={{ height: 'var(--row-charts)' }}
+      >
+        <div className="min-w-0">
           <AlertsByWatchlistPanel />
         </div>
-        <div className="w-[40%] min-w-0">
+        <div className="min-w-0">
           <MatchesOverTimePanel />
         </div>
-        <div className="w-[27%] min-w-0">
+        <div className="min-w-0">
           <TopLocationsPanel />
         </div>
       </div>
@@ -193,7 +205,7 @@ export function Watchlist() {
       <AddWatchlistModal open={addOpen} onClose={() => setAddOpen(false)} onCreate={handleCreate} />
 
       {notice ? (
-        <div className="fixed bottom-4 right-4 z-[60] rounded-[6px] border border-accent-green/50 bg-[#0b2e26] px-3 py-2 text-[10.5px] font-medium text-[#6fe0b0] shadow-glow">
+        <div className="fixed bottom-4 right-4 z-[60] rounded-[6px] border border-accent-green/50 bg-[#0b2e26] px-3 py-2 text-[12.5px] font-medium text-[#6fe0b0] shadow-glow">
           {notice}
         </div>
       ) : null}

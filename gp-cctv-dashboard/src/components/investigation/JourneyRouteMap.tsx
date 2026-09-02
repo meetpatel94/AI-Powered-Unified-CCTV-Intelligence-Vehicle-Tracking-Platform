@@ -16,8 +16,8 @@ interface JourneyRouteMapProps {
 }
 
 const placeStyle: Record<string, string> = {
-  metro: 'text-[10px] font-bold tracking-[0.16em] text-white/80',
-  city: 'text-[8.5px] font-semibold tracking-[0.12em] text-[#b9d0ee]/80',
+  metro: 'text-[12px] font-bold tracking-[0.16em] text-white/80',
+  city: 'text-[10.5px] font-semibold tracking-[0.12em] text-[#b9d0ee]/80',
 };
 
 /**
@@ -186,14 +186,14 @@ export function JourneyRouteMap({ legs, nodes, activeStep, onSelectStep, frameTo
             >
               {critical ? <span className="absolute -inset-1.5 rounded-full bg-accent-red/40 animate-ping2" /> : null}
               <span
-                className={`tnum relative grid place-items-center rounded-full border-2 text-[9px] font-bold text-white ${
+                className={`tnum relative grid place-items-center rounded-full border-2 text-[11px] font-bold text-white ${
                   critical ? 'h-[21px] w-[21px] bg-accent-red' : 'h-[18px] w-[18px] bg-[#2563eb]'
                 } ${active ? 'border-white scale-110' : 'border-white/80'}`}
                 style={{ boxShadow: critical ? '0 0 14px rgba(239,68,68,0.9)' : '0 0 10px rgba(37,99,235,0.85)' }}
               >
                 {node.journeyStep}
               </span>
-              <span className="tnum absolute left-1/2 top-full mt-[3px] -translate-x-1/2 whitespace-nowrap rounded-[2px] bg-black/75 px-1 text-[7.5px] font-semibold text-[#c9d6ea]">
+              <span className="tnum absolute left-1/2 top-full mt-[3px] -translate-x-1/2 whitespace-nowrap rounded-[2px] bg-black/75 px-1 text-[9.5px] font-semibold text-[#c9d6ea]">
                 {node.cameraId}
               </span>
             </button>
@@ -203,7 +203,7 @@ export function JourneyRouteMap({ legs, nodes, activeStep, onSelectStep, frameTo
 
       {/* map chrome */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-1.5">
-        <span className="pointer-events-auto flex items-center gap-1 rounded-[4px] border border-edge bg-[#05070f]/85 px-1.5 py-[3px] text-[8px] font-semibold uppercase tracking-[0.08em] text-[#9fb0cc]">
+        <span className="pointer-events-auto flex items-center gap-1 rounded-[4px] border border-edge bg-[#05070f]/85 px-1.5 py-[3px] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#9fb0cc]">
           <Crosshair size={9} className="text-accent-cyan" />
           Route reconstruction · GIS
         </span>
@@ -246,7 +246,7 @@ export function JourneyRouteMap({ legs, nodes, activeStep, onSelectStep, frameTo
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-[#05070f]/95 to-transparent px-1.5 pb-1.5 pt-4">
-        <span className="flex items-center gap-2 text-[7.5px] text-[#8ea1c0]">
+        <span className="flex items-center gap-2 text-[9.5px] text-[#8ea1c0]">
           <span className="flex items-center gap-1">
             <span className="h-[2px] w-3 rounded-full bg-[#38bdf8]" /> ANPR leg
           </span>
@@ -257,7 +257,7 @@ export function JourneyRouteMap({ legs, nodes, activeStep, onSelectStep, frameTo
             <span className="h-1.5 w-1.5 rounded-full bg-[#2563eb] ring-1 ring-white/70" /> node
           </span>
         </span>
-        <span className="tnum text-[7.5px] text-[#55668a]">drag to pan · wheel to zoom · click a node to focus</span>
+        <span className="tnum text-[9.5px] text-[#55668a]">drag to pan · wheel to zoom · click a node to focus</span>
       </div>
     </div>
   );

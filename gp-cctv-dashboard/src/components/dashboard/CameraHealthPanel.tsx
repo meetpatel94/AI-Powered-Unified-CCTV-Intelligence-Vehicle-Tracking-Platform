@@ -52,7 +52,7 @@ export function CameraHealthPanel() {
 
       <ul className="min-w-0 flex-1 space-y-[9px]">
         {cameraHealth.map((slice) => (
-          <li key={slice.id} className="flex items-center gap-2 text-[10.5px]">
+          <li key={slice.id} className="flex items-center gap-2 text-[12.5px]">
             <span
               className="h-2 w-2 shrink-0 rounded-[2px]"
               style={{ background: slice.color, boxShadow: `0 0 6px ${slice.color}70` }}

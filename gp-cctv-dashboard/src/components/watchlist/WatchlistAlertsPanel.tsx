@@ -47,16 +47,16 @@ function AlertRow({ alert }: { alert: WatchlistAlertItem }) {
 
       <span className="min-w-0 flex-1">
         <span className="flex items-start justify-between gap-2">
-          <span className={`truncate text-[10px] font-semibold ${tone.title}`}>{alert.title}</span>
+          <span className={`truncate text-[12px] font-semibold ${tone.title}`}>{alert.title}</span>
           <span className="tnum shrink-0 text-3xs text-ink-dim">{alert.time}</span>
         </span>
         {alert.label ? (
-          <span className="mt-[1px] block truncate text-[10.5px] font-semibold tracking-wide text-white">
+          <span className="mt-[1px] block truncate text-[12.5px] font-semibold tracking-wide text-white">
             {alert.label}
           </span>
         ) : null}
         <span className="mt-[1px] flex items-end justify-between gap-2">
-          <span className="truncate text-[9px] text-[#94a5c2]">
+          <span className="truncate text-[11px] text-[#94a5c2]">
             {alert.camera} | {alert.location}
           </span>
           <span className="shrink-0 text-3xs text-[#6d7f9e]">{alert.ago}</span>
@@ -72,7 +72,7 @@ export function WatchlistAlertsPanel() {
     <Panel
       title="Recent Alerts"
       action={<ViewAll />}
-      className="min-h-0 flex-1"
+      className="h-full min-h-0"
       bodyClassName="flex flex-col justify-between gap-1.5 overflow-y-auto px-2 pb-2 pt-0.5"
     >
       {watchlistAlerts.map((alert) => (

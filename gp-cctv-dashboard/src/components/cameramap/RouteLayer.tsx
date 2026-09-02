@@ -17,7 +17,7 @@ interface RouteLayerProps {
   insets?: { top?: number; right?: number; bottom?: number; left?: number };
 }
 
-const ALERT_W = 214;
+const ALERT_W = 250;
 
 /** Tracked-vehicle polyline, numbered sighting nodes and the watchlist alert callout. */
 export function RouteLayer({
@@ -112,8 +112,8 @@ export function RouteLayer({
               <span className="absolute -inset-1 rounded-full bg-accent-red/40 animate-ping2" />
             )}
             <span
-              className={`tnum relative grid place-items-center rounded-full border-2 text-[10px] font-bold text-white ${
-                node.critical ? 'h-[24px] w-[24px] bg-accent-red' : 'h-[20px] w-[20px] bg-[#2563eb]'
+              className={`tnum relative grid place-items-center rounded-full border-2 text-[13px] font-bold text-white ${
+                node.critical ? 'h-[26px] w-[26px] bg-accent-red' : 'h-[22px] w-[22px] bg-[#2563eb]'
               } ${active ? 'border-white' : 'border-white/80'}`}
               style={{
                 boxShadow: node.critical ? '0 0 16px rgba(239,68,68,0.9)' : '0 0 12px rgba(37,99,235,0.85)',
@@ -129,25 +129,25 @@ export function RouteLayer({
       {showAlert && (
         <div
           ref={alertRef}
-          className="pointer-events-auto absolute z-40 w-[214px] overflow-hidden rounded-md border border-accent-red/80 bg-[#2b0b10]/96 shadow-glow-red backdrop-blur-sm"
+          className="pointer-events-auto absolute z-40 w-[250px] overflow-hidden rounded-md border border-accent-red/80 bg-[#2b0b10]/96 shadow-glow-red backdrop-blur-sm"
           style={{ left: alertLeft, top: alertTop }}
           onClick={(event) => event.stopPropagation()}
         >
-          <div className="flex items-center justify-between gap-1 border-b border-accent-red/40 bg-accent-red/15 px-2 py-1.5">
-            <span className="flex items-center gap-1 whitespace-nowrap text-[10px] font-bold tracking-wide text-[#ff8b96]">
-              <Crosshair size={11} className="animate-pulse-dot" />
+          <div className="flex items-center justify-between gap-2 border-b border-accent-red/40 bg-accent-red/15 px-2.5 py-2">
+            <span className="flex items-center gap-1.5 whitespace-nowrap text-[12px] font-bold tracking-wide text-[#ff8b96]">
+              <Crosshair size={13} className="animate-pulse-dot" />
               {mapAlertPopup.title}
             </span>
             <button type="button" onClick={onDismissAlert} aria-label="Dismiss" className="text-[#ff8b96]/70 hover:text-white">
-              <X size={11} />
+              <X size={13} />
             </button>
           </div>
 
-          <dl className="space-y-[3px] px-2 py-1.5 text-[9.5px] text-[#e3c6c9]">
+          <dl className="space-y-1 px-2.5 py-2 text-[13px] text-[#e3c6c9]">
             <div className="flex gap-1">
               <dt className="text-[#c78d95]">Vehicle:</dt>
               <dd className="font-semibold text-white">{mapAlertPopup.vehicle}</dd>
-              <dd className="ml-auto rounded-[2px] bg-accent-red/25 px-1 text-[8px] font-bold text-[#ffb3ba]">
+              <dd className="ml-auto rounded-[2px] bg-accent-red/25 px-1.5 py-px text-[12px] font-bold text-[#ffb3ba]">
                 {mapAlertPopup.confidence}
               </dd>
             </div>
@@ -165,25 +165,25 @@ export function RouteLayer({
             </div>
           </dl>
 
-          <div className="flex items-center gap-1 px-2 pb-2">
+          <div className="flex items-center gap-1.5 px-2.5 pb-2.5">
             <button
               type="button"
               onClick={onViewDetails}
-              className="h-[24px] flex-1 whitespace-nowrap rounded-[4px] bg-accent-red text-[9px] font-semibold text-white transition-colors hover:bg-[#dc2626]"
+              className="h-[28px] flex-1 whitespace-nowrap rounded-[4px] bg-accent-red text-[13px] font-semibold text-white transition-colors hover:bg-[#dc2626]"
             >
               View Details
             </button>
             <button
               type="button"
               onClick={onTrackVehicle}
-              className="h-[24px] flex-1 whitespace-nowrap rounded-[4px] border border-accent-red/60 bg-accent-red/10 text-[9px] font-semibold text-[#ffb3ba] transition-colors hover:bg-accent-red/20"
+              className="h-[28px] flex-1 whitespace-nowrap rounded-[4px] border border-accent-red/60 bg-accent-red/10 text-[13px] font-semibold text-[#ffb3ba] transition-colors hover:bg-accent-red/20"
             >
               Track Vehicle
             </button>
             <button
               type="button"
               onClick={onDismissAlert}
-              className="h-[24px] whitespace-nowrap rounded-[4px] border border-edge bg-[#0c1424] px-1.5 text-[9px] text-[#c3cfe2] transition-colors hover:text-white"
+              className="h-[28px] whitespace-nowrap rounded-[4px] border border-edge bg-[#0c1424] px-2 text-[13px] text-[#c3cfe2] transition-colors hover:text-white"
             >
               Dismiss
             </button>

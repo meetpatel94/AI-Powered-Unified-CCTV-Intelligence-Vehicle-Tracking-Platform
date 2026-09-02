@@ -46,7 +46,7 @@ export function StreamHealthPanel({ tick }: { tick: number }) {
             <span className="tnum text-[15px] font-bold leading-none" style={{ color: state.color }}>
               {state.count}
             </span>
-            <span className="mt-[3px] text-[7.5px] uppercase tracking-wide text-[#7286a6]">
+            <span className="mt-[3px] text-[9.5px] uppercase tracking-wide text-[#7286a6]">
               {state.label}
             </span>
           </div>
@@ -70,10 +70,10 @@ export function StreamHealthPanel({ tick }: { tick: number }) {
           return (
             <li key={metric.id} className="flex flex-col justify-center">
               <div className="mb-[3px] flex items-baseline justify-between gap-2">
-                <span className="truncate text-[9px] uppercase tracking-wide text-[#7286a6]">
+                <span className="truncate text-[11px] uppercase tracking-wide text-[#7286a6]">
                   {metric.label}
                 </span>
-                <span className={`tnum text-[10.5px] font-semibold ${toneText[metric.tone]}`}>{live}</span>
+                <span className={`tnum text-[12.5px] font-semibold ${toneText[metric.tone]}`}>{live}</span>
               </div>
               <div className="h-[4px] w-full overflow-hidden rounded-full bg-[#101c30]">
                 <div
@@ -85,7 +85,7 @@ export function StreamHealthPanel({ tick }: { tick: number }) {
                   }}
                 />
               </div>
-              <div className="mt-[2px] text-[8px] text-[#5f7fa8]">{metric.sub}</div>
+              <div className="mt-[2px] text-[10px] text-[#5f7fa8]">{metric.sub}</div>
             </li>
           );
         })}

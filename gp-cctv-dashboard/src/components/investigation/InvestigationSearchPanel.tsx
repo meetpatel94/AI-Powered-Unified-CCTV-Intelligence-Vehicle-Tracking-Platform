@@ -87,7 +87,7 @@ export function InvestigationSearchPanel({
       type="button"
       title={title}
       onClick={() => onChange(!value)}
-      className={`flex h-[24px] items-center gap-1.5 rounded-[4px] border px-2 text-[9px] font-semibold uppercase tracking-[0.06em] transition-colors ${
+      className={`flex h-[24px] items-center gap-1.5 rounded-[4px] border px-2 text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors ${
         value
           ? 'border-accent-cyan/60 bg-[#083344]/70 text-[#67e8f9]'
           : 'border-edge bg-[#0c1424] text-[#7f93b3] hover:border-edge-strong hover:text-[#c3cfe2]'
@@ -118,7 +118,7 @@ export function InvestigationSearchPanel({
                 key={id}
                 type="button"
                 onClick={() => onMode(id)}
-                className={`flex h-[24px] items-center gap-1 rounded-[4px] px-2 text-[9.5px] font-semibold transition-all ${
+                className={`flex h-[28px] items-center gap-1.5 rounded-[4px] px-2.5 text-[12.5px] font-semibold transition-all ${
                   mode === id
                     ? 'bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] text-white shadow-[0_0_12px_-4px_rgba(47,125,255,0.9)]'
                     : 'text-[#8ea3c4] hover:bg-panel-hover hover:text-white'
@@ -138,10 +138,10 @@ export function InvestigationSearchPanel({
         {/* plate entry */}
         <div className="w-[392px] shrink-0">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[8.5px] font-semibold uppercase tracking-[0.09em] text-[#6d7f9e]">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#6d7f9e]">
               {mode === 'vehicle' ? 'Target plate / vehicle' : mode === 'camera' ? 'Camera / location' : 'Person / event'}
             </span>
-            <span className="text-[8.5px] text-[#55668a]">{activeMode.hint}</span>
+            <span className="text-[10.5px] text-[#55668a]">{activeMode.hint}</span>
           </div>
           <div className="flex gap-1.5">
             <div className="relative flex-1">
@@ -181,10 +181,10 @@ export function InvestigationSearchPanel({
             <button
               type="button"
               onClick={onSearch}
-              className="flex h-[42px] w-[104px] shrink-0 flex-col items-center justify-center rounded-[6px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] text-[11px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_0_16px_-4px_rgba(47,125,255,0.9)] transition-all hover:brightness-110"
+              className="flex h-[42px] w-[104px] shrink-0 flex-col items-center justify-center rounded-[6px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] text-[13px] font-bold uppercase tracking-[0.08em] text-white shadow-[0_0_16px_-4px_rgba(47,125,255,0.9)] transition-all hover:brightness-110"
             >
               {scanning ? (
-                <span className="flex items-center gap-1 text-[10px]">
+                <span className="flex items-center gap-1 text-[12px]">
                   <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse-dot" />
                   Scanning
                 </span>
@@ -206,15 +206,15 @@ export function InvestigationSearchPanel({
         {/* candidates */}
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-[8.5px] font-semibold uppercase tracking-[0.09em] text-[#6d7f9e]">
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#6d7f9e]">
               Index candidates
-              <span className="tnum ml-1 rounded-[3px] bg-[#16233a] px-1 text-[8px] text-[#8ea1c0]">{candidates.length}</span>
+              <span className="tnum ml-1 rounded-[3px] bg-[#16233a] px-1 text-[10px] text-[#8ea1c0]">{candidates.length}</span>
             </span>
-            <span className="text-[8.5px] text-[#55668a]">click a candidate to load its dossier</span>
+            <span className="text-[10.5px] text-[#55668a]">click a candidate to load its dossier</span>
           </div>
 
           {candidates.length === 0 ? (
-            <div className="grid h-[74px] place-items-center rounded-[5px] border border-dashed border-edge text-[10px] text-ink-dim">
+            <div className="grid h-[74px] place-items-center rounded-[5px] border border-dashed border-edge text-[12px] text-ink-dim">
               No index match for “{mode === 'vehicle' ? plate : query}” — widen the range or clear the watchlist filter.
             </div>
           ) : (
@@ -239,14 +239,14 @@ export function InvestigationSearchPanel({
                       <Icon size={12} strokeWidth={2} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="tnum flex items-center gap-1 truncate font-mono text-[11px] font-bold tracking-[0.05em] text-white">
+                      <span className="tnum flex items-center gap-1 truncate font-mono text-[13px] font-bold tracking-[0.05em] text-white">
                         {candidate.label}
                         {candidate.kind === 'camera' ? <CameraIcon size={9} className="shrink-0 text-[#6d7f9e]" /> : null}
                         {candidate.kind === 'person' ? <ShieldAlert size={9} className="shrink-0 text-[#6d7f9e]" /> : null}
                       </span>
-                      <span className="block truncate text-[8.5px] text-[#94a5c2]">{candidate.sub}</span>
+                      <span className="block truncate text-[10.5px] text-[#94a5c2]">{candidate.sub}</span>
                       <span className="mt-[3px] flex items-center gap-1">
-                        <span className="truncate text-[8px] text-[#6d82a3]">{candidate.meta}</span>
+                        <span className="truncate text-[10px] text-[#6d82a3]">{candidate.meta}</span>
                         <ArrowRight
                           size={10}
                           className="ml-auto shrink-0 text-[#3f5170] transition-colors group-hover:text-accent-cyan"
@@ -264,7 +264,7 @@ export function InvestigationSearchPanel({
 
         {/* recent investigations */}
         <div className="w-[248px] shrink-0">
-          <div className="mb-1 flex items-center gap-1 text-[8.5px] font-semibold uppercase tracking-[0.09em] text-[#6d7f9e]">
+          <div className="mb-1 flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#6d7f9e]">
             <History size={10} />
             Recent investigations
           </div>
@@ -281,11 +281,11 @@ export function InvestigationSearchPanel({
                 }`}
               >
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${toneDot[recent.tone]}`} />
-                <span className="tnum shrink-0 font-mono text-[9.5px] font-semibold text-[#dbe6f5]">{recent.label}</span>
-                <span className="min-w-0 flex-1 truncate text-[8px] text-[#7f93b3]">
+                <span className="tnum shrink-0 font-mono text-[11.5px] font-semibold text-[#dbe6f5]">{recent.label}</span>
+                <span className="min-w-0 flex-1 truncate text-[10px] text-[#7f93b3]">
                   <span className="tnum text-[#55668a]">{recent.id}</span> {recent.sub}
                 </span>
-                <span className="tnum shrink-0 text-[8px] text-[#55668a]">{recent.ago}</span>
+                <span className="tnum shrink-0 text-[10px] text-[#55668a]">{recent.ago}</span>
               </button>
             ))}
           </div>

@@ -42,7 +42,7 @@ function MiniChart({ label, icon: Icon, points, color, tone, unit, digits = 1, t
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-[5px] border border-edge bg-[#0a1120] px-2 py-1.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
+        <span className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
           <Icon size={11} style={{ color }} />
           {label}
         </span>
@@ -50,7 +50,7 @@ function MiniChart({ label, icon: Icon, points, color, tone, unit, digits = 1, t
           <span className="text-[13px] font-bold leading-none" style={{ color: toneInk[tone] }}>
             {last.toFixed(digits)}
           </span>
-          <span className="text-[8.5px] text-ink-faint">{unit}</span>
+          <span className="text-[10.5px] text-ink-faint">{unit}</span>
         </span>
       </div>
 
@@ -87,7 +87,7 @@ function MiniChart({ label, icon: Icon, points, color, tone, unit, digits = 1, t
         <circle cx={scaled[scaled.length - 1].x} cy={scaled[scaled.length - 1].y} r="1.6" fill={color} vectorEffect="non-scaling-stroke" />
       </svg>
 
-      <div className="mt-1 flex items-center justify-between font-mono text-[8.5px] text-ink-faint">
+      <div className="mt-1 flex items-center justify-between font-mono text-[10.5px] text-ink-faint">
         <span>
           avg <span className="text-[#c3cfe2]">{avg.toFixed(digits)}</span>
         </span>
@@ -98,7 +98,7 @@ function MiniChart({ label, icon: Icon, points, color, tone, unit, digits = 1, t
           peak <span className="text-[#c3cfe2]">{peak.value.toFixed(digits)}</span> @ {peak.label}
         </span>
       </div>
-      <p className="mt-[2px] truncate text-[8.5px] text-ink-faint" title={note}>
+      <p className="mt-[2px] truncate text-[10.5px] text-ink-faint" title={note}>
         {note}
       </p>
     </div>
@@ -117,7 +117,7 @@ export function StreamQualityPanel({ series, settings }: StreamQualityPanelProps
       title="Stream Quality"
       className="h-full min-h-0"
       bodyClassName="flex min-h-0 flex-col gap-2 px-2.5 pb-2.5"
-      tools={<span className="tnum font-mono text-[9px] text-ink-faint">{qualityWindowLabel}</span>}
+      tools={<span className="tnum font-mono text-[11px] text-ink-faint">{qualityWindowLabel}</span>}
     >
       <div className="grid min-h-0 flex-1 grid-cols-2 gap-2 xl:grid-cols-4">
         <MiniChart

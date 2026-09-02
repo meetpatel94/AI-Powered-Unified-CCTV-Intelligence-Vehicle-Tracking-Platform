@@ -51,11 +51,11 @@ export function AlertCard({ alert, selected, onSelect, onQuickResolve }: AlertCa
           loading="lazy"
           className={`h-full w-full object-cover ${resolved ? 'opacity-70 saturate-50' : 'transition-transform duration-300 group-hover:scale-[1.06]'}`}
         />
-        <span className="tnum absolute bottom-0 left-0 right-0 truncate bg-gradient-to-t from-black/95 to-transparent px-1 pt-2 pb-[2px] text-[7px] font-semibold tracking-wide text-[#9fb0cc]">
+        <span className="tnum absolute bottom-0 left-0 right-0 truncate bg-gradient-to-t from-black/95 to-transparent px-1 pt-2 pb-[2px] text-[9px] font-semibold tracking-wide text-[#9fb0cc]">
           {alert.camera}
         </span>
         {alert.plate ? (
-          <span className="absolute right-0.5 top-0.5 rounded-[2px] bg-[#083344]/90 px-1 text-[7px] font-bold text-[#67e8f9]">
+          <span className="absolute right-0.5 top-0.5 rounded-[2px] bg-[#083344]/90 px-1 text-[9px] font-bold text-[#67e8f9]">
             ANPR
           </span>
         ) : null}
@@ -65,16 +65,16 @@ export function AlertCard({ alert, selected, onSelect, onQuickResolve }: AlertCa
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <Icon size={11} strokeWidth={2.1} className={`shrink-0 ${severityText[alert.severity]}`} />
-          <span className={`truncate text-[10.5px] font-bold uppercase tracking-[0.06em] ${severityText[alert.severity]}`}>
+          <span className={`truncate text-[12.5px] font-bold uppercase tracking-[0.06em] ${severityText[alert.severity]}`}>
             {alert.title}
           </span>
           <SeverityChip severity={alert.severity} />
           {alert.watchlistList ? (
-            <span className="hidden truncate rounded-[3px] bg-[#210e30] px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-[#d0a4f7] ring-1 ring-accent-purple/40 xl:inline">
+            <span className="hidden truncate rounded-[3px] bg-[#210e30] px-1.5 py-px text-[10px] font-bold uppercase tracking-wide text-[#d0a4f7] ring-1 ring-accent-purple/40 xl:inline">
               {alert.watchlistList}
             </span>
           ) : null}
-          <span className="tnum ml-auto shrink-0 text-[9px] text-ink-dim">{alert.time}</span>
+          <span className="tnum ml-auto shrink-0 text-[11px] text-ink-dim">{alert.time}</span>
         </div>
 
         <div className="mt-[3px] flex items-baseline gap-2">
@@ -86,16 +86,16 @@ export function AlertCard({ alert, selected, onSelect, onQuickResolve }: AlertCa
             {alert.subject}
           </span>
           {alert.objectLabel ? (
-            <span className="truncate text-[9.5px] text-[#8ea1c0]">{alert.objectLabel}</span>
+            <span className="truncate text-[11.5px] text-[#8ea1c0]">{alert.objectLabel}</span>
           ) : null}
           {resolved ? null : (
-            <span className="tnum ml-auto hidden shrink-0 text-[8.5px] text-[#6d7f9e] group-hover:inline">
+            <span className="tnum ml-auto hidden shrink-0 text-[10.5px] text-[#6d7f9e] group-hover:inline">
               {alert.id}
             </span>
           )}
         </div>
 
-        <div className="mt-[4px] flex items-center gap-2.5 text-[9px] text-[#94a5c2]">
+        <div className="mt-[4px] flex items-center gap-2.5 text-[11px] text-[#94a5c2]">
           <span className="flex min-w-0 items-center gap-1">
             <MapPin size={9} className="shrink-0 text-accent-cyan" />
             <span className="truncate">
@@ -116,7 +116,7 @@ export function AlertCard({ alert, selected, onSelect, onQuickResolve }: AlertCa
 
       {/* right rail: age + quick actions */}
       <div className="flex w-[72px] shrink-0 flex-col items-end justify-between border-l border-edge-soft pl-2">
-        <span className="tnum text-[9px] font-medium text-[#8ea1c0]">{alert.ago}</span>
+        <span className="tnum text-[11px] font-medium text-[#8ea1c0]">{alert.ago}</span>
         <div className="flex items-center gap-1">
           {!resolved && alert.status === 'new' ? (
             <button
@@ -195,8 +195,8 @@ export function AlertFeedPanel({
   onReset,
 }: AlertFeedPanelProps) {
   return (
-    <section className="panel flex min-h-0 min-w-0 flex-1 flex-col">
-      <header className="flex shrink-0 items-center justify-between gap-2 px-3 pb-1.5 pt-2.5">
+    <section className="panel flex h-full min-h-0 min-w-0 flex-col">
+      <header className="flex shrink-0 items-center justify-between gap-3 px-3.5 pb-2 pt-2.5">
         <h2 className="panel-title">
           Alert Feed
           <span className="ml-2 font-normal normal-case tracking-normal text-ink-dim">
@@ -211,23 +211,23 @@ export function AlertFeedPanel({
             <select
               value={sort}
               onChange={(event) => onSort(event.target.value as AlertSortMode)}
-              className={`h-[24px] appearance-none rounded-[4px] border border-edge bg-[#0c1424] pl-2 pr-6 text-[10px] font-medium outline-none transition-colors hover:border-edge-strong ${sortTone[sort]}`}
+              className={`h-[30px] appearance-none rounded-[4px] border border-edge bg-[#0c1424] pl-2.5 pr-7 text-[12px] font-medium outline-none transition-colors hover:border-edge-strong ${sortTone[sort]}`}
             >
               <option value="newest">Newest first</option>
               <option value="severity">Severity first</option>
               <option value="oldest">Oldest first</option>
             </select>
-            <ChevronRight size={11} className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 rotate-90 text-[#6d7f9e]" />
+            <ChevronRight size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rotate-90 text-[#6d7f9e]" />
           </div>
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-2.5 pb-2.5 pt-0.5">
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-1">
         {alerts.length === 0 ? (
           <div className="grid h-full place-items-center">
             <div className="text-center">
               <Camera size={26} strokeWidth={1.4} className="mx-auto mb-2 text-[#3d5078]" />
-              <p className="text-[11px] text-ink-dim">No alerts match the current filters.</p>
+              <p className="text-[13px] text-ink-dim">No alerts match the current filters.</p>
               <button type="button" onClick={onReset} className="link-action mt-1.5">
                 Reset filters
               </button>
@@ -246,7 +246,7 @@ export function AlertFeedPanel({
         )}
       </div>
 
-      <footer className="flex shrink-0 items-center justify-between border-t border-edge-soft px-3 py-1.5 text-[8.5px] text-[#55668a]">
+      <footer className="flex shrink-0 items-center justify-between border-t border-edge-soft px-3 py-1.5 text-[10.5px] text-[#55668a]">
         <span className="flex items-center gap-1">
           <Maximize2 size={8} /> click a card to open ALERT DETAILS
         </span>

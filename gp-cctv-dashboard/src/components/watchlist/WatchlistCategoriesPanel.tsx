@@ -33,10 +33,10 @@ export function WatchlistCategoriesPanel({
           {watchlistCategories.length} lists · 248 entries
         </span>
       }
-      className="min-h-0"
-      bodyClassName="flex min-h-0 flex-1 flex-col overflow-y-auto px-1.5 pb-1.5"
+      className="h-full min-h-0"
+      bodyClassName="flex min-h-0 flex-1 flex-col overflow-y-auto px-1.5 pb-2"
     >
-      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_42px_40px_56px_20px] gap-1 px-1.5 pb-1 pt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">
+      <div className="grid shrink-0 grid-cols-[minmax(0,1fr)_42px_40px_56px_20px] gap-1 px-1.5 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">
         <span>Category</span>
         <span className="text-right">Entries</span>
         <span className="text-right">Alerts</span>
@@ -64,28 +64,28 @@ export function WatchlistCategoriesPanel({
                   <Icon size={11} strokeWidth={2} />
                 </span>
                 <span className="min-w-0">
-                  <span className={`block truncate text-[10.5px] font-semibold leading-[13px] ${active ? 'text-white' : 'text-[#dbe6f5]'}`}>
+                  <span className={`block truncate text-[12.5px] font-semibold leading-[13px] ${active ? 'text-white' : 'text-[#dbe6f5]'}`}>
                     {category.name}
                   </span>
-                  <span className="block text-[8.5px] leading-[10px] text-[#6d7f9e]">
+                  <span className="block text-[10.5px] leading-[13px] text-[#6d7f9e]">
                     {typeLabel[category.type]} watchlist
                   </span>
                 </span>
               </span>
 
-              <span className="tnum text-right text-[10.5px] font-semibold text-[#c3cfe2]">
+              <span className="tnum text-right text-[12.5px] font-semibold text-[#c3cfe2]">
                 {category.entries}
               </span>
               <span className="text-right">
                 {category.activeAlerts > 0 ? (
-                  <span className="tnum inline-block rounded-[3px] bg-accent-red/15 px-1 py-px text-[9px] font-bold text-[#ff8b96] ring-1 ring-accent-red/35">
+                  <span className="tnum inline-block rounded-[3px] bg-accent-red/15 px-1 py-px text-[11px] font-bold text-[#ff8b96] ring-1 ring-accent-red/35">
                     {category.activeAlerts}
                   </span>
                 ) : (
-                  <span className="tnum text-[9px] text-[#5c6b87]">0</span>
+                  <span className="tnum text-[11px] text-[#5c6b87]">0</span>
                 )}
               </span>
-              <span className="tnum truncate text-right text-[9px] text-[#8ea1c0]">{category.updated}</span>
+              <span className="tnum truncate text-right text-[11px] text-[#8ea1c0]">{category.updated}</span>
 
               <span
                 role="presentation"

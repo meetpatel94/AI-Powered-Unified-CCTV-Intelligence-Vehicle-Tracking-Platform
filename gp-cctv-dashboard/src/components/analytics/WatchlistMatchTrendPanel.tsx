@@ -46,7 +46,7 @@ export function WatchlistMatchTrendPanel({ series, windowNote }: WatchlistMatchT
       className="h-full min-h-0"
       bodyClassName="px-3 pb-2 pt-1"
     >
-      <div className="mb-1 flex items-center justify-between text-[8.5px] text-[#6d82a3]">
+      <div className="mb-1 flex items-center justify-between text-[10.5px] text-[#6d82a3]">
         <span>{windowNote}</span>
         <span className="flex items-center gap-2.5">
           <span className="flex items-center gap-1">
@@ -59,7 +59,7 @@ export function WatchlistMatchTrendPanel({ series, windowNote }: WatchlistMatchT
       </div>
 
       <div className="flex min-h-0 flex-1 gap-1.5">
-        <div className="flex w-[18px] shrink-0 flex-col justify-between pb-[16px] pt-[6px] text-right text-[8px] tabular-nums text-[#6d82a3]">
+        <div className="flex w-[18px] shrink-0 flex-col justify-between pb-[16px] pt-[6px] text-right text-[10px] tabular-nums text-[#6d82a3]">
           {ticks.map((tick) => (
             <span key={tick}>{tick}</span>
           ))}
@@ -132,7 +132,7 @@ export function WatchlistMatchTrendPanel({ series, windowNote }: WatchlistMatchT
             {series.map((point, index) => (
               <span
                 key={`${point.label}-${index}`}
-                className={`tnum text-[7.5px] text-[#8ea1c0] ${index % labelEvery !== 0 ? 'opacity-0' : ''}`}
+                className={`tnum text-[9.5px] text-[#8ea1c0] ${index % labelEvery !== 0 ? 'opacity-0' : ''}`}
               >
                 {point.label}
               </span>

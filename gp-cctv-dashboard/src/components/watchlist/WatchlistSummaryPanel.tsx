@@ -49,14 +49,14 @@ export function WatchlistSummaryPanel() {
         <div className="absolute inset-0 grid place-items-center">
           <div className="text-center leading-tight">
             <div className="tnum text-[16px] font-bold text-white">{total}</div>
-            <div className="text-[7.5px] uppercase tracking-wide text-[#6d7f9e]">Entries</div>
+            <div className="text-[9.5px] uppercase tracking-wide text-[#6d7f9e]">Entries</div>
           </div>
         </div>
       </div>
 
       <ul className="min-w-0 flex-1 space-y-[8px]">
         {watchlistSummary.map((slice) => (
-          <li key={slice.id} className="flex items-center gap-2 text-[10px]">
+          <li key={slice.id} className="flex items-center gap-2 text-[12px]">
             <span
               className="h-2 w-2 shrink-0 rounded-[2px]"
               style={{ background: slice.color, boxShadow: `0 0 6px ${slice.color}70` }}

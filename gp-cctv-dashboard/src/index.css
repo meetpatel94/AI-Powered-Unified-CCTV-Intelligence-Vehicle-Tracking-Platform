@@ -2,6 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ------------------------------------------------------------------ */
+/*  Responsive design system (single source of truth)                  */
+/*  clamp() tokens scale the UI between 1366×768 and 4K monitors.      */
+/* ------------------------------------------------------------------ */
+:root {
+  /* Layout */
+  --sidebar-w: 228px;
+  --header-h: 76px;
+  --page-pad: clamp(16px, 0.9vw + 9px, 24px); /* 16–24px page padding */
+  --page-gap: clamp(14px, 0.55vw + 8px, 20px); /* 14–20px rhythm gap */
+
+  /* Typography */
+  --fs-page-title: clamp(22px, 0.8vw + 14px, 27px); /* 22–27px */
+  --fs-page-sub: clamp(12.5px, 0.35vw + 10.5px, 14px);
+  --fs-section: clamp(15px, 0.3vw + 13px, 17px); /* 15–17px headings */
+  --fs-body: clamp(13px, 0.25vw + 11.5px, 14.5px); /* 13–14.5px body */
+  --fs-kpi: clamp(28px, 1.15vw + 12px, 36px); /* 28–36px KPI numbers */
+  --fs-control: clamp(12.5px, 0.2vw + 11px, 14px); /* 12.5–14px inputs */
+
+  /* Comfortable row heights for dashboard content bands */
+  --row-main: clamp(460px, 56vh, 700px);
+  --row-mid: clamp(340px, 38vh, 480px);
+  --row-charts: clamp(300px, 32vh, 400px);
+}
+
 @layer base {
   html,
   body,
@@ -9,14 +34,21 @@
     height: 100%;
   }
 
+  /* No accidental horizontal page overflow, ever. */
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
   body {
     @apply bg-base-900 text-ink antialiased;
+    font-size: var(--fs-body);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -31,18 +63,70 @@
 }
 
 @layer components {
+  /* Scrollable page body: natural height, full width, comfortable padding */
+  .page {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: var(--page-pad);
+    gap: var(--page-gap);
+    overflow-x: hidden;
+  }
+
+  /* Workspace page (Live View / Camera Map): fills the main area,
+     never scrolls the page itself — panels scroll internally. */
+  .page-viewport {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100%;
+    padding: var(--page-pad);
+    gap: var(--page-gap);
+    overflow: hidden;
+  }
+
+  /* Page title (22–27px) */
+  .page-title {
+    font-size: var(--fs-page-title);
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1.15;
+  }
+
+  /* Page subtitle under the title */
+  .page-sub {
+    font-size: var(--fs-page-sub);
+    color: var(--ink-dim, #93a3bd);
+    line-height: 1.4;
+  }
+
+  /* KPI headline numbers (28–36px) */
+  .kpi-value {
+    font-size: var(--fs-kpi);
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
   /* Standard command-center panel shell */
   .panel {
     @apply rounded-md border border-edge bg-panel shadow-panel;
   }
 
-  /* Small uppercase section label used on every panel header */
+  /* Section heading used on every panel header (15–17px) */
   .panel-title {
-    @apply text-[11px] font-semibold uppercase tracking-[0.09em] text-ink;
+    font-size: var(--fs-section);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #dbe5f4;
+    line-height: 1.2;
   }
 
   .link-action {
-    @apply text-[10px] font-medium text-accent-blue transition-colors hover:text-cyan-300;
+    @apply font-medium text-accent-blue transition-colors hover:text-cyan-300;
+    font-size: var(--fs-control);
   }
 
   .tnum {

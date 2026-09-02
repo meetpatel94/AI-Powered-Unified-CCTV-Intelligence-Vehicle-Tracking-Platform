@@ -31,17 +31,17 @@ function Row({
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <span className="flex items-center gap-1 text-[8.5px] uppercase tracking-wide text-[#7286a6]">
+      <span className="flex min-w-0 items-center gap-1.5 text-[12.5px] uppercase tracking-wide text-[#7286a6]">
         {icon}
         {label}
       </span>
-      <span className={`tnum text-[9.5px] font-medium ${tone}`}>{value}</span>
+      <span className={`tnum shrink-0 text-[13px] font-medium ${tone}`}>{value}</span>
     </div>
   );
 }
 
 /** Marker popup: full camera dossier anchored to the pin. */
-const POPUP_W = 228;
+const POPUP_W = 264;
 
 export function CameraPopup({ camera, x, y, bounds, insets, onClose, onViewLiveFeed }: CameraPopupProps) {
   const color = statusColor[camera.status];
@@ -71,7 +71,7 @@ export function CameraPopup({ camera, x, y, bounds, insets, onClose, onViewLiveF
   return (
     <div
       ref={boxRef}
-      className="pointer-events-auto absolute z-40 w-[228px] overflow-hidden rounded-md border bg-[#0a1220]/97 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.95)] backdrop-blur-sm"
+      className="pointer-events-auto absolute z-40 w-[264px] overflow-hidden rounded-md border bg-[#0a1220]/97 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.95)] backdrop-blur-sm"
       style={{ left, top, borderColor: `${color}88`, visibility: height === 0 ? 'hidden' : 'visible' }}
       onClick={(event) => event.stopPropagation()}
     >
@@ -84,81 +84,81 @@ export function CameraPopup({ camera, x, y, bounds, insets, onClose, onViewLiveF
       />
 
       <header
-        className="flex items-center justify-between gap-2 border-b px-2 py-1.5"
+        className="flex items-center justify-between gap-2 border-b px-2.5 py-2"
         style={{ borderColor: `${color}44`, background: `${color}18` }}
       >
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="h-2 w-2 shrink-0 rounded-full animate-pulse-dot" style={{ background: color }} />
-          <span className="text-[11px] font-bold tracking-wide text-white">{camera.id}</span>
-          <span className="truncate text-[9px] text-[#a9bcd8]">{camera.location}</span>
+          <span className="text-[13px] font-bold tracking-wide text-white">{camera.id}</span>
+          <span className="truncate text-[13px] text-[#a9bcd8]">{camera.location}</span>
         </div>
         <button type="button" onClick={onClose} aria-label="Close" className="text-white/50 hover:text-white">
-          <X size={11} />
+          <X size={13} />
         </button>
       </header>
 
       {camera.thumbnail && (
-        <div className="relative h-[86px] w-full overflow-hidden bg-black">
+        <div className="relative h-[96px] w-full overflow-hidden bg-black">
           <img
             src={camera.thumbnail}
             alt={camera.id}
             className={`h-full w-full object-cover ${isDown ? 'opacity-25 grayscale' : 'opacity-95'}`}
           />
           {isDown ? (
-            <span className="absolute inset-0 grid place-items-center text-[9px] font-bold tracking-wider text-accent-red">
+            <span className="absolute inset-0 grid place-items-center text-[13px] font-bold tracking-wider text-accent-red">
               SIGNAL LOST
             </span>
           ) : (
-            <span className="absolute right-1 top-1 flex items-center gap-1 rounded-[2px] bg-accent-green px-1 py-px text-[7px] font-bold text-black/85">
+            <span className="absolute right-1 top-1 flex items-center gap-1 rounded-[2px] bg-accent-green px-1.5 py-px text-[11px] font-bold text-black/85">
               <span className="h-1 w-1 rounded-full bg-black/70 animate-pulse-dot" /> LIVE
             </span>
           )}
           {camera.alertLabel && (
-            <span className="absolute inset-x-0 bottom-0 bg-accent-red/85 py-[2px] text-center text-[8px] font-bold tracking-[0.12em] text-white">
+            <span className="absolute inset-x-0 bottom-0 bg-accent-red/85 py-[3px] text-center text-[11.5px] font-bold tracking-[0.12em] text-white">
               {camera.alertLabel}
             </span>
           )}
         </div>
       )}
 
-      <div className="space-y-[3px] px-2 py-1.5">
+      <div className="space-y-1 px-2.5 py-2">
         <div className="mb-1 flex items-center justify-between gap-2">
-          <span className="truncate text-[9px] text-[#8ea1c0]">
+          <span className="truncate text-[13px] text-[#8ea1c0]">
             {camera.area}, {camera.city}
           </span>
           <span
-            className="rounded-[2px] px-1 py-px text-[7.5px] font-bold uppercase tracking-wide"
+            className="rounded-[2px] px-1.5 py-px text-[11.5px] font-bold uppercase tracking-wide"
             style={{ background: `${color}22`, color }}
           >
             {camera.status}
           </span>
         </div>
 
-        <Row icon={<Radio size={8} />} label="Department" value={camera.department} />
-        <Row icon={<Cpu size={8} />} label="Codec" value={camera.codec} />
-        <Row icon={<Activity size={8} />} label="Resolution" value={camera.resolution} />
-        <Row icon={<Gauge size={8} />} label="FPS" value={isDown ? '—' : `${camera.fps}`} />
+        <Row icon={<Radio size={10} />} label="Department" value={camera.department} />
+        <Row icon={<Cpu size={10} />} label="Codec" value={camera.codec} />
+        <Row icon={<Activity size={10} />} label="Resolution" value={camera.resolution} />
+        <Row icon={<Gauge size={10} />} label="FPS" value={isDown ? '—' : `${camera.fps}`} />
         <Row
-          icon={<Timer size={8} />}
+          icon={<Timer size={10} />}
           label="Latency"
           value={isDown ? '—' : `${camera.latencyMs} ms`}
           tone={camera.latencyMs > 300 ? 'text-accent-orange' : 'text-[#dbe5f4]'}
         />
-        <Row icon={<Timer size={8} />} label="Heartbeat" value={camera.lastHeartbeat} />
+        <Row icon={<Timer size={10} />} label="Heartbeat" value={camera.lastHeartbeat} />
         <Row
-          icon={<Activity size={8} />}
+          icon={<Activity size={10} />}
           label="Vehicles"
           value={camera.vehiclesDetected.toLocaleString('en-IN')}
         />
       </div>
 
-      <div className="px-2 pb-2">
+      <div className="px-2.5 pb-2.5">
         <button
           type="button"
           onClick={() => onViewLiveFeed(camera)}
-          className="flex h-[26px] w-full items-center justify-center gap-1.5 rounded-[4px] bg-[#1d6ce0] text-[10px] font-semibold text-white transition-colors hover:bg-[#2a7bf0]"
+          className="flex h-[30px] w-full items-center justify-center gap-1.5 rounded-[4px] bg-[#1d6ce0] text-[12px] font-semibold text-white transition-colors hover:bg-[#2a7bf0]"
         >
-          <MonitorPlay size={11} /> View Live Feed
+          <MonitorPlay size={13} /> View Live Feed
         </button>
       </div>
     </div>

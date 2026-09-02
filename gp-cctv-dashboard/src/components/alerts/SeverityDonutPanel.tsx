@@ -73,7 +73,7 @@ export function SeverityDonutPanel({ alerts, kpis }: SeverityDonutPanelProps) {
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center leading-none">
           <div>
             <div className="tnum text-[19px] font-bold text-white">{total}</div>
-            <div className="text-[7px] font-semibold uppercase tracking-[0.14em] text-[#6d82a3]">alerts</div>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-[#6d82a3]">alerts</div>
           </div>
         </div>
       </div>
@@ -92,9 +92,9 @@ export function SeverityDonutPanel({ alerts, kpis }: SeverityDonutPanelProps) {
               }`}
             >
               <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ background: slice.color, boxShadow: `0 0 6px -1px ${slice.color}` }} />
-              <span className="min-w-0 flex-1 truncate text-[9.5px] text-[#9fb0cc]">{slice.label}</span>
-              <span className="tnum text-[10px] font-bold text-white">{value}</span>
-              <span className="tnum w-[34px] text-right text-[8.5px] text-[#6d82a3]">{pct}%</span>
+              <span className="min-w-0 flex-1 truncate text-[11.5px] text-[#9fb0cc]">{slice.label}</span>
+              <span className="tnum text-[12px] font-bold text-white">{value}</span>
+              <span className="tnum w-[34px] text-right text-[10.5px] text-[#6d82a3]">{pct}%</span>
             </li>
           );
         })}

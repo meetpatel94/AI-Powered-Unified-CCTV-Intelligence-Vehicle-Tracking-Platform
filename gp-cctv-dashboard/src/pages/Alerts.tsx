@@ -307,7 +307,7 @@ export function Alerts() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+    <div className="page">
       <AlertsHeader
         filtersVisible={filtersVisible}
         refreshing={refreshing}
@@ -344,7 +344,10 @@ export function Alerts() {
       ) : null}
 
       {/* main workspace: feed + ops rail */}
-      <div className="flex h-[470px] shrink-0 gap-2.5">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-[minmax(0,1fr)_minmax(330px,360px)]"
+        style={{ height: 'var(--row-main)' }}
+      >
         <AlertFeedPanel
           alerts={visibleAlerts}
           totalCount={alerts.length}
@@ -356,26 +359,31 @@ export function Alerts() {
           onReset={resetFilters}
         />
 
-        <aside className="flex w-[300px] shrink-0 flex-col gap-2.5">
-          <div className="h-[212px] shrink-0">
+        <aside className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] sm:grid-cols-2 lg:flex lg:flex-col">
+          <div className="min-w-0">
             <LiveActivityPanel />
           </div>
-          <ResponseTimelinePanel alert={railAlert} onOpen={(alert) => setSelectedId(alert.id)} />
+          <div className="min-w-0 sm:col-span-2 lg:col-span-1 lg:min-h-0 lg:flex-1">
+            <ResponseTimelinePanel alert={railAlert} onOpen={(alert) => setSelectedId(alert.id)} />
+          </div>
         </aside>
       </div>
 
       {/* analytics bottom row */}
-      <div className="flex h-[224px] shrink-0 gap-2.5">
-        <div className="w-[29%] min-w-0">
+      <div
+        className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] xl:grid-cols-[29fr_27fr_21fr_23fr]"
+        style={{ height: 'var(--row-charts)' }}
+      >
+        <div className="min-w-0">
           <AlertsByTypePanel alerts={alerts} />
         </div>
-        <div className="w-[27%] min-w-0">
+        <div className="min-w-0">
           <AlertsOverTimePanel />
         </div>
-        <div className="w-[21%] min-w-0">
+        <div className="min-w-0">
           <SeverityDonutPanel alerts={alerts} kpis={kpis} />
         </div>
-        <div className="w-[23%] min-w-0">
+        <div className="min-w-0">
           <TopAlertLocationsPanel />
         </div>
       </div>
@@ -383,7 +391,7 @@ export function Alerts() {
       <AlertDetailsPanel alert={selectedAlert} onClose={() => setSelectedId(null)} onAction={handleAction} />
 
       {notice ? (
-        <div className="fixed bottom-4 right-4 z-[60] animate-flash-in rounded-[6px] border border-accent-green/50 bg-[#0b2e26] px-3 py-2 text-[10.5px] font-medium text-[#6fe0b0] shadow-glow">
+        <div className="fixed bottom-4 right-4 z-[60] animate-flash-in rounded-[6px] border border-accent-green/50 bg-[#0b2e26] px-3 py-2 text-[12.5px] font-medium text-[#6fe0b0] shadow-glow">
           {notice}
         </div>
       ) : null}

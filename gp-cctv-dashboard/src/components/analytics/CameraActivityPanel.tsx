@@ -29,27 +29,27 @@ export function CameraActivityPanel({ cameras, onSelectCamera }: CameraActivityP
       bodyClassName="flex min-h-0 flex-col justify-between gap-px overflow-y-auto px-2 pb-2 pt-0.5"
     >
       {cameras.length === 0 ? (
-        <div className="grid h-full place-items-center text-[10px] text-ink-dim">No cameras in this filter.</div>
+        <div className="grid h-full place-items-center text-[12px] text-ink-dim">No cameras in this filter.</div>
       ) : (
         cameras.map((camera, index) => (
           <div
             key={camera.id}
             className="group flex items-center gap-2 rounded-[5px] border border-transparent px-1.5 py-[4px] transition-colors hover:border-edge hover:bg-panel-hover"
           >
-            <span className="tnum w-[14px] shrink-0 text-right text-[9px] font-bold text-[#6d82a3]">{index + 1}</span>
+            <span className="tnum w-[14px] shrink-0 text-right text-[11px] font-bold text-[#6d82a3]">{index + 1}</span>
             <button
               type="button"
               title={`Filter to ${camera.code}`}
               onClick={() => onSelectCamera(camera.code)}
-              className="tnum w-[46px] shrink-0 text-left text-[10.5px] font-bold text-[#9fc7ff] transition-colors hover:text-white"
+              className="tnum w-[46px] shrink-0 text-left text-[12.5px] font-bold text-[#9fc7ff] transition-colors hover:text-white"
             >
               {camera.code}
             </button>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1">
                 <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusDot[camera.status]}`} />
-                <span className="truncate text-[10px] font-semibold text-[#dbe6f5]">{camera.location}</span>
-                <span className="truncate text-[8px] text-[#6d7f9e]">· {camera.city}</span>
+                <span className="truncate text-[12px] font-semibold text-[#dbe6f5]">{camera.location}</span>
+                <span className="truncate text-[10px] text-[#6d7f9e]">· {camera.city}</span>
               </span>
               <span className="mt-[3px] block h-[4px] overflow-hidden rounded-full bg-[#14243c]">
                 <span
@@ -59,14 +59,14 @@ export function CameraActivityPanel({ cameras, onSelectCamera }: CameraActivityP
               </span>
             </span>
             <span className="flex shrink-0 flex-col items-end leading-none">
-              <span className="tnum text-[11px] font-bold text-white">{formatIn(camera.detections)}</span>
-              <span className="tnum text-[7.5px] text-[#6d82a3]">{camera.events} AI</span>
+              <span className="tnum text-[13px] font-bold text-white">{formatIn(camera.detections)}</span>
+              <span className="tnum text-[9.5px] text-[#6d82a3]">{camera.events} AI</span>
             </span>
             <button
               type="button"
               title={`Open ${camera.code} on Live View`}
               onClick={() => navigate(`/live-view?camera=${camera.code}`)}
-              className="hidden text-[8px] font-semibold uppercase tracking-wide text-accent-blue opacity-0 transition-opacity group-hover:opacity-100 xl:inline"
+              className="hidden text-[10px] font-semibold uppercase tracking-wide text-accent-blue opacity-0 transition-opacity group-hover:opacity-100 xl:inline"
             >
               Live
             </button>

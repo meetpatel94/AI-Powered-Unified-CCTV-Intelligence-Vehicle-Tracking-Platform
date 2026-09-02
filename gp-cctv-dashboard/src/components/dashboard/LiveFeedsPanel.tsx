@@ -18,10 +18,10 @@ function FeedTile({ feed }: { feed: CameraFeed }) {
 
       {/* top gradient + label */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/75 to-transparent px-1.5 pb-4 pt-1">
-        <figcaption className="max-w-[82%] truncate text-[8px] font-medium text-white/95 drop-shadow">
+        <figcaption className="max-w-[82%] truncate text-[10px] font-medium text-white/95 drop-shadow">
           {title}
         </figcaption>
-        <span className="flex items-center gap-1 rounded-[2px] bg-accent-green px-1 py-px text-[7.5px] font-bold uppercase tracking-wide text-black/85">
+        <span className="flex items-center gap-1 rounded-[2px] bg-accent-green px-1 py-px text-[9.5px] font-bold uppercase tracking-wide text-black/85">
           <span className="h-1 w-1 rounded-full bg-black/70 animate-pulse-dot" />
           Live
         </span>

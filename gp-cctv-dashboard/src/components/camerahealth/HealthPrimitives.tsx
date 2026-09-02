@@ -20,7 +20,7 @@ export function StatusPill({ status, size = 'sm', pulse }: StatusPillProps) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-[4px] border font-semibold uppercase tracking-[0.06em] ${meta.chip} ${
-        size === 'sm' ? 'px-1.5 py-[2px] text-[9.5px]' : 'px-1 py-[1px] text-3xs'
+        size === 'sm' ? 'px-1.5 py-[2px] text-[11.5px]' : 'px-1 py-[1px] text-3xs'
       }`}
     >
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${meta.dot} ${live ? 'animate-pulse-dot' : ''}`} />
@@ -62,7 +62,7 @@ export function HealthBar({ score, tone, width = 52, showScore = true, live }: H
         ) : null}
       </span>
       {showScore ? (
-        <span className="tnum w-[22px] text-right text-[10px] font-semibold" style={{ color: toneInk[tone] }}>
+        <span className="tnum w-[22px] text-right text-[12px] font-semibold" style={{ color: toneInk[tone] }}>
           {score}
         </span>
       ) : null}
@@ -84,9 +84,9 @@ interface TelemetryProps {
 
 export function Telemetry({ value, unit, tone, muted, title }: TelemetryProps) {
   return (
-    <span className="tnum inline-flex items-baseline gap-[2px] font-mono text-[10.5px]" title={title}>
+    <span className="tnum inline-flex items-baseline gap-[2px] font-mono text-[12.5px]" title={title}>
       <span style={{ color: tone ? toneInk[tone] : muted ? '#7f92b0' : '#d7e1f1' }}>{value}</span>
-      {unit ? <span className="text-[9px] text-ink-faint">{unit}</span> : null}
+      {unit ? <span className="text-[11px] text-ink-faint">{unit}</span> : null}
     </span>
   );
 }
@@ -103,8 +103,8 @@ export function SpecRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-2 border-b border-edge-soft/60 py-[3px] last:border-b-0">
-      <span className="text-[9.5px] uppercase tracking-[0.07em] text-ink-faint">{label}</span>
-      <span className="tnum truncate font-mono text-[10.5px]" style={{ color: tone ? toneInk[tone] : '#d7e1f1' }}>
+      <span className="text-[11.5px] uppercase tracking-[0.07em] text-ink-faint">{label}</span>
+      <span className="tnum truncate font-mono text-[12.5px]" style={{ color: tone ? toneInk[tone] : '#d7e1f1' }}>
         {children}
       </span>
     </div>

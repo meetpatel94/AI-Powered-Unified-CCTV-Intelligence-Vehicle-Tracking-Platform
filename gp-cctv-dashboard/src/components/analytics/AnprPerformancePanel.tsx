@@ -19,9 +19,9 @@ function Metric({
 }) {
   return (
     <div className="rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1.5">
-      <div className="text-[8px] font-semibold uppercase tracking-[0.08em] text-[#6d82a3]">{label}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6d82a3]">{label}</div>
       <div className={`tnum mt-[2px] text-[15px] font-bold leading-none ${tone}`}>{value}</div>
-      <div className="mt-[3px] truncate text-[8.5px] text-[#7f92b3]">{sub}</div>
+      <div className="mt-[3px] truncate text-[10.5px] text-[#7f92b3]">{sub}</div>
     </div>
   );
 }
@@ -68,7 +68,7 @@ export function AnprPerformancePanel({ anpr }: AnprPerformancePanelProps) {
       </div>
 
       <div>
-        <div className="mb-1 flex items-center justify-between text-[8.5px] text-[#6d82a3]">
+        <div className="mb-1 flex items-center justify-between text-[10.5px] text-[#6d82a3]">
           <span>Read-quality mix</span>
           <span className="tnum">{formatIn(anpr.processed)} plates</span>
         </div>
@@ -88,14 +88,14 @@ export function AnprPerformancePanel({ anpr }: AnprPerformancePanelProps) {
           {bands.map((band) => (
             <li key={band.id} className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: band.color }} />
-              <span className="min-w-0 flex-1 truncate text-[8.5px] text-[#9fb0cc]">{band.label}</span>
+              <span className="min-w-0 flex-1 truncate text-[10.5px] text-[#9fb0cc]">{band.label}</span>
               <span className="relative h-[4px] w-[72px] overflow-hidden rounded-full bg-[#0d1626]">
                 <span
                   className="absolute inset-y-0 left-0 rounded-full"
                   style={{ width: `${(band.value / bandMax) * 100}%`, background: band.color }}
                 />
               </span>
-              <span className="tnum w-[42px] text-right text-[9px] font-semibold text-white">{formatIn(band.value)}</span>
+              <span className="tnum w-[42px] text-right text-[11px] font-semibold text-white">{formatIn(band.value)}</span>
             </li>
           ))}
         </ul>

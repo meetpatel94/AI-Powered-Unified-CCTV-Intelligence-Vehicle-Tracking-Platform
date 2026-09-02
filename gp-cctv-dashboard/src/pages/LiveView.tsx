@@ -86,7 +86,7 @@ export function LiveView() {
     setMutedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden p-3">
+    <div className="page-viewport">
       <LiveViewHeader
         query={query}
         onQueryChange={setQuery}
@@ -98,11 +98,11 @@ export function LiveView() {
         clock={clock}
       />
 
-      <div className="flex min-h-0 flex-1 gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-[var(--page-gap)] overflow-y-auto lg:flex-row lg:overflow-hidden">
         {/* ---------------- camera wall ---------------- */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2.5">
+        <div className="flex min-h-[460px] w-full shrink-0 flex-col gap-[var(--page-gap)] lg:min-h-0 lg:shrink lg:flex-1">
         <section className="flex min-h-0 min-w-0 flex-1 flex-col rounded-md border border-edge bg-panel">
-          <header className="flex shrink-0 items-center justify-between px-3 pb-1.5 pt-2.5">
+          <header className="flex shrink-0 items-center justify-between gap-3 px-3.5 pb-2 pt-2.5">
             <h2 className="panel-title">
               Camera Wall
               <span className="ml-2 font-normal normal-case tracking-normal text-ink-dim">
@@ -119,13 +119,13 @@ export function LiveView() {
             </span>
           </header>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-2.5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
             {visibleCameras.length === 0 ? (
-              <div className="grid h-full place-items-center text-[11px] text-ink-dim">
+              <div className="grid h-full place-items-center text-[13px] text-ink-dim">
                 No cameras match the current filters.
               </div>
             ) : (
-              <div className={`grid gap-2.5 ${gridColumns[gridSize]}`}>
+              <div className={`grid gap-3.5 ${gridColumns[gridSize]}`}>
                 {visibleCameras.map((camera) => (
                   <LiveCameraCard
                     key={camera.id}
@@ -148,9 +148,13 @@ export function LiveView() {
         </div>
 
         {/* ---------------- intelligence rail ---------------- */}
-        <aside className="flex min-h-0 w-[336px] min-w-0 shrink-0 flex-col gap-2.5">
-          <SelectedCameraPanel camera={selectedCamera} clock={clock} tick={tick} />
-          <AnprFeedPanel />
+        <aside className="flex w-full min-w-0 shrink-0 flex-row gap-[var(--page-gap)] lg:w-[360px] lg:min-w-[330px] lg:flex-col lg:overflow-y-auto lg:pr-0.5">
+          <div className="min-w-0 flex-1 lg:flex-none lg:shrink-0">
+            <SelectedCameraPanel camera={selectedCamera} clock={clock} tick={tick} />
+          </div>
+          <div className="min-h-[300px] min-w-0 flex-1 lg:min-h-[260px]">
+            <AnprFeedPanel />
+          </div>
         </aside>
       </div>
     </div>

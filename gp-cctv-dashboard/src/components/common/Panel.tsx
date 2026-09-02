@@ -28,10 +28,10 @@ export function Panel({
     <section className={`panel flex min-h-0 flex-col ${className}`}>
       {(title || action || tools) && (
         <header
-          className={`flex shrink-0 items-center justify-between gap-2 px-3 pb-1.5 pt-2.5 ${headerClassName}`}
+          className={`flex shrink-0 items-center justify-between gap-3 px-3.5 pb-2 pt-2.5 ${headerClassName}`}
         >
-          {title ? <h2 className="panel-title">{title}</h2> : <span />}
-          <div className="flex items-center gap-2">
+          {title ? <h2 className="min-w-0 truncate panel-title">{title}</h2> : <span />}
+          <div className="flex shrink-0 items-center gap-2">
             {tools}
             {action}
           </div>
