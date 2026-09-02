@@ -52,7 +52,7 @@ export const navItems: NavItem[] = [
   { id: 'investigation', label: 'Investigation', icon: Siren, path: '/investigation', available: true },
   { id: 'camera-health', label: 'Camera Health', icon: Gauge, path: '/camera-health', available: true },
   { id: 'reports', label: 'Reports', icon: FileText, path: '/reports' },
-  { id: 'users-roles', label: 'Users & Roles', icon: Users, path: '/users-roles' },
+  { id: 'users-roles', label: 'Users & Roles', icon: Users, path: '/users-roles', available: true },
   { id: 'system-settings', label: 'System Settings', icon: Settings, path: '/system-settings' },
 ];
 
