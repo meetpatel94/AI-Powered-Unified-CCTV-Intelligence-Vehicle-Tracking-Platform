@@ -53,7 +53,7 @@ export const navItems: NavItem[] = [
   { id: 'camera-health', label: 'Camera Health', icon: Gauge, path: '/camera-health', available: true },
   { id: 'reports', label: 'Reports', icon: FileText, path: '/reports', available: true },
   { id: 'users-roles', label: 'Users & Roles', icon: Users, path: '/users-roles', available: true },
-  { id: 'system-settings', label: 'System Settings', icon: Settings, path: '/system-settings' },
+  { id: 'system-settings', label: 'System Settings', icon: Settings, path: '/system-settings', available: true },
 ];
 
 export const systemStatus: SystemStatusItem[] = [

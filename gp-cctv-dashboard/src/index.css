@@ -133,3 +133,136 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  System Settings console                                            */
+/*  Additive styles for the SYSTEM CONTROL CENTER (range sliders,      */
+/*  scroll areas). Existing pages are untouched.                       */
+/* ------------------------------------------------------------------ */
+
+/* Slider track / thumb — console cyan accent */
+input[type='range'].s-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 999px;
+  outline: none;
+  border: 1px solid rgba(37, 57, 90, 0.7);
+}
+input[type='range'].s-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #0b1222;
+  border: 2px solid #22d3ee;
+  box-shadow: 0 0 9px -2px rgba(34, 211, 238, 0.85);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+}
+input[type='range'].s-range::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 12px -1px rgba(34, 211, 238, 1);
+}
+input[type='range'].s-range::-moz-range-thumb {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #0b1222;
+  border: 2px solid #22d3ee;
+  box-shadow: 0 0 9px -2px rgba(34, 211, 238, 0.85);
+  cursor: pointer;
+}
+input[type='range'].s-range:focus-visible {
+  box-shadow: 0 0 0 3px rgba(47, 125, 255, 0.25);
+}
+
+/* Thin, near-invisible scrollbars for internal panel scroll areas */
+.scroll-thin::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: #1e2e4c;
+  border-radius: 999px;
+}
+
+/* Hide native number input spinners for compact numeric controls */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Soft green ping used on healthy subsystem dots */
+@keyframes healthyPing {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.healthy-ping::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: currentColor;
+  animation: healthyPing 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Subtle shimmer used on busy maintenance buttons */
+@keyframes btnSheen {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(240%) skewX(-18deg);
+  }
+}
+.btn-sheen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  animation: btnSheen 1.4s ease-in-out infinite;
+}
+
+/* Toast entrance / exit */
+@keyframes toastIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.toast-in {
+  animation: toastIn 0.22s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+/* Thin scan-line sweep for the apply-progress modal */
+@keyframes scanSweep {
+  0% {
+    transform: translateX(-110%);
+  }
+  100% {
+    transform: translateX(110%);
+  }
+}
+.scan-sweep {
+  animation: scanSweep 1.15s ease-in-out infinite;
+}

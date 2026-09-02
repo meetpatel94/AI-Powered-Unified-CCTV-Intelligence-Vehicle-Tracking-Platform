@@ -10,13 +10,15 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Investigation } from '@/pages/Investigation';
 import { LiveView } from '@/pages/LiveView';
 import { Reports } from '@/pages/Reports';
+import { SystemSettings } from '@/pages/SystemSettings';
 import { Users } from '@/pages/Users';
 import { Watchlist } from '@/pages/Watchlist';
 
 /**
  * App shell. Dashboard, Live View, Camera Map, Watchlist, Alerts, Analytics,
- * Investigation and Camera Health are implemented; the remaining sidebar
- * modules are inert placeholders until they are built.
+ * Investigation, Camera Health, Reports, Users & Roles and System Settings
+ * are implemented; the remaining sidebar modules are inert placeholders
+ * until they are built.
  *
  * Layout model: fixed sidebar + fixed header, main area takes the full
  * remaining width/height and scrolls vertically when content is taller than
@@ -41,6 +43,7 @@ export default function App() {
             <Route path="/camera-health" element={<CameraHealth />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/users-roles" element={<Users />} />
+            <Route path="/system-settings" element={<SystemSettings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
