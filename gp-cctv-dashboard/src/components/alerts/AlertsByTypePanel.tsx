@@ -20,7 +20,7 @@ export function AlertsByTypePanel({ alerts }: AlertsByTypePanelProps) {
     >
       {bars.map((bar, index) => (
         <div key={bar.id} className="group flex items-center gap-2" style={{ animationDelay: `${index * 40}ms` }}>
-          <span className="w-[104px] shrink-0 truncate text-[9px] font-medium text-[#9fb0cc] transition-colors group-hover:text-white">
+          <span className="w-[104px] shrink-0 truncate text-[11px] font-medium text-[#9fb0cc] transition-colors group-hover:text-white">
             {bar.label}
           </span>
           <span className="relative h-[11px] flex-1 overflow-hidden rounded-[2px] bg-[#0d1626] ring-1 ring-inset ring-edge-soft">
@@ -33,7 +33,7 @@ export function AlertsByTypePanel({ alerts }: AlertsByTypePanelProps) {
               }}
             />
           </span>
-          <span className="tnum w-[18px] shrink-0 text-right text-[10px] font-bold text-white">{bar.value}</span>
+          <span className="tnum w-[18px] shrink-0 text-right text-[12px] font-bold text-white">{bar.value}</span>
         </div>
       ))}
     </Panel>

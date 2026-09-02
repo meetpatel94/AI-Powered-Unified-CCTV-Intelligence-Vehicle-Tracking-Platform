@@ -20,10 +20,10 @@ import type { CameraMapFilters, MapCameraNode, MapLayerState } from '@/types/cam
 
 const placeStyle = {
   metro: 'text-[13px] font-bold tracking-[0.16em] text-white/85',
-  city: 'text-[10px] font-semibold tracking-[0.14em] text-[#b9d0ee]/85',
-  town: 'text-[8.5px] font-medium tracking-[0.06em] text-[#8ea6c8]/80',
-  area: 'text-[8px] tracking-[0.05em] text-[#7f97b8]/75',
-  poi: 'text-[7.5px] italic tracking-[0.04em] text-[#6f88ab]/75',
+  city: 'text-[12px] font-semibold tracking-[0.14em] text-[#b9d0ee]/85',
+  town: 'text-[10.5px] font-medium tracking-[0.06em] text-[#8ea6c8]/80',
+  area: 'text-[10px] tracking-[0.05em] text-[#7f97b8]/75',
+  poi: 'text-[9.5px] italic tracking-[0.04em] text-[#6f88ab]/75',
 } as const;
 
 const defaultFilters: CameraMapFilters = {
@@ -170,58 +170,58 @@ export function CameraMap() {
   /* ---------------- render ---------------- */
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden p-3">
+    <div className="page-viewport">
       {/* page header */}
-      <div className="flex shrink-0 items-end justify-between gap-4">
+      <div className="flex shrink-0 flex-wrap items-end justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2 text-[15px] font-bold uppercase tracking-[0.1em] text-white">
-            <MapPinned size={15} className="text-accent-cyan" />
+          <h1 className="page-title flex items-center gap-2.5">
+            <MapPinned size={20} className="text-accent-cyan" />
             GIS Camera Map
           </h1>
-          <p className="mt-[1px] text-[10.5px] text-ink-dim">
+          <p className="page-sub mt-0.5">
             Interactive camera network, live status and vehicle movement intelligence
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setLayerMenuOpen((open) => !open)}
-            className={`flex h-[28px] items-center gap-1.5 rounded-[4px] border px-2.5 text-[10px] transition-colors ${
+            className={`flex h-[32px] items-center gap-1.5 rounded-[4px] border px-3 text-[12px] transition-colors ${
               layerMenuOpen
                 ? 'border-accent-blue/70 bg-accent-blue/15 text-[#9fc7ff]'
                 : 'border-edge bg-panel text-[#c3cfe2] hover:border-edge-strong'
             }`}
           >
-            <Layers size={12} /> Layers
+            <Layers size={13} /> Layers
           </button>
           <button
             type="button"
             onClick={() => setFiltersOpen((open) => !open)}
-            className={`flex h-[28px] items-center gap-1.5 rounded-[4px] border px-2.5 text-[10px] transition-colors ${
+            className={`flex h-[32px] items-center gap-1.5 rounded-[4px] border px-3 text-[12px] transition-colors ${
               filtersOpen
                 ? 'border-accent-blue/70 bg-accent-blue/15 text-[#9fc7ff]'
                 : 'border-edge bg-panel text-[#c3cfe2] hover:border-edge-strong'
             }`}
           >
-            <Filter size={12} /> Filters
+            <Filter size={13} /> Filters
           </button>
           <button
             type="button"
             onClick={goFullscreen}
-            className="flex h-[28px] items-center gap-1.5 rounded-[4px] border border-edge bg-panel px-2.5 text-[10px] text-[#c3cfe2] transition-colors hover:border-edge-strong"
+            className="flex h-[32px] items-center gap-1.5 rounded-[4px] border border-edge bg-panel px-3 text-[12px] text-[#c3cfe2] transition-colors hover:border-edge-strong"
           >
-            <Maximize size={12} /> Fullscreen
+            <Maximize size={13} /> Fullscreen
           </button>
           <button
             type="button"
             onClick={refresh}
-            className="flex h-[28px] items-center gap-1.5 rounded-[4px] border border-edge bg-panel px-2.5 text-[10px] text-[#c3cfe2] transition-colors hover:border-edge-strong"
+            className="flex h-[32px] items-center gap-1.5 rounded-[4px] border border-edge bg-panel px-3 text-[12px] text-[#c3cfe2] transition-colors hover:border-edge-strong"
           >
-            <RefreshCw size={12} className={refreshing ? 'animate-spin text-accent-cyan' : ''} />
+            <RefreshCw size={13} className={refreshing ? 'animate-spin text-accent-cyan' : ''} />
             {refreshing ? 'Syncing…' : 'Refresh'}
           </button>
-          <span className="tnum ml-1 rounded-[4px] border border-edge bg-panel px-2 py-[5px] text-[10.5px] text-[#c3cfe2]">
+          <span className="tnum ml-1 rounded-[4px] border border-edge bg-panel px-2.5 py-[6px] text-[12.5px] text-[#c3cfe2]">
             {clock}
           </span>
         </div>
@@ -284,7 +284,7 @@ export function CameraMap() {
                   return (
                     <span
                       key={road.name}
-                      className="absolute whitespace-nowrap font-mono text-[7.5px] uppercase tracking-[0.1em] text-[#5f7fa8]"
+                      className="absolute whitespace-nowrap font-mono text-[9.5px] uppercase tracking-[0.1em] text-[#5f7fa8]"
                       style={{
                         left: p.x,
                         top: p.y,
@@ -320,10 +320,10 @@ export function CameraMap() {
               project={project}
               bounds={{ w: size.w, h: size.h }}
               insets={{
-                top: 12,
-                right: selectedCamera ? 286 : 62,
-                bottom: journeyCollapsed ? 78 : 150,
-                left: filtersOpen ? 238 : 12,
+                top: 16,
+                right: selectedCamera ? 364 : 70,
+                bottom: journeyCollapsed ? 104 : 196,
+                left: filtersOpen ? 288 : 16,
               }}
               showAlert={showAlert && layers.alerts}
               activeStep={activeStep}
@@ -360,10 +360,10 @@ export function CameraMap() {
               y={popupPos.y}
               bounds={{ w: size.w, h: size.h }}
               insets={{
-                top: 12,
-                right: selectedCamera ? 286 : 62,
-                bottom: journeyCollapsed ? 78 : 150,
-                left: filtersOpen ? 238 : 12,
+                top: 16,
+                right: selectedCamera ? 364 : 70,
+                bottom: journeyCollapsed ? 104 : 196,
+                left: filtersOpen ? 288 : 16,
               }}
               onClose={() => setPopupId(null)}
               onViewLiveFeed={handleViewLiveFeed}
@@ -395,7 +395,7 @@ export function CameraMap() {
           onLocate={() => centerOn(700, 560, 1.4)}
           onFullscreen={goFullscreen}
           zoomLevel={zoomLevel}
-          rightOffset={selectedCamera ? 282 : 12}
+          rightOffset={selectedCamera ? 328 : 16}
         />
 
         {selectedCamera && (

@@ -22,7 +22,7 @@ interface CameraHealthToolbarProps {
 }
 
 const selectCls =
-  'h-[28px] shrink-0 rounded-[4px] border border-edge bg-[#0c1424] px-2 text-[10.5px] text-[#c3cfe2] outline-none transition-colors hover:border-edge-strong focus:border-accent-blue/70';
+  'h-[32px] shrink-0 rounded-[4px] border border-edge bg-[#0c1424] px-2.5 text-[13px] text-[#c3cfe2] outline-none transition-colors hover:border-edge-strong focus:border-accent-blue/70';
 
 const chips: Array<{ id: 'all' | HealthStatus; label: string }> = [
   { id: 'all', label: 'All Cameras' },
@@ -62,7 +62,7 @@ export function CameraHealthToolbar({
               key={chip.id}
               type="button"
               onClick={() => onFilters({ status: chip.id })}
-              className={`tnum flex h-[26px] items-center gap-1.5 rounded-[4px] px-2 text-[9.5px] font-semibold transition-all ${
+              className={`tnum flex h-[30px] items-center gap-1.5 rounded-[4px] px-2.5 text-[12.5px] font-semibold transition-all ${
                 isActive
                   ? 'bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] text-white shadow-[0_0_12px_-4px_rgba(47,125,255,0.9)]'
                   : 'text-[#8ea3c4] hover:bg-panel-hover hover:text-white'
@@ -76,7 +76,7 @@ export function CameraHealthToolbar({
               ) : null}
               {chip.label}
               <span
-                className={`rounded-[3px] px-1 text-[8.5px] font-bold leading-[13px] ${
+                className={`rounded-[3px] px-1.5 text-[11.5px] font-bold leading-[14px] ${
                   isActive ? 'bg-black/25 text-white' : 'bg-[#101a2e] text-ink-faint'
                 }`}
               >
@@ -96,7 +96,7 @@ export function CameraHealthToolbar({
           value={filters.query}
           onChange={(event) => onFilters({ query: event.target.value })}
           placeholder="Search camera ID, location, area, IP…"
-          className="h-[28px] w-full rounded-[4px] border border-edge bg-[#0c1424] pr-6 pl-[26px] text-[10.5px] text-[#e6edf7] outline-none transition-colors placeholder:text-ink-faint hover:border-edge-strong focus:border-accent-blue/70"
+          className="h-[32px] w-full rounded-[4px] border border-edge bg-[#0c1424] pr-6 pl-[26px] text-[13px] text-[#e6edf7] outline-none transition-colors placeholder:text-ink-faint hover:border-edge-strong focus:border-accent-blue/70"
         />
         {filters.query ? (
           <button
@@ -193,7 +193,7 @@ export function CameraHealthToolbar({
         title={sortDir === 'asc' ? 'Ascending — click for descending' : 'Descending — click for ascending'}
         className="grid h-[28px] w-[28px] shrink-0 place-items-center rounded-[4px] border border-edge bg-[#0c1424] text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
       >
-        <span className={`tnum font-mono text-[9px] font-bold ${sortDir === 'desc' ? 'rotate-180' : ''}`}>↑</span>
+        <span className={`tnum font-mono text-[11px] font-bold ${sortDir === 'desc' ? 'rotate-180' : ''}`}>↑</span>
       </button>
 
       <button
@@ -201,7 +201,7 @@ export function CameraHealthToolbar({
         onClick={onReset}
         disabled={!dirty}
         title="Reset every filter"
-        className={`flex h-[28px] shrink-0 items-center gap-1 rounded-[4px] border px-2 text-[10px] font-medium transition-colors ${
+        className={`flex h-[28px] shrink-0 items-center gap-1 rounded-[4px] border px-2 text-[12px] font-medium transition-colors ${
           dirty
             ? 'border-edge bg-panel-alt text-[#c3cfe2] hover:border-edge-strong hover:text-white'
             : 'cursor-not-allowed border-edge/60 bg-transparent text-ink-faint/60'
@@ -211,7 +211,7 @@ export function CameraHealthToolbar({
         Reset
       </button>
 
-      <span className="tnum ml-auto shrink-0 font-mono text-[9.5px] text-ink-faint">
+      <span className="tnum ml-auto shrink-0 font-mono text-[11.5px] text-ink-faint">
         <span className="text-[#9fc7ff]">{shown}</span> / {counts.all} monitored feeds
       </span>
     </div>

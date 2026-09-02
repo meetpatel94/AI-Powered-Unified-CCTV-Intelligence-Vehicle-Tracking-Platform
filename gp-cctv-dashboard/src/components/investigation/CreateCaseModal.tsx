@@ -19,8 +19,8 @@ interface CreateCaseModalProps {
 }
 
 const inputCls =
-  'h-[30px] w-full rounded-[4px] border border-edge bg-[#0c1424] px-2.5 text-[10.5px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70';
-const labelCls = 'mb-1 block text-[9px] font-semibold uppercase tracking-[0.08em] text-[#8ea1c0]';
+  'h-[30px] w-full rounded-[4px] border border-edge bg-[#0c1424] px-2.5 text-[12.5px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70';
+const labelCls = 'mb-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8ea1c0]';
 
 const priorities: Array<{ id: CasePriority; label: string; tone: string }> = [
   { id: 'critical', label: 'Critical', tone: 'border-accent-red/60 bg-accent-red/15 text-[#ff8b96]' },
@@ -100,7 +100,7 @@ export function CreateCaseModal({ open, dossier, evidence, suggestedRef, onClose
             </span>
             <div>
               <h2 className="text-[12.5px] font-bold uppercase tracking-[0.09em] text-white">Create Case</h2>
-              <p className="mt-[1px] text-[9.5px] text-ink-dim">
+              <p className="mt-[1px] text-[11.5px] text-ink-dim">
                 Files {dossier.caseId} into the case register · suggested reference{' '}
                 <span className="tnum font-semibold text-[#9fc7ff]">{suggestedRef}</span>
               </p>
@@ -130,7 +130,7 @@ export function CreateCaseModal({ open, dossier, evidence, suggestedRef, onClose
                   key={option.id}
                   type="button"
                   onClick={() => setPriority(option.id)}
-                  className={`flex h-[30px] items-center justify-center gap-1.5 rounded-[5px] border text-[10px] font-semibold transition-colors ${
+                  className={`flex h-[30px] items-center justify-center gap-1.5 rounded-[5px] border text-[12px] font-semibold transition-colors ${
                     priority === option.id ? option.tone : 'border-edge bg-[#0c1424] text-[#8ea3c4] hover:border-edge-strong hover:text-white'
                   }`}
                 >
@@ -176,17 +176,17 @@ export function CreateCaseModal({ open, dossier, evidence, suggestedRef, onClose
             <div className="mb-1 flex items-center justify-between">
               <span className={labelCls}>Selected evidence</span>
               <span className="flex items-center gap-1.5">
-                <span className="tnum text-[9px] text-[#7f93b3]">
+                <span className="tnum text-[11px] text-[#7f93b3]">
                   {selected.length} of {evidence.length} frames
                 </span>
                 <button
                   type="button"
                   onClick={() => setSelected(evidence.map((item) => item.id))}
-                  className="link-action text-[9px]"
+                  className="link-action text-[11px]"
                 >
                   select all
                 </button>
-                <button type="button" onClick={() => setSelected([])} className="link-action text-[9px]">
+                <button type="button" onClick={() => setSelected([])} className="link-action text-[11px]">
                   clear
                 </button>
               </span>
@@ -207,11 +207,11 @@ export function CreateCaseModal({ open, dossier, evidence, suggestedRef, onClose
                       <img src={item.thumbnail} alt="" className="h-full w-full object-cover" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="tnum flex items-center gap-1 font-mono text-[9px] font-semibold text-[#dbe6f5]">
+                      <span className="tnum flex items-center gap-1 font-mono text-[11px] font-semibold text-[#dbe6f5]">
                         {item.cameraId}
-                        <span className="text-[8px] text-[#7f93b3]">{item.time}</span>
+                        <span className="text-[10px] text-[#7f93b3]">{item.time}</span>
                       </span>
-                      <span className="truncate text-[8px] text-[#7f93b3]">
+                      <span className="truncate text-[10px] text-[#7f93b3]">
                         {item.location} · {item.confidence.toFixed(1)}%
                       </span>
                     </span>
@@ -235,13 +235,13 @@ export function CreateCaseModal({ open, dossier, evidence, suggestedRef, onClose
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               rows={4}
-              className="w-full resize-none rounded-[4px] border border-edge bg-[#0c1424] px-2.5 py-2 text-[10.5px] leading-[15px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70"
+              className="w-full resize-none rounded-[4px] border border-edge bg-[#0c1424] px-2.5 py-2 text-[12.5px] leading-[15px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70"
             />
           </div>
         </div>
 
         <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-edge px-4 py-3">
-          <span className="flex items-center gap-1.5 text-[9px] text-[#7f93b3]">
+          <span className="flex items-center gap-1.5 text-[11px] text-[#7f93b3]">
             <FileText size={10} className="text-accent-cyan" />
             {selected.length} evidence frames will be attached to {suggestedRef}
           </span>
@@ -249,7 +249,7 @@ export function CreateCaseModal({ open, dossier, evidence, suggestedRef, onClose
             <button
               type="button"
               onClick={onClose}
-              className="h-[30px] rounded-[5px] border border-edge bg-panel px-3 text-[10.5px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
+              className="h-[30px] rounded-[5px] border border-edge bg-panel px-3 text-[12.5px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
             >
               Cancel
             </button>
@@ -257,7 +257,7 @@ export function CreateCaseModal({ open, dossier, evidence, suggestedRef, onClose
               type="button"
               onClick={submit}
               disabled={!valid}
-              className="flex h-[30px] items-center gap-1.5 rounded-[5px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] px-4 text-[10.5px] font-semibold text-white shadow-[0_0_14px_-4px_rgba(47,125,255,0.8)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+              className="flex h-[30px] items-center gap-1.5 rounded-[5px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] px-4 text-[12.5px] font-semibold text-white shadow-[0_0_14px_-4px_rgba(47,125,255,0.8)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
             >
               <FolderPlus size={12} strokeWidth={2.4} />
               Create Case

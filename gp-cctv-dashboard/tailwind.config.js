@@ -41,8 +41,9 @@ export default {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       fontSize: {
-        '2xs': ['10px', '13px'],
-        '3xs': ['9px', '12px'],
+        // Micro labels / badges: kept compact but comfortably legible.
+        '2xs': ['11px', '15px'],
+        '3xs': ['10px', '13px'],
       },
       boxShadow: {
         panel: '0 1px 0 0 rgba(255,255,255,0.03) inset, 0 8px 24px -12px rgba(0,0,0,0.8)',

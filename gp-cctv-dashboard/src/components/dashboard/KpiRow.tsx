@@ -45,21 +45,20 @@ function KpiCard({ stat }: { stat: KpiStat }) {
 
   return (
     <article
-      className={`relative flex h-[92px] flex-1 items-start justify-between overflow-hidden rounded-md border bg-gradient-to-br px-3.5 py-2.5 ${tone.shell}`}
+      className={`relative flex min-h-[108px] flex-col items-start justify-between overflow-hidden rounded-md border bg-gradient-to-br px-4 py-3 ${tone.shell}`}
     >
-      <div className="flex h-full flex-col justify-between">
-        <div className={`text-[11px] font-medium ${tone.label}`}>
+      <div className="flex w-full items-start justify-between gap-3">
+        <div className={`min-w-0 text-[13px] font-medium leading-snug ${tone.label}`}>
           {stat.label}
-          {stat.labelSuffix ? <span className="ml-1 text-[10px] opacity-70">{stat.labelSuffix}</span> : null}
+          {stat.labelSuffix ? <span className="ml-1 text-[13px] opacity-70">{stat.labelSuffix}</span> : null}
         </div>
-        <div className="tnum text-[26px] font-bold leading-none tracking-tight text-white">{stat.value}</div>
-        <div className={`flex items-center gap-1 text-[10px] ${tone.foot}`}>
-          {stat.trend === 'up' && <ArrowUp size={10} strokeWidth={3} />}
-          {stat.footnote}
-        </div>
+        <Icon size={32} strokeWidth={1.6} className={`shrink-0 opacity-90 ${tone.icon}`} />
       </div>
-
-      <Icon size={30} strokeWidth={1.6} className={`mt-1 shrink-0 opacity-90 ${tone.icon}`} />
+      <div className="tnum kpi-value w-full font-bold text-white">{stat.value}</div>
+      <div className={`flex items-center gap-1.5 text-[12px] leading-snug ${tone.foot}`}>
+        {stat.trend === 'up' && <ArrowUp size={11} strokeWidth={3} />}
+        {stat.footnote}
+      </div>
 
       {/* subtle top sheen */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
@@ -69,7 +68,7 @@ function KpiCard({ stat }: { stat: KpiStat }) {
 
 export function KpiRow() {
   return (
-    <div className="flex shrink-0 gap-3">
+    <div className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-5">
       {kpiStats.map((stat) => (
         <KpiCard key={stat.id} stat={stat} />
       ))}

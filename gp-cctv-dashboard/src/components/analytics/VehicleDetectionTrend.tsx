@@ -56,7 +56,7 @@ export function VehicleDetectionTrend({ snapshot }: VehicleDetectionTrendProps) 
       className="h-full min-h-0"
       bodyClassName="px-3 pb-2 pt-1"
     >
-      <div className="mb-1 flex items-center justify-between text-[8.5px] text-[#6d82a3]">
+      <div className="mb-1 flex items-center justify-between text-[10.5px] text-[#6d82a3]">
         <span>{snapshot.windowNote}</span>
         <span className="flex items-center gap-2">
           <span className="flex items-center gap-1">
@@ -66,7 +66,7 @@ export function VehicleDetectionTrend({ snapshot }: VehicleDetectionTrendProps) 
       </div>
 
       <div className="flex min-h-0 flex-1 gap-1.5">
-        <div className="flex w-[28px] shrink-0 flex-col justify-between pb-[16px] pt-[6px] text-right text-[8px] tabular-nums text-[#6d82a3]">
+        <div className="flex w-[28px] shrink-0 flex-col justify-between pb-[16px] pt-[6px] text-right text-[10px] tabular-nums text-[#6d82a3]">
           {yTicks.map((tick) => (
             <span key={tick}>{formatTick(tick)}</span>
           ))}
@@ -141,7 +141,7 @@ export function VehicleDetectionTrend({ snapshot }: VehicleDetectionTrendProps) 
             {snapshot.vehicleTrend.map((point, index) => (
               <span
                 key={`${point.label}-${index}`}
-                className={`tnum text-[7.5px] text-[#8ea1c0] ${index % labelEvery !== 0 ? 'opacity-0' : ''}`}
+                className={`tnum text-[9.5px] text-[#8ea1c0] ${index % labelEvery !== 0 ? 'opacity-0' : ''}`}
               >
                 {point.label}
               </span>

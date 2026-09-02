@@ -57,18 +57,18 @@ function Row({
             : 'text-[#dbe6f5]';
   return (
     <div className="flex items-baseline justify-between gap-2 border-b border-edge-soft py-[4px] last:border-b-0">
-      <span className="flex shrink-0 items-center gap-1 text-[8.5px] font-semibold uppercase tracking-[0.07em] text-[#6d7f9e]">
+      <span className="flex shrink-0 items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#6d7f9e]">
         {icon}
         {label}
       </span>
-      <span className={`tnum min-w-0 truncate text-right text-[10px] font-medium ${valueTone}`}>{value}</span>
+      <span className={`tnum min-w-0 truncate text-right text-[12px] font-medium ${valueTone}`}>{value}</span>
     </div>
   );
 }
 
 function SectionLabel({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <div className="mt-2.5 flex items-center gap-1 text-[8.5px] font-semibold uppercase tracking-[0.1em] text-[#7f93b3] first:mt-0">
+    <div className="mt-2.5 flex items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.1em] text-[#7f93b3] first:mt-0">
       {icon}
       {children}
       <span className="ml-1 h-px flex-1 bg-edge" />
@@ -113,24 +113,24 @@ export function InvestigationDetailsPanel({
       {/* status header */}
       <div className="rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="tnum truncate font-mono text-[11px] font-bold tracking-[0.06em] text-white">{dossier.caseId}</span>
+          <span className="tnum truncate font-mono text-[13px] font-bold tracking-[0.06em] text-white">{dossier.caseId}</span>
           <span
-            className={`flex shrink-0 items-center gap-1 rounded-[3px] border px-1.5 py-px text-[8.5px] font-bold uppercase tracking-[0.07em] ${statusTone[status].chip}`}
+            className={`flex shrink-0 items-center gap-1 rounded-[3px] border px-1.5 py-px text-[10.5px] font-bold uppercase tracking-[0.07em] ${statusTone[status].chip}`}
           >
             <span className={`h-1 w-1 rounded-full ${statusTone[status].dot} animate-pulse-dot`} />
             {status}
           </span>
         </div>
-        <p className="mt-[3px] text-[9px] leading-[13px] text-[#94a5c2]">{dossier.title}</p>
+        <p className="mt-[3px] text-[11px] leading-[13px] text-[#94a5c2]">{dossier.title}</p>
         <div className="mt-1 flex flex-wrap items-center gap-1">
-          <span className="tnum rounded-[3px] bg-[#16233a] px-1.5 py-px text-[8px] text-[#9fb0cc]">
+          <span className="tnum rounded-[3px] bg-[#16233a] px-1.5 py-px text-[10px] text-[#9fb0cc]">
             priority · {dossier.priority}
           </span>
-          <span className="tnum rounded-[3px] bg-[#16233a] px-1.5 py-px text-[8px] text-[#9fb0cc]">
+          <span className="tnum rounded-[3px] bg-[#16233a] px-1.5 py-px text-[10px] text-[#9fb0cc]">
             opened {dossier.openedAt}
           </span>
           {caseRef ? (
-            <span className="tnum flex items-center gap-1 rounded-[3px] bg-accent-blue/15 px-1.5 py-px text-[8px] font-semibold text-[#9fc7ff] ring-1 ring-accent-blue/40">
+            <span className="tnum flex items-center gap-1 rounded-[3px] bg-accent-blue/15 px-1.5 py-px text-[10px] font-semibold text-[#9fc7ff] ring-1 ring-accent-blue/40">
               <FileText size={8} />
               {caseRef}
             </span>
@@ -168,7 +168,7 @@ export function InvestigationDetailsPanel({
               style={{ width: `${target.confidence}%` }}
             />
           </span>
-          <span className="tnum shrink-0 text-[8px] text-[#7f93b3]">
+          <span className="tnum shrink-0 text-[10px] text-[#7f93b3]">
             {sorted.filter((s) => s.confidence >= 95).length}/{sorted.length} reads ≥ 95%
           </span>
         </div>
@@ -179,11 +179,11 @@ export function InvestigationDetailsPanel({
       <SectionLabel icon={<MapPin size={9} className="text-accent-blue" />}>Position</SectionLabel>
       <div className="rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1">
         <Row label="First location" value={`${first.location}, ${first.city}`} icon={<MapPin size={9} className="text-[#6d82a3]" />} />
-        <div className="tnum flex justify-end pb-[4px] text-[8.5px] text-[#6d82a3]">
+        <div className="tnum flex justify-end pb-[4px] text-[10.5px] text-[#6d82a3]">
           {first.cameraId} · {first.time} · {first.lat.toFixed(4)}, {first.lng.toFixed(4)}
         </div>
         <Row label="Last location" value={`${last.location}, ${last.city}`} icon={<LocateFixed size={9} className="text-[#6d82a3]" />} />
-        <div className="tnum flex justify-end pb-[4px] text-[8.5px] text-[#6d82a3]">
+        <div className="tnum flex justify-end pb-[4px] text-[10.5px] text-[#6d82a3]">
           {last.cameraId} · {last.time} · {last.lat.toFixed(4)}, {last.lng.toFixed(4)}
         </div>
         <Row
@@ -193,14 +193,14 @@ export function InvestigationDetailsPanel({
           icon={<Radar size={9} className="text-accent-cyan" />}
         />
         <div className="flex items-center justify-between py-[3px]">
-          <span className="flex items-center gap-1 text-[8.5px] text-[#7f93b3]">
+          <span className="flex items-center gap-1 text-[10.5px] text-[#7f93b3]">
             <Timer size={9} className="text-accent-cyan" />
             last ping {agoOf(last.seconds)} · corridor {analysis.corridorLabel}
           </span>
           <button
             type="button"
             onClick={() => onOpenEvidence(last.id)}
-            className="link-action text-[8.5px]"
+            className="link-action text-[10.5px]"
             title="Open the current evidence frame"
           >
             view frame
@@ -210,17 +210,17 @@ export function InvestigationDetailsPanel({
           {analysis.cities.map((city, index) => (
             <span key={city} className="flex items-center gap-1.5">
               {index > 0 ? <span className="h-px w-4 bg-accent-cyan/50" /> : null}
-              <span className="rounded-[3px] border border-edge bg-[#0d1626] px-1.5 py-px text-[8.5px] text-[#c3cfe2]">{city}</span>
+              <span className="rounded-[3px] border border-edge bg-[#0d1626] px-1.5 py-px text-[10.5px] text-[#c3cfe2]">{city}</span>
             </span>
           ))}
-          <span className="tnum ml-auto text-[8px] text-[#6d82a3]">
+          <span className="tnum ml-auto text-[10px] text-[#6d82a3]">
             {analysis.zones} zones · {analysis.departments.length} depts
           </span>
         </div>
       </div>
 
       <SectionLabel icon={<CameraIcon size={9} className="text-accent-purple" />}>
-        Matching cameras <span className="tnum ml-1 rounded-full bg-[#16233a] px-1.5 text-[8px]">{matching.length}</span>
+        Matching cameras <span className="tnum ml-1 rounded-full bg-[#16233a] px-1.5 text-[10px]">{matching.length}</span>
       </SectionLabel>
       <div className="flex flex-wrap gap-1 py-1">
         {matching.map((code) => {
@@ -232,14 +232,14 @@ export function InvestigationDetailsPanel({
               type="button"
               title={sighting ? `${sighting.location} · ${sighting.time}` : code}
               onClick={() => onOpenCamera(code)}
-              className={`tnum rounded-[4px] border px-1.5 py-[3px] text-[9px] font-semibold transition-colors ${
+              className={`tnum rounded-[4px] border px-1.5 py-[3px] text-[11px] font-semibold transition-colors ${
                 primary
                   ? 'border-accent-cyan/60 bg-[#083344]/60 text-[#67e8f9] hover:border-accent-cyan hover:text-white'
                   : 'border-edge bg-[#0c1424] text-[#9fc7ff] hover:border-accent-blue/60 hover:text-white'
               }`}
             >
               {code}
-              {primary ? <span className="ml-1 text-[7.5px] opacity-80">route</span> : null}
+              {primary ? <span className="ml-1 text-[9.5px] opacity-80">route</span> : null}
             </button>
           );
         })}
@@ -259,7 +259,7 @@ export function InvestigationDetailsPanel({
         type="button"
         onClick={onEscalate}
         disabled={status === 'escalated' || status === 'closed'}
-        className="mt-2 flex h-[28px] shrink-0 items-center justify-center gap-1.5 rounded-[5px] border border-accent-orange/45 bg-accent-orange/10 text-[9.5px] font-semibold uppercase tracking-[0.06em] text-[#f7b95f] transition-colors hover:border-accent-orange/70 hover:bg-accent-orange/20 disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-2 flex h-[28px] shrink-0 items-center justify-center gap-1.5 rounded-[5px] border border-accent-orange/45 bg-accent-orange/10 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-[#f7b95f] transition-colors hover:border-accent-orange/70 hover:bg-accent-orange/20 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {status === 'escalated' ? <ShieldCheck size={11} /> : <TriangleAlert size={11} />}
         {status === 'escalated' ? 'Escalated to control room' : 'Escalate to control room'}

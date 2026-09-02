@@ -37,7 +37,7 @@ export function SightingsOverTimePanel({ analytics, bucketLabel }: SightingsOver
       bodyClassName="px-3 pb-2 pt-1"
     >
       <div className="flex h-full min-h-0 gap-1.5">
-        <div className="flex w-[14px] shrink-0 flex-col justify-between pb-[15px] pt-[6px] text-right text-[8px] tabular-nums text-[#6d82a3]">
+        <div className="flex w-[14px] shrink-0 flex-col justify-between pb-[15px] pt-[6px] text-right text-[10px] tabular-nums text-[#6d82a3]">
           {ticks.map((tick) => (
             <span key={tick}>{tick}</span>
           ))}
@@ -87,7 +87,7 @@ export function SightingsOverTimePanel({ analytics, bucketLabel }: SightingsOver
             {buckets.map((bucket, index) => (
               <span
                 key={`${bucket.label}-${index}`}
-                className={`tnum text-[7.5px] text-[#8ea1c0] ${bucket.value === peak.value ? 'font-bold text-[#67e8f9]' : ''}`}
+                className={`tnum text-[9.5px] text-[#8ea1c0] ${bucket.value === peak.value ? 'font-bold text-[#67e8f9]' : ''}`}
               >
                 {bucket.label}
               </span>
@@ -95,7 +95,7 @@ export function SightingsOverTimePanel({ analytics, bucketLabel }: SightingsOver
           </div>
         </div>
       </div>
-      <div className="tnum mt-1 text-right text-[7.5px] text-[#55668a]">{bucketLabel} buckets · window derived from the first / last read</div>
+      <div className="tnum mt-1 text-right text-[9.5px] text-[#55668a]">{bucketLabel} buckets · window derived from the first / last read</div>
     </Panel>
   );
 }
@@ -137,13 +137,13 @@ export function CameraFrequencyPanel({ analytics, activeCamera, onSelectCamera }
               : 'border-transparent hover:border-edge hover:bg-panel-hover'
           }`}
         >
-          <span className="tnum w-[38px] shrink-0 font-mono text-[9.5px] font-bold text-[#9fc7ff]">{row.cameraId}</span>
+          <span className="tnum w-[38px] shrink-0 font-mono text-[11.5px] font-bold text-[#9fc7ff]">{row.cameraId}</span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1">
               <CameraIcon size={8} className="shrink-0 text-[#6d82a3]" />
-              <span className="truncate text-[8.5px] text-[#94a5c2]">{row.location}</span>
+              <span className="truncate text-[10.5px] text-[#94a5c2]">{row.location}</span>
               {row.primary ? (
-                <span className="shrink-0 rounded-[2px] bg-accent-cyan/20 px-1 text-[7px] font-bold uppercase text-[#67e8f9]">route</span>
+                <span className="shrink-0 rounded-[2px] bg-accent-cyan/20 px-1 text-[9px] font-bold uppercase text-[#67e8f9]">route</span>
               ) : null}
             </span>
             <span className="mt-[2px] block h-[3.5px] overflow-hidden rounded-full bg-[#14243c]">
@@ -156,8 +156,8 @@ export function CameraFrequencyPanel({ analytics, activeCamera, onSelectCamera }
             </span>
           </span>
           <span className="tnum w-[42px] shrink-0 text-right">
-            <span className="block text-[10px] font-bold text-white">{row.reads}</span>
-            <span className="block text-[7px] text-[#6d82a3]">reads</span>
+            <span className="block text-[12px] font-bold text-white">{row.reads}</span>
+            <span className="block text-[9px] text-[#6d82a3]">reads</span>
           </span>
         </button>
       ))}
@@ -221,7 +221,7 @@ export function LocationDistributionPanel({ analytics }: LocationDistributionPan
         </svg>
         <div className="absolute text-center leading-tight">
           <div className="tnum text-[15px] font-bold text-white">{total}</div>
-          <div className="text-[7.5px] uppercase tracking-[0.08em] text-[#6d82a3]">reads</div>
+          <div className="text-[9.5px] uppercase tracking-[0.08em] text-[#6d82a3]">reads</div>
         </div>
       </div>
 
@@ -232,16 +232,16 @@ export function LocationDistributionPanel({ analytics }: LocationDistributionPan
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1">
                 <MapPin size={8} className="shrink-0 text-[#6d82a3]" />
-                <span className="truncate text-[9px] font-semibold text-[#dbe6f5]">{slice.label}</span>
-                <span className="truncate text-[7.5px] text-[#6d7f9e]">{slice.city}</span>
+                <span className="truncate text-[11px] font-semibold text-[#dbe6f5]">{slice.label}</span>
+                <span className="truncate text-[9.5px] text-[#6d7f9e]">{slice.city}</span>
               </span>
               <span className="mt-[2px] block h-[3px] overflow-hidden rounded-full bg-[#14243c]">
                 <span className="block h-full rounded-full" style={{ width: `${slice.share}%`, background: slice.color }} />
               </span>
             </span>
             <span className="tnum w-[40px] shrink-0 text-right">
-              <span className="block text-[9.5px] font-bold text-white">{slice.count}</span>
-              <span className="block text-[7px] text-[#6d82a3]">{slice.share.toFixed(0)}%</span>
+              <span className="block text-[11.5px] font-bold text-white">{slice.count}</span>
+              <span className="block text-[9px] text-[#6d82a3]">{slice.share.toFixed(0)}%</span>
             </span>
           </div>
         ))}
@@ -250,7 +250,7 @@ export function LocationDistributionPanel({ analytics }: LocationDistributionPan
           {cityTotals.map((city) => (
             <span
               key={city.city}
-              className="tnum flex items-center gap-1 rounded-[3px] border border-edge bg-[#0c1424] px-1.5 py-[2px] text-[8px] text-[#9fb0cc]"
+              className="tnum flex items-center gap-1 rounded-[3px] border border-edge bg-[#0c1424] px-1.5 py-[2px] text-[10px] text-[#9fb0cc]"
             >
               {city.city}
               <span className="font-bold text-white">{city.count}</span>

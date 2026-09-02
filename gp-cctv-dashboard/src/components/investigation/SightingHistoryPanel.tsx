@@ -46,7 +46,7 @@ const confidenceBar = (value: number) =>
   value >= 96 ? 'bg-accent-green' : value >= 90 ? 'bg-accent-cyan' : 'bg-accent-orange';
 
 const selectCls =
-  'h-[24px] rounded-[4px] border border-edge bg-[#0c1424] px-1.5 text-[9.5px] text-[#c3cfe2] outline-none transition-colors hover:border-edge-strong focus:border-accent-blue/70';
+  'h-[24px] rounded-[4px] border border-edge bg-[#0c1424] px-1.5 text-[11.5px] text-[#c3cfe2] outline-none transition-colors hover:border-edge-strong focus:border-accent-blue/70';
 
 /**
  * SIGHTING HISTORY: every ANPR / AI read of the target with sorting and
@@ -117,7 +117,7 @@ export function SightingHistoryPanel({
           <button
             type="button"
             onClick={() => onQuery({ primaryOnly: !query.primaryOnly })}
-            className={`flex h-[24px] items-center gap-1 rounded-[4px] border px-1.5 text-[9px] font-semibold uppercase tracking-[0.05em] transition-colors ${
+            className={`flex h-[24px] items-center gap-1 rounded-[4px] border px-1.5 text-[11px] font-semibold uppercase tracking-[0.05em] transition-colors ${
               query.primaryOnly
                 ? 'border-accent-cyan/60 bg-[#083344]/70 text-[#67e8f9]'
                 : 'border-edge bg-[#0c1424] text-[#8ea3c4] hover:border-edge-strong hover:text-white'
@@ -130,7 +130,7 @@ export function SightingHistoryPanel({
             <button
               type="button"
               onClick={onReset}
-              className="flex h-[24px] items-center gap-1 rounded-[4px] border border-edge px-1.5 text-[9px] text-[#8ea3c4] transition-colors hover:border-accent-red/50 hover:text-[#ff8b96]"
+              className="flex h-[24px] items-center gap-1 rounded-[4px] border border-edge px-1.5 text-[11px] text-[#8ea3c4] transition-colors hover:border-accent-red/50 hover:text-[#ff8b96]"
             >
               <XCircle size={10} />
               Reset
@@ -138,7 +138,7 @@ export function SightingHistoryPanel({
           ) : null}
         </div>
       }
-      className="min-h-0"
+      className="h-full min-h-0"
       bodyClassName="flex min-h-0 flex-col px-3 pb-2 pt-1"
     >
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -150,7 +150,7 @@ export function SightingHistoryPanel({
               return (
                 <th
                   key={column.label}
-                  className={`border-b border-edge bg-panel px-2 pb-1 pt-0.5 text-[8.5px] font-semibold uppercase tracking-[0.09em] text-[#7f93b3] ${column.className}`}
+                  className={`border-b border-edge bg-panel px-2 pb-1 pt-0.5 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-[#7f93b3] ${column.className}`}
                 >
                   {column.key ? (
                     <button
@@ -189,23 +189,23 @@ export function SightingHistoryPanel({
                 }`}
               >
                 <td className="border-b border-edge-soft px-2 py-[5px] align-middle">
-                  <span className="tnum block font-mono text-[10px] font-semibold text-[#dbe6f5]">{sighting.time}</span>
-                  <span className="tnum block text-[8px] text-[#6d82a3]">{sighting.id} · {sighting.clip}</span>
+                  <span className="tnum block font-mono text-[12px] font-semibold text-[#dbe6f5]">{sighting.time}</span>
+                  <span className="tnum block text-[10px] text-[#6d82a3]">{sighting.id} · {sighting.clip}</span>
                 </td>
                 <td className="border-b border-edge-soft px-2 py-[5px] align-middle">
-                  <span className="tnum flex items-center gap-1 font-mono text-[10px] font-bold text-white">
+                  <span className="tnum flex items-center gap-1 font-mono text-[12px] font-bold text-white">
                     {sighting.cameraId}
                     {sighting.journeyStep ? (
-                      <span className="rounded-[2px] bg-accent-cyan/20 px-1 text-[7.5px] font-bold text-[#67e8f9]">
+                      <span className="rounded-[2px] bg-accent-cyan/20 px-1 text-[9.5px] font-bold text-[#67e8f9]">
                         N{sighting.journeyStep}
                       </span>
                     ) : null}
                   </span>
-                  <span className="block text-[8px] text-[#6d82a3]">{sighting.department}</span>
+                  <span className="block text-[10px] text-[#6d82a3]">{sighting.department}</span>
                 </td>
                 <td className="border-b border-edge-soft px-2 py-[5px] align-middle">
-                  <span className="block truncate text-[10px] font-medium text-[#dbe6f5]">{sighting.location}</span>
-                  <span className="block truncate text-[8px] text-[#6d82a3]">
+                  <span className="block truncate text-[12px] font-medium text-[#dbe6f5]">{sighting.location}</span>
+                  <span className="block truncate text-[10px] text-[#6d82a3]">
                     {sighting.area} · {sighting.city} · {sighting.zone}
                   </span>
                 </td>
@@ -217,20 +217,20 @@ export function SightingHistoryPanel({
                         style={{ width: `${sighting.confidence}%` }}
                       />
                     </span>
-                    <span className={`tnum text-[9.5px] font-bold ${confidenceTone(sighting.confidence)}`}>
+                    <span className={`tnum text-[11.5px] font-bold ${confidenceTone(sighting.confidence)}`}>
                       {sighting.confidence.toFixed(1)}%
                     </span>
                   </span>
-                  {sighting.note ? <span className="mt-px block truncate text-[7.5px] text-[#7f93b3]">{sighting.note}</span> : null}
+                  {sighting.note ? <span className="mt-px block truncate text-[9.5px] text-[#7f93b3]">{sighting.note}</span> : null}
                 </td>
                 <td className="border-b border-edge-soft px-2 py-[5px] align-middle">
-                  <span className="block truncate text-[9.5px] text-[#dbe6f5]">{sighting.vehicleType}</span>
-                  <span className="block truncate text-[8px] text-[#6d82a3]">
+                  <span className="block truncate text-[11.5px] text-[#dbe6f5]">{sighting.vehicleType}</span>
+                  <span className="block truncate text-[10px] text-[#6d82a3]">
                     {sighting.make} · {sighting.speedKph} km/h · {sighting.lane}
                   </span>
                 </td>
                 <td className="border-b border-edge-soft px-2 py-[5px] align-middle">
-                  <span className="flex items-center gap-1 text-[9.5px] text-[#dbe6f5]">
+                  <span className="flex items-center gap-1 text-[11.5px] text-[#dbe6f5]">
                     <ArrowUpRight
                       size={11}
                       className="shrink-0 text-accent-cyan"
@@ -239,9 +239,9 @@ export function SightingHistoryPanel({
                     {sighting.direction}
                   </span>
                   {sighting.reRead ? (
-                    <span className="mt-px block text-[7.5px] text-[#7f93b3]">ANPR re-read · same pass</span>
+                    <span className="mt-px block text-[9.5px] text-[#7f93b3]">ANPR re-read · same pass</span>
                   ) : (
-                    <span className="tnum mt-px block text-[7.5px] text-[#6d82a3]">
+                    <span className="tnum mt-px block text-[9.5px] text-[#6d82a3]">
                       {sighting.lat.toFixed(4)}, {sighting.lng.toFixed(4)}
                     </span>
                   )}
@@ -257,11 +257,11 @@ export function SightingHistoryPanel({
                       {sighting.watchlistHit ? <span className="absolute inset-0 bg-accent-red/20" /> : null}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-1 text-[8.5px] font-semibold text-[#9fc7ff] transition-colors group-hover:text-accent-cyan">
+                      <span className="flex items-center gap-1 text-[10.5px] font-semibold text-[#9fc7ff] transition-colors group-hover:text-accent-cyan">
                         <Eye size={9} />
                         View evidence
                       </span>
-                      <span className="tnum block truncate text-[7.5px] text-[#6d82a3]">
+                      <span className="tnum block truncate text-[9.5px] text-[#6d82a3]">
                         {sighting.frames.length + 1} frames · 38 s clip
                       </span>
                     </span>
@@ -276,7 +276,7 @@ export function SightingHistoryPanel({
       </div>
 
       {sightings.length === 0 ? (
-        <div className="grid h-[80px] shrink-0 place-items-center rounded-[5px] border border-dashed border-edge text-[10px] text-ink-dim">
+        <div className="grid h-[80px] shrink-0 place-items-center rounded-[5px] border border-dashed border-edge text-[12px] text-ink-dim">
           No sighting matches the current filters — widen the confidence or camera selection.
         </div>
       ) : null}

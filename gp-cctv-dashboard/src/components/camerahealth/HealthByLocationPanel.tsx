@@ -17,7 +17,7 @@ export function HealthByLocationPanel({ rows, onDrill }: { rows: LocationHealthR
       title="Health By Location"
       className="h-full min-h-0"
       bodyClassName="flex min-h-0 flex-col"
-      tools={<span className="font-mono text-[9px] text-ink-faint">ranked worst first</span>}
+      tools={<span className="font-mono text-[11px] text-ink-faint">ranked worst first</span>}
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-2">
         <ul className="space-y-[3px]">
@@ -32,13 +32,13 @@ export function HealthByLocationPanel({ rows, onDrill }: { rows: LocationHealthR
                   title={`Search the monitor grid for ${row.label} · worst feed ${row.worst}`}
                   className="group flex w-full items-center gap-2 rounded-[4px] border border-transparent px-1.5 py-[3px] text-left transition-colors hover:border-edge hover:bg-panel-hover/60"
                 >
-                  <span className="tnum w-[14px] shrink-0 text-right font-mono text-[9px] text-ink-faint">{index + 1}</span>
+                  <span className="tnum w-[14px] shrink-0 text-right font-mono text-[11px] text-ink-faint">{index + 1}</span>
 
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1">
                       <MapPin size={9} className="shrink-0 text-ink-faint" />
-                      <span className="truncate text-[10px] text-[#d7e1f1]">{row.label}</span>
-                      <span className="truncate text-[8.5px] text-ink-faint">{row.city}</span>
+                      <span className="truncate text-[12px] text-[#d7e1f1]">{row.label}</span>
+                      <span className="truncate text-[10.5px] text-ink-faint">{row.city}</span>
                     </span>
                     <span className="mt-[2px] flex items-center gap-1.5">
                       <span className="relative h-[3px] w-full max-w-[120px] overflow-hidden rounded-full bg-[#111c30]">
@@ -47,7 +47,7 @@ export function HealthByLocationPanel({ rows, onDrill }: { rows: LocationHealthR
                           style={{ width: `${row.score}%`, backgroundColor: color, boxShadow: `0 0 6px -1px ${color}` }}
                         />
                       </span>
-                      <span className="tnum font-mono text-[8.5px] text-ink-faint">
+                      <span className="tnum font-mono text-[10.5px] text-ink-faint">
                         <span style={{ color }}>{row.online}</span> ok ·{' '}
                         <span className={row.degraded ? 'text-[#f7b95f]' : ''}>{row.degraded}</span> deg ·{' '}
                         <span className={row.down ? 'text-[#ff8b96]' : ''}>{row.down}</span> down
@@ -56,10 +56,10 @@ export function HealthByLocationPanel({ rows, onDrill }: { rows: LocationHealthR
                   </span>
 
                   <span className="shrink-0 text-right">
-                    <span className="tnum block font-mono text-[11px] font-bold" style={{ color }}>
+                    <span className="tnum block font-mono text-[13px] font-bold" style={{ color }}>
                       {row.score}
                     </span>
-                    <span className="tnum block font-mono text-[8px] text-ink-faint">{row.cameras} cams</span>
+                    <span className="tnum block font-mono text-[10px] text-ink-faint">{row.cameras} cams</span>
                   </span>
                 </button>
               </li>

@@ -25,12 +25,12 @@ export function VehicleSearchPanel() {
           <input
             defaultValue={trackedVehicle.plate}
             aria-label="Search number plate"
-            className="h-[30px] w-full rounded-[4px] border border-edge bg-[#0c1424] pl-7 pr-2 text-[11px] tracking-wide text-ink outline-none transition-colors focus:border-accent-blue/70"
+            className="h-[30px] w-full rounded-[4px] border border-edge bg-[#0c1424] pl-7 pr-2 text-[13px] tracking-wide text-ink outline-none transition-colors focus:border-accent-blue/70"
           />
         </div>
         <button
           type="submit"
-          className="h-[30px] shrink-0 rounded-[4px] bg-[#1d6ce0] px-3.5 text-[11px] font-semibold text-white transition-colors hover:bg-[#2a7bf0]"
+          className="h-[30px] shrink-0 rounded-[4px] bg-[#1d6ce0] px-3.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#2a7bf0]"
         >
           Search
         </button>
@@ -52,19 +52,19 @@ export function VehicleSearchPanel() {
           </div>
 
           {trackedVehicle.watchlistMatch && (
-            <span className="mt-1 w-fit rounded-[3px] border border-accent-red px-1.5 py-[2px] text-[8.5px] font-bold uppercase tracking-[0.08em] text-[#ff8b96]">
+            <span className="mt-1 w-fit rounded-[3px] border border-accent-red px-1.5 py-[2px] text-[10.5px] font-bold uppercase tracking-[0.08em] text-[#ff8b96]">
               Watchlist Match
             </span>
           )}
 
           <dl className="mt-1.5 space-y-[3px]">
             <div>
-              <dt className="text-[9px] leading-[11px] text-[#7286a6]">Vehicle Type</dt>
-              <dd className="text-[10.5px] leading-[13px] text-[#dbe5f4]">{trackedVehicle.type}</dd>
+              <dt className="text-[11px] leading-[14px] text-[#7286a6]">Vehicle Type</dt>
+              <dd className="text-[12.5px] leading-[16px] text-[#dbe5f4]">{trackedVehicle.type}</dd>
             </div>
             <div>
-              <dt className="text-[9px] leading-[11px] text-[#7286a6]">Color</dt>
-              <dd className="text-[10.5px] leading-[13px] text-[#dbe5f4]">{trackedVehicle.color}</dd>
+              <dt className="text-[11px] leading-[14px] text-[#7286a6]">Color</dt>
+              <dd className="text-[12.5px] leading-[16px] text-[#dbe5f4]">{trackedVehicle.color}</dd>
             </div>
           </dl>
         </div>
@@ -74,8 +74,8 @@ export function VehicleSearchPanel() {
       <div className="grid shrink-0 grid-cols-2 gap-x-2.5 gap-y-1 rounded-[4px] border border-edge-soft bg-[#0c1424] px-2 py-1.5">
         {anprMeta.map((item) => (
           <div key={item.label} className="flex items-center justify-between gap-1">
-            <span className="text-[9px] text-[#7286a6]">{item.label}</span>
-            <span className={`tnum text-[9.5px] font-medium ${item.tone}`}>{item.value}</span>
+            <span className="text-[11px] text-[#7286a6]">{item.label}</span>
+            <span className={`tnum text-[11.5px] font-medium ${item.tone}`}>{item.value}</span>
           </div>
         ))}
       </div>
@@ -83,12 +83,12 @@ export function VehicleSearchPanel() {
       {/* seen window */}
       <div className="mt-auto grid shrink-0 grid-cols-2 gap-2 border-t border-edge-soft pt-1.5">
         <div>
-          <div className="text-[9px] text-[#7286a6]">First Seen</div>
-          <div className="tnum text-[10.5px] text-[#dbe5f4]">{trackedVehicle.firstSeen}</div>
+          <div className="text-[11px] text-[#7286a6]">First Seen</div>
+          <div className="tnum text-[12.5px] text-[#dbe5f4]">{trackedVehicle.firstSeen}</div>
         </div>
         <div>
-          <div className="text-[9px] text-[#7286a6]">Last Seen</div>
-          <div className="tnum text-[10.5px] text-[#dbe5f4]">{trackedVehicle.lastSeen}</div>
+          <div className="text-[11px] text-[#7286a6]">Last Seen</div>
+          <div className="tnum text-[12.5px] text-[#dbe5f4]">{trackedVehicle.lastSeen}</div>
         </div>
       </div>
     </Panel>

@@ -60,7 +60,7 @@ export function VehicleTypesPanel({ types, total, windowNote }: VehicleTypesPane
           <div className="pointer-events-none absolute inset-0 grid place-items-center text-center leading-none">
             <div>
               <div className="tnum text-[15px] font-bold text-white">{active ? formatIn(active.value) : formatIn(total)}</div>
-              <div className="mt-[2px] max-w-[72px] truncate text-[7px] font-semibold uppercase tracking-[0.12em] text-[#6d82a3]">
+              <div className="mt-[2px] max-w-[72px] truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-[#6d82a3]">
                 {active ? active.label : 'vehicles'}
               </div>
             </div>
@@ -82,8 +82,8 @@ export function VehicleTypesPanel({ types, total, windowNote }: VehicleTypesPane
                     className="h-2 w-2 shrink-0 rounded-[2px]"
                     style={{ background: slice.color, boxShadow: `0 0 6px -1px ${slice.color}` }}
                   />
-                  <span className="min-w-0 flex-1 truncate text-[9.5px] text-[#9fb0cc]">{slice.label}</span>
-                  <span className="tnum text-[10px] font-bold text-white">{formatIn(slice.value)}</span>
+                  <span className="min-w-0 flex-1 truncate text-[11.5px] text-[#9fb0cc]">{slice.label}</span>
+                  <span className="tnum text-[12px] font-bold text-white">{formatIn(slice.value)}</span>
                 </div>
                 <div className="mt-[3px] ml-3.5 h-[3px] overflow-hidden rounded-full bg-[#0d1626]">
                   <div
@@ -91,7 +91,7 @@ export function VehicleTypesPanel({ types, total, windowNote }: VehicleTypesPane
                     style={{ width: `${pct}%`, background: slice.color, boxShadow: `0 0 8px -2px ${slice.color}` }}
                   />
                 </div>
-                <div className="ml-3.5 mt-[1px] tnum text-[8px] text-[#6d82a3]">{formatPct(pct)}</div>
+                <div className="ml-3.5 mt-[1px] tnum text-[10px] text-[#6d82a3]">{formatPct(pct)}</div>
               </li>
             );
           })}

@@ -93,7 +93,7 @@ export function CameraHealthKpiRow({
             type="button"
             onClick={() => onSelect(card.filter)}
             title={card.hint}
-            className={`group panel relative overflow-hidden px-3 py-2.5 text-left transition-colors ${
+            className={`group panel relative min-h-[104px] overflow-hidden px-3.5 py-3 text-left transition-colors ${
               selected ? 'border-edge-strong bg-panel-hover' : 'hover:bg-panel-hover/60'
             }`}
           >
@@ -102,28 +102,28 @@ export function CameraHealthKpiRow({
               style={{ background: `linear-gradient(90deg, ${card.color}, transparent 85%)` }}
             />
             <div className="flex items-start justify-between gap-2">
-              <span className="text-[9.5px] font-semibold uppercase tracking-[0.11em] text-ink-dim">{card.label}</span>
+              <span className="text-[13px] font-semibold uppercase tracking-[0.11em] text-ink-dim">{card.label}</span>
               <span
-                className="grid h-[20px] w-[20px] shrink-0 place-items-center rounded-[4px] border"
+                className="grid h-[24px] w-[24px] shrink-0 place-items-center rounded-[4px] border"
                 style={{ borderColor: `${card.color}44`, backgroundColor: `${card.color}14`, color: card.color }}
               >
-                <Icon size={11} strokeWidth={2.2} />
+                <Icon size={13} strokeWidth={2.2} />
               </span>
             </div>
 
-            <div className="mt-1.5 flex items-baseline gap-1.5">
-              <span className="tnum text-[22px] font-bold leading-none text-white">{card.value.toLocaleString('en-IN')}</span>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="tnum kpi-value font-bold text-white">{card.value.toLocaleString('en-IN')}</span>
               {typeof card.percent === 'number' ? (
-                <span className="tnum rounded-[3px] px-1 py-[1px] text-[10px] font-semibold" style={{ color: card.color, backgroundColor: `${card.color}18` }}>
+                <span className="tnum rounded-[3px] px-1.5 py-[2px] text-[12px] font-semibold" style={{ color: card.color, backgroundColor: `${card.color}18` }}>
                   {card.percent}%
                 </span>
               ) : null}
             </div>
 
-            <p className="mt-1.5 truncate text-[9.5px] text-ink-faint">{card.hint}</p>
+            <p className="mt-2 truncate text-[13px] text-ink-faint">{card.hint}</p>
 
             {/* share-of-fleet bar */}
-            <span className="mt-2 block h-[3px] overflow-hidden rounded-full bg-[#111c30]">
+            <span className="mt-2.5 block h-[4px] overflow-hidden rounded-full bg-[#111c30]">
               <span
                 className="block h-full rounded-full transition-[width] duration-700"
                 style={{
@@ -136,7 +136,7 @@ export function CameraHealthKpiRow({
 
             {card.id === 'reconnecting' && attention > 0 ? (
               <span className="absolute right-2.5 bottom-2.5 flex items-center gap-1 text-3xs font-semibold text-[#ff8b96]">
-                <AlertOctagon size={9} strokeWidth={2.4} />
+                <AlertOctagon size={11} strokeWidth={2.4} />
                 {attention} flagged
               </span>
             ) : null}

@@ -223,7 +223,7 @@ export function CameraHealth() {
   /* ---------------- render ---------------- */
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+    <div className="page relative">
       <CameraHealthHeader
         autoRefresh={autoRefresh}
         refreshing={refreshing}
@@ -261,8 +261,11 @@ export function CameraHealth() {
       />
 
       {/* monitor grid + selected camera inspector */}
-      <div className="grid min-h-0 grid-cols-1 gap-2.5 xl:grid-cols-[minmax(0,1fr)_336px]">
-        <div className="flex h-[470px] min-h-0 flex-col">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(330px,370px)]"
+        style={{ height: 'clamp(480px, 52vh, 640px)' }}
+      >
+        <div className="flex min-h-0 min-w-0 flex-col">
           <CameraHealthMonitorTable
             cameras={sorted}
             evaluations={evaluations}
@@ -273,7 +276,7 @@ export function CameraHealth() {
             shown={sorted.length}
           />
         </div>
-        <div className="flex h-[470px] min-h-0 flex-col">
+        <div className="flex min-h-0 min-w-0 flex-col">
           <SelectedCameraHealthPanel
             camera={selectedCamera}
             evaluation={selectedCamera ? evaluations[selectedCamera.id] ?? null : null}
@@ -285,30 +288,33 @@ export function CameraHealth() {
         </div>
       </div>
 
-      <div className="h-[178px] shrink-0">
+      <div className="shrink-0" style={{ height: 'clamp(220px, 24vh, 300px)' }}>
         <StreamQualityPanel series={streamQualitySeries} settings={settings} />
       </div>
 
       {/* distribution · location ranking · critical feeds */}
-      <div className="grid min-h-0 grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-[30%_34%_minmax(0,1fr)]">
-        <div className="h-[252px]">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[30fr_34fr_36fr]"
+        style={{ height: 'clamp(300px, 32vh, 400px)' }}
+      >
+        <div className="min-w-0">
           <StatusDistributionPanel fleet={fleetHealth} active={filters.status} onSelect={(id) => patchFilters({ status: id as HealthFilters['status'] })} />
         </div>
-        <div className="h-[252px]">
+        <div className="min-w-0">
           <HealthByLocationPanel rows={locations} onDrill={(area) => patchFilters({ query: area })} />
         </div>
-        <div className="h-[252px]">
+        <div className="min-w-0 md:col-span-2 xl:col-span-1">
           <CriticalCamerasPanel items={critical} busyId={busyId} onAct={handleCriticalAction} onSelect={setSelectedId} selectedId={selectedId} />
         </div>
       </div>
 
-      <div className="h-[244px] shrink-0">
+      <div className="shrink-0" style={{ height: 'clamp(260px, 28vh, 360px)' }}>
         <RecentHealthEventsPanel events={healthEvents} onSelectCamera={setSelectedId} selectedId={selectedId} />
       </div>
 
       {/* transient operator feedback */}
       {notice ? (
-        <div className="pointer-events-none sticky bottom-2 left-1/2 z-30 w-fit max-w-[92%] -translate-x-1/2 animate-flash-in rounded-[5px] border border-accent-blue/50 bg-[#0b1730]/95 px-3 py-1.5 text-[10px] text-[#cfe0ff] shadow-[0_0_20px_-6px_rgba(47,125,255,0.85)]">
+        <div className="pointer-events-none sticky bottom-2 left-1/2 z-30 w-fit max-w-[92%] -translate-x-1/2 animate-flash-in rounded-[5px] border border-accent-blue/50 bg-[#0b1730]/95 px-3 py-1.5 text-[12px] text-[#cfe0ff] shadow-[0_0_20px_-6px_rgba(47,125,255,0.85)]">
           {notice}
         </div>
       ) : null}

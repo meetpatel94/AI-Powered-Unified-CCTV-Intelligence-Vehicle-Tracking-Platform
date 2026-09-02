@@ -30,8 +30,8 @@ interface AlertDetailsPanelProps {
 function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="min-w-0">
-      <div className="text-[8.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">{label}</div>
-      <div className={`mt-[2px] truncate text-[10.5px] font-medium text-[#dbe6f5] ${mono ? 'tnum tracking-[0.04em]' : ''}`}>
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">{label}</div>
+      <div className={`mt-[2px] truncate text-[12.5px] font-medium text-[#dbe6f5] ${mono ? 'tnum tracking-[0.04em]' : ''}`}>
         {value}
       </div>
     </div>
@@ -61,7 +61,7 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
   const activeFrame = evidence[activeIndex];
 
   const btn =
-    'flex h-[28px] items-center justify-center gap-1.5 rounded-[5px] border text-[9.5px] font-semibold uppercase tracking-[0.05em] transition-all disabled:cursor-not-allowed disabled:opacity-40';
+    'flex h-[28px] items-center justify-center gap-1.5 rounded-[5px] border text-[11.5px] font-semibold uppercase tracking-[0.05em] transition-all disabled:cursor-not-allowed disabled:opacity-40';
   const ghost = 'border-edge bg-[#0c1424] text-[#c3cfe2] hover:border-edge-strong hover:text-white';
 
   return (
@@ -73,7 +73,7 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
         onClick={onClose}
       />
 
-      <aside className="relative flex h-full w-[478px] animate-drawer-in flex-col border-l border-edge bg-[#0a1120] shadow-[0_0_40px_rgba(0,0,0,0.65)]">
+      <aside className="relative flex h-full w-[min(520px,94vw)] animate-drawer-in flex-col border-l border-edge bg-[#0a1120] shadow-[0_0_40px_rgba(0,0,0,0.65)]">
         {/* header */}
         <header className="flex shrink-0 items-center justify-between border-b border-edge px-3.5 py-2.5">
           <div className="flex min-w-0 items-center gap-2">
@@ -86,7 +86,7 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
                 <SeverityChip severity={alert.severity} />
                 <StatusChip status={alert.status} />
               </div>
-              <div className="tnum text-[9px] text-ink-dim">
+              <div className="tnum text-[11px] text-ink-dim">
                 {alert.id} · logged {alert.time} ({alert.ago})
               </div>
             </div>
@@ -107,17 +107,17 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
             <img src={activeFrame} alt={`${alert.id} evidence frame`} className="h-full w-full object-cover" />
             <div className="pointer-events-none absolute inset-x-0 top-0 h-16 animate-sweep bg-gradient-to-b from-accent-cyan/10 via-transparent to-transparent" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#05070f]/95 to-transparent" />
-            <span className="absolute left-2 top-2 flex items-center gap-1 rounded-[3px] bg-black/70 px-1.5 py-px text-[8.5px] font-bold text-[#9fb0cc] ring-1 ring-edge-strong">
+            <span className="absolute left-2 top-2 flex items-center gap-1 rounded-[3px] bg-black/70 px-1.5 py-px text-[10.5px] font-bold text-[#9fb0cc] ring-1 ring-edge-strong">
               <span className="h-1.5 w-1.5 rounded-full bg-accent-red animate-pulse-dot" /> {alert.camera} · CAM SNAPSHOT
             </span>
-            <span className="tnum absolute right-2 top-2 rounded-[3px] bg-black/70 px-1.5 py-px text-[8.5px] font-semibold text-[#c9d6ea] ring-1 ring-edge-strong">
+            <span className="tnum absolute right-2 top-2 rounded-[3px] bg-black/70 px-1.5 py-px text-[10.5px] font-semibold text-[#c9d6ea] ring-1 ring-edge-strong">
               01 SEP 2026 · {alert.time}
             </span>
             <div className="absolute bottom-1.5 left-2 right-2 flex items-end justify-between">
-              <span className="tnum rounded-[3px] bg-[#2a0d13]/90 px-1.5 py-px text-[9px] font-bold text-[#ff8b96] ring-1 ring-accent-red/50">
+              <span className="tnum rounded-[3px] bg-[#2a0d13]/90 px-1.5 py-px text-[11px] font-bold text-[#ff8b96] ring-1 ring-accent-red/50">
                 {alert.subject}
               </span>
-              <span className="flex items-center gap-1 text-[8.5px] text-[#8ea1c0]">
+              <span className="flex items-center gap-1 text-[10.5px] text-[#8ea1c0]">
                 <ZoomIn size={10} /> frame {activeIndex + 1}/{evidence.length} · AI crop 1.0×
               </span>
             </div>
@@ -140,14 +140,14 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
                 <img src={src} alt="" className="h-full w-full object-cover" />
               </button>
             ))}
-            <span className="flex flex-1 items-center justify-end gap-1.5 text-[8.5px] text-[#55668a]">
+            <span className="flex flex-1 items-center justify-end gap-1.5 text-[10.5px] text-[#55668a]">
               <ScanSearch size={10} /> clip 00:38 · h.265 · 1080p
             </span>
           </div>
 
           {/* detection telemetry */}
           <section className="mt-3">
-            <h3 className="text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">Detection Telemetry</h3>
+            <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">Detection Telemetry</h3>
             <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-2 rounded-md border border-edge bg-[#0c1424] px-3 py-2.5">
               <Field label="Detected Object / Plate" value={alert.subject} mono />
               <Field label="Alert Type" value={alert.title} />
@@ -169,7 +169,7 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
               <Field label="Assigned To" value={alert.assignedTo ?? 'Unassigned'} />
               <Field label="Case Ref" value={alert.caseRef ?? '—'} mono />
               <div className="col-span-2 flex items-center justify-between gap-3 border-t border-edge-soft pt-2">
-                <span className="text-[8.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">
+                <span className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">
                   Model Confidence
                 </span>
                 <ConfidenceBar value={alert.confidence} barClass={severityBar[alert.severity]} />
@@ -179,11 +179,11 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
 
           {/* description */}
           <section className="mt-3">
-            <h3 className="text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">Event Description</h3>
-            <p className="mt-1.5 rounded-md border border-edge bg-[#0c1424] px-3 py-2 text-[10px] leading-[15px] text-[#b9c7dd]">
+            <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">Event Description</h3>
+            <p className="mt-1.5 rounded-md border border-edge bg-[#0c1424] px-3 py-2 text-[12px] leading-[15px] text-[#b9c7dd]">
               {alert.details}
             </p>
-            <p className="mt-1.5 rounded-md border border-edge-soft bg-[#0d1626] px-3 py-2 text-[9.5px] leading-[14.5px] text-[#8ea1c0]">
+            <p className="mt-1.5 rounded-md border border-edge-soft bg-[#0d1626] px-3 py-2 text-[11.5px] leading-[14.5px] text-[#8ea1c0]">
               <span className="font-bold uppercase tracking-wide text-[#67e8f9]">Ops note · </span>
               {alert.notes}
             </p>
@@ -191,15 +191,15 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
 
           {/* related cameras */}
           <section className="mt-3">
-            <h3 className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
+            <h3 className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
               <Eye size={10} className="text-accent-cyan" />
               Related Cameras
-              <span className="tnum rounded-full bg-[#16233a] px-1.5 text-[8.5px] text-[#8ea1c0]">
+              <span className="tnum rounded-full bg-[#16233a] px-1.5 text-[10.5px] text-[#8ea1c0]">
                 {alert.relatedCameras.length + 1}
               </span>
             </h3>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <span className="tnum cursor-default rounded-[4px] border border-accent-cyan/50 bg-[#083344]/60 px-2 py-[3px] text-[9.5px] font-semibold text-[#67e8f9]">
+              <span className="tnum cursor-default rounded-[4px] border border-accent-cyan/50 bg-[#083344]/60 px-2 py-[3px] text-[11.5px] font-semibold text-[#67e8f9]">
                 {alert.camera} · primary
               </span>
               {alert.relatedCameras.map((code) => (
@@ -208,7 +208,7 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
                   type="button"
                   title={`Open ${code} on Live View`}
                   onClick={() => onAction(alert, 'camera', code)}
-                  className="tnum rounded-[4px] border border-edge bg-[#0c1424] px-2 py-[3px] text-[9.5px] font-semibold text-[#9fc7ff] transition-colors hover:border-accent-blue/60 hover:text-white"
+                  className="tnum rounded-[4px] border border-edge bg-[#0c1424] px-2 py-[3px] text-[11.5px] font-semibold text-[#9fc7ff] transition-colors hover:border-accent-blue/60 hover:text-white"
                 >
                   {code}
                 </button>
@@ -218,11 +218,11 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
 
           {/* vehicle journey */}
           <section className="mt-3">
-            <h3 className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
+            <h3 className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
               <Route size={10} className="text-accent-blue" />
               Vehicle Journey
               {alert.journey.length ? (
-                <span className="tnum rounded-full bg-[#16233a] px-1.5 text-[8.5px] text-[#8ea1c0]">
+                <span className="tnum rounded-full bg-[#16233a] px-1.5 text-[10.5px] text-[#8ea1c0]">
                   {alert.journey.length} sightings
                 </span>
               ) : null}
@@ -238,15 +238,15 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="tnum text-[8px] text-[#8ea1c0]">{stop.time}</span>
+                          <span className="tnum text-[10px] text-[#8ea1c0]">{stop.time}</span>
                           <span
-                            className={`tnum text-[8px] font-bold ${stop.alert ? 'text-[#ff8b96]' : 'text-[#6fe0b0]'}`}
+                            className={`tnum text-[10px] font-bold ${stop.alert ? 'text-[#ff8b96]' : 'text-[#6fe0b0]'}`}
                           >
                             {stop.speedKph} km/h
                           </span>
                         </div>
-                        <div className="text-[11px] font-bold leading-tight text-white">{stop.camera}</div>
-                        <div className="truncate text-[8.5px] text-[#94a5c2]">
+                        <div className="text-[13px] font-bold leading-tight text-white">{stop.camera}</div>
+                        <div className="truncate text-[10.5px] text-[#94a5c2]">
                           {stop.road} · {stop.city}
                         </div>
                         <div className="relative mt-1 h-[34px] overflow-hidden rounded-[3px] border border-edge-soft bg-black">
@@ -255,7 +255,7 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
                             <span className="absolute inset-0 bg-accent-red/15 ring-1 ring-inset ring-accent-red/50" />
                           ) : null}
                         </div>
-                        <div className="mt-1 text-[7.5px] uppercase tracking-wide text-[#55668a]">
+                        <div className="mt-1 text-[9.5px] uppercase tracking-wide text-[#55668a]">
                           step {stop.step} · hdg {stop.heading}
                         </div>
                       </div>
@@ -270,13 +270,13 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
                 <button
                   type="button"
                   onClick={() => navigate('/camera-map')}
-                  className="link-action mt-1 flex items-center gap-1 text-[9.5px]"
+                  className="link-action mt-1 flex items-center gap-1 text-[11.5px]"
                 >
                   <MapPin size={10} /> Replay full route on Camera Map
                 </button>
               </>
             ) : (
-              <p className="mt-1.5 rounded-md border border-dashed border-edge px-3 py-2 text-[9.5px] text-ink-dim">
+              <p className="mt-1.5 rounded-md border border-dashed border-edge px-3 py-2 text-[11.5px] text-ink-dim">
                 Non-vehicle event — no ANPR journey available for this incident.
               </p>
             )}
@@ -284,7 +284,7 @@ export function AlertDetailsPanel({ alert, onClose, onAction }: AlertDetailsPane
 
           {/* response log */}
           <section className="mt-3 pb-1">
-            <h3 className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
+            <h3 className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
               <Flag size={10} className="text-accent-orange" />
               Response Log
             </h3>

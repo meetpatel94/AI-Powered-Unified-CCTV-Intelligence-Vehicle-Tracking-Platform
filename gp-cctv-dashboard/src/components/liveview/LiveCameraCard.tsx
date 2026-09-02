@@ -59,7 +59,7 @@ function DetectionOverlay({ boxes }: { boxes: DetectionBox[] }) {
             }}
           >
             <span
-              className={`absolute -top-[11px] left-0 whitespace-nowrap px-1 text-[7px] font-bold tracking-wide ${
+              className={`absolute -top-[11px] left-0 whitespace-nowrap px-1 text-[9px] font-bold tracking-wide ${
                 isAnpr ? 'bg-accent-red text-white' : 'bg-black/75'
               }`}
             >
@@ -122,8 +122,8 @@ export function LiveCameraCard({
               }}
             />
             <WifiOff size={18} className="text-accent-red/80" />
-            <span className="text-[9px] font-semibold tracking-wider text-accent-red/90">SIGNAL LOST</span>
-            <span className="text-[8px] text-ink-dim">Last heartbeat {camera.lastHeartbeat}</span>
+            <span className="text-[11px] font-semibold tracking-wider text-accent-red/90">SIGNAL LOST</span>
+            <span className="text-[10px] text-ink-dim">Last heartbeat {camera.lastHeartbeat}</span>
           </div>
         ) : (
           <>
@@ -153,10 +153,10 @@ export function LiveCameraCard({
             {camera.status === 'reconnecting' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
                 <RefreshCw size={16} className="animate-spin text-accent-orange" />
-                <span className="text-[9px] font-semibold tracking-wider text-accent-orange">
+                <span className="text-[11px] font-semibold tracking-wider text-accent-orange">
                   RECONNECTING…
                 </span>
-                <span className="text-[8px] text-ink-dim">RTSP retry 3/5</span>
+                <span className="text-[10px] text-ink-dim">RTSP retry 3/5</span>
               </div>
             )}
           </>
@@ -166,15 +166,15 @@ export function LiveCameraCard({
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-1 bg-gradient-to-b from-black/80 via-black/35 to-transparent px-1.5 pb-5 pt-1.5">
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-1">
-              <span className="shrink-0 whitespace-nowrap text-[10px] font-bold tracking-wide text-white drop-shadow">
+              <span className="shrink-0 whitespace-nowrap text-[12px] font-bold tracking-wide text-white drop-shadow">
                 {camera.id}
               </span>
-              <span className="truncate text-[8.5px] text-white/80">
+              <span className="truncate text-[10.5px] text-white/80">
                 | {camera.location}, {camera.city}
               </span>
             </div>
             {!compact && (
-              <div className="mt-[1px] flex items-center gap-1.5 text-[7.5px] text-white/70">
+              <div className="mt-[1px] flex items-center gap-1.5 text-[9.5px] text-white/70">
                 <span>{camera.zone}</span>
                 <span className="h-[7px] w-px bg-white/25" />
                 <span>{camera.department}</span>
@@ -184,13 +184,13 @@ export function LiveCameraCard({
 
           <div className="flex shrink-0 flex-col items-end gap-1">
             <span
-              className={`flex items-center gap-1 rounded-[2px] px-1 py-px text-[7.5px] font-bold uppercase tracking-wide ${chip.className}`}
+              className={`flex items-center gap-1 rounded-[2px] px-1 py-px text-[9.5px] font-bold uppercase tracking-wide ${chip.className}`}
             >
               <span className={`h-1 w-1 rounded-full ${chip.dot} animate-pulse-dot`} />
               {chip.label}
             </span>
             {camera.anprActive && !isDown && (
-              <span className="rounded-[2px] bg-accent-blue/85 px-1 py-px text-[7px] font-bold tracking-wide text-white">
+              <span className="rounded-[2px] bg-accent-blue/85 px-1 py-px text-[9px] font-bold tracking-wide text-white">
                 ANPR
               </span>
             )}
@@ -200,7 +200,7 @@ export function LiveCameraCard({
         {/* ---------- critical banner ---------- */}
         {camera.alertLabel && (
           <div
-            className={`absolute inset-x-0 top-[27%] flex items-center justify-center py-[3px] text-[8.5px] font-bold tracking-[0.14em] ${
+            className={`absolute inset-x-0 top-[27%] flex items-center justify-center py-[3px] text-[10.5px] font-bold tracking-[0.14em] ${
               isCritical ? 'bg-accent-red/85 text-white' : 'bg-accent-orange/85 text-black/85'
             }`}
           >
@@ -210,7 +210,7 @@ export function LiveCameraCard({
 
         {/* ---------- bottom HUD ---------- */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-1.5 pb-1 pt-5">
-          <div className="mb-[3px] flex items-center justify-between gap-1 text-[7.5px] text-white/75">
+          <div className="mb-[3px] flex items-center justify-between gap-1 text-[9.5px] text-white/75">
             <span className="tnum flex items-center gap-1.5">
               <span className={isDown ? 'text-accent-red' : 'text-accent-green'}>{camera.quality}</span>
               <span>{liveFps ? `${liveFps.toFixed(1)} fps` : '0 fps'}</span>
@@ -245,7 +245,7 @@ export function LiveCameraCard({
               </IconButton>
             </div>
 
-            <span className="tnum text-[7.5px] text-white/60">
+            <span className="tnum text-[9.5px] text-white/60">
               {isDown ? 'no link' : `${liveLatency} ms`}
             </span>
           </div>

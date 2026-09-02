@@ -43,17 +43,14 @@ function KpiCard({ stat }: { stat: KpiStat }) {
 
   return (
     <article
-      className={`relative flex h-[84px] flex-1 items-start justify-between overflow-hidden rounded-md border bg-gradient-to-br px-3.5 py-2.5 ${tone.shell}`}
+      className={`relative flex min-h-[104px] flex-col items-start justify-between overflow-hidden rounded-md border bg-gradient-to-br px-4 py-3 ${tone.shell}`}
     >
-      <div className="flex h-full flex-col justify-between">
-        <div className={`truncate text-[10.5px] font-medium ${tone.label}`}>{stat.label}</div>
-        <div className="tnum text-[24px] font-bold leading-none tracking-tight text-white">
-          {stat.value}
-        </div>
-        <div className={`truncate text-[9.5px] ${tone.foot}`}>{stat.footnote}</div>
+      <div className="flex w-full items-start justify-between gap-3">
+        <div className={`min-w-0 truncate text-[13px] font-medium ${tone.label}`}>{stat.label}</div>
+        <Icon size={30} strokeWidth={1.6} className={`shrink-0 opacity-90 ${tone.icon}`} />
       </div>
-
-      <Icon size={28} strokeWidth={1.6} className={`mt-1 shrink-0 opacity-90 ${tone.icon}`} />
+      <div className="tnum kpi-value w-full font-bold text-white">{stat.value}</div>
+      <div className={`w-full truncate text-[12px] ${tone.foot}`}>{stat.footnote}</div>
 
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/10" />
     </article>
@@ -63,7 +60,7 @@ function KpiCard({ stat }: { stat: KpiStat }) {
 /** Five-card watchlist KPI strip styled like the dashboard KPI row. */
 export function WatchlistKpiRow() {
   return (
-    <div className="flex shrink-0 gap-2.5">
+    <div className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-5">
       {watchlistKpis.map((stat) => (
         <KpiCard key={stat.id} stat={stat} />
       ))}

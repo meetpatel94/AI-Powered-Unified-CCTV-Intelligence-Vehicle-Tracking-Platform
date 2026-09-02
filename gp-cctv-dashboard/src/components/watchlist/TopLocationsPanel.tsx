@@ -20,7 +20,7 @@ export function TopLocationsPanel() {
     <Panel
       title="Top Matched Locations"
       action={<span className="tnum text-3xs text-ink-dim">this month</span>}
-      className="min-h-0"
+      className="h-full min-h-0"
       bodyClassName="flex flex-col justify-between gap-1 overflow-y-auto px-2 pb-2 pt-1"
     >
       {topLocations.map((location) => {
@@ -31,7 +31,7 @@ export function TopLocationsPanel() {
             className="flex items-center gap-2 rounded-[5px] border border-transparent px-1.5 py-[4px] transition-colors hover:border-edge hover:bg-panel-hover"
           >
             <span
-              className={`tnum grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[4px] text-[9px] font-bold ring-1 ${
+              className={`tnum grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[4px] text-[11px] font-bold ring-1 ${
                 rankTone[location.rank - 1] ?? 'bg-[#16233a] text-[#8ea1c0] ring-edge-strong'
               }`}
             >
@@ -41,8 +41,8 @@ export function TopLocationsPanel() {
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-1">
                 <MapPin size={9} className="shrink-0 text-accent-cyan" />
-                <span className="truncate text-[10px] font-semibold text-[#dbe6f5]">{location.name}</span>
-                <span className="truncate text-[8.5px] text-[#6d7f9e]">· {location.city}</span>
+                <span className="truncate text-[12px] font-semibold text-[#dbe6f5]">{location.name}</span>
+                <span className="truncate text-[10.5px] text-[#6d7f9e]">· {location.city}</span>
               </span>
               <span className="mt-[3px] block h-[3px] overflow-hidden rounded-full bg-[#14243c]">
                 <span
@@ -54,7 +54,7 @@ export function TopLocationsPanel() {
 
             <span className="flex shrink-0 items-center gap-1">
               <Trend size={10} strokeWidth={2.4} className={trendTone[location.trend]} />
-              <span className="tnum text-[10.5px] font-bold text-white">{location.matches}</span>
+              <span className="tnum text-[12.5px] font-bold text-white">{location.matches}</span>
             </span>
           </div>
         );

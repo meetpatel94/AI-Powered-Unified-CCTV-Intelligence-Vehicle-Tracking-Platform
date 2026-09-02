@@ -77,11 +77,11 @@ export function LiveActivityPanel() {
             <span className={`grid h-[16px] w-[16px] shrink-0 place-items-center rounded-full ring-1 ${toneIcon[event.tone]}`}>
               <Icon size={9} strokeWidth={2.2} />
             </span>
-            <span className={`min-w-0 flex-1 truncate text-[9px] ${event.tone === 'watchlist' || event.tone === 'alert' ? 'text-[#ffd2d6]' : 'text-[#c3cfe2]'}`}>
+            <span className={`min-w-0 flex-1 truncate text-[11px] ${event.tone === 'watchlist' || event.tone === 'alert' ? 'text-[#ffd2d6]' : 'text-[#c3cfe2]'}`}>
               {event.text}
             </span>
-            <span className="tnum shrink-0 text-[8px] text-[#8ea1c0]">{event.camera}</span>
-            <span className="tnum shrink-0 text-[8px] text-[#6d7f9e]">{event.time.replace(/\s?[AP]M$/, '')}</span>
+            <span className="tnum shrink-0 text-[10px] text-[#8ea1c0]">{event.camera}</span>
+            <span className="tnum shrink-0 text-[10px] text-[#6d7f9e]">{event.time.replace(/\s?[AP]M$/, '')}</span>
           </div>
         );
       })}

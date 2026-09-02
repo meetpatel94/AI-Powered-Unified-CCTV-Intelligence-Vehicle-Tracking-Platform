@@ -19,7 +19,7 @@ interface CameraHealthMonitorTableProps {
   shown: number;
 }
 
-const th = 'sticky top-0 z-10 whitespace-nowrap border-b border-edge bg-[#0a1120] px-2 py-1.5 text-left text-[9px] font-semibold uppercase tracking-[0.09em] text-ink-faint';
+const th = 'sticky top-0 z-10 whitespace-nowrap border-b border-edge bg-[#0a1120] px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-[0.09em] text-ink-faint';
 const td = 'whitespace-nowrap px-1.5 py-[5px] align-middle';
 
 /**
@@ -46,7 +46,7 @@ export function CameraHealthMonitorTable({
       className="h-full min-h-0"
       bodyClassName="flex flex-col"
       tools={
-        <span className="tnum flex items-center gap-2 font-mono text-[9.5px] text-ink-faint">
+        <span className="tnum flex items-center gap-2 font-mono text-[11.5px] text-ink-faint">
           <span>
             <span className="text-[#9fc7ff]">{shown}</span> feeds
           </span>
@@ -60,7 +60,7 @@ export function CameraHealthMonitorTable({
       }
     >
       <div className="min-h-0 flex-1 overflow-auto">
-        <table className="w-full min-w-[1180px] border-separate border-spacing-0 text-[10.5px]">
+        <table className="w-full min-w-[1180px] border-separate border-spacing-0 text-[12.5px]">
           <thead>
             <tr>
               <th className={`${th} left-0 z-20 pl-3`}>Camera ID</th>
@@ -104,21 +104,21 @@ export function CameraHealthMonitorTable({
                         className="h-3.5 w-[2px] shrink-0 rounded-full"
                         style={{ backgroundColor: statusMeta[camera.status].color, boxShadow: `0 0 6px -1px ${statusMeta[camera.status].color}` }}
                       />
-                      <span className="font-mono text-[10.5px] font-semibold text-white">{camera.id}</span>
+                      <span className="font-mono text-[12.5px] font-semibold text-white">{camera.id}</span>
                       {evaluation && evaluation.attention ? <TriangleAlert size={10} className="shrink-0 text-[#f7b95f]" /> : null}
                     </span>
                   </td>
 
                   {/* Location */}
                   <td className={`${td} border-b border-edge-soft/70`}>
-                    <span className="block max-w-[168px] truncate text-[10.5px] text-[#d7e1f1]">{camera.location}</span>
-                    <span className="block truncate text-[9px] text-ink-faint">
+                    <span className="block max-w-[168px] truncate text-[12.5px] text-[#d7e1f1]">{camera.location}</span>
+                    <span className="block truncate text-[11px] text-ink-faint">
                       {camera.area} · {camera.city} · {camera.zone}
                     </span>
                   </td>
 
                   {/* Department */}
-                  <td className={`${td} max-w-[112px] truncate border-b border-edge-soft/70 text-[10px] text-ink-dim`} title={camera.department}>
+                  <td className={`${td} max-w-[112px] truncate border-b border-edge-soft/70 text-[12px] text-ink-dim`} title={camera.department}>
                     {camera.department}
                   </td>
 
@@ -129,10 +129,10 @@ export function CameraHealthMonitorTable({
 
                   {/* Stream */}
                   <td className={`${td} border-b border-edge-soft/70`}>
-                    <span className="font-mono text-[10px]" style={{ color: toneInk[transport.tone] }}>
+                    <span className="font-mono text-[12px]" style={{ color: toneInk[transport.tone] }}>
                       {transport.label}
                     </span>
-                    <span className="block font-mono text-[8.5px] text-ink-faint">
+                    <span className="block font-mono text-[10.5px] text-ink-faint">
                       {camera.rtsp.transport} · {camera.hls.state === 'serving' ? `HLS ${camera.hls.segmentSec}s` : `HLS ${camera.hls.state}`} ·{' '}
                       {camera.webrtc.state === 'unavailable' ? 'no WebRTC' : 'WebRTC'}
                     </span>
@@ -141,30 +141,30 @@ export function CameraHealthMonitorTable({
                   {/* FPS */}
                   <td className={`${td} border-b border-edge-soft/70 text-right`}>
                     <Telemetry value={offline ? '—' : camera.fps.toFixed(1)} unit="fps" tone={evaluation?.fpsTone} />
-                    <span className="block font-mono text-[8.5px] text-ink-faint">target {camera.fpsTarget}</span>
+                    <span className="block font-mono text-[10.5px] text-ink-faint">target {camera.fpsTarget}</span>
                   </td>
 
                   {/* Resolution */}
                   <td className={`${td} border-b border-edge-soft/70`}>
-                    <span className="font-mono text-[10px] text-[#c3cfe2]">{camera.resolution}</span>
-                    <span className="block font-mono text-[8.5px] text-ink-faint">{camera.resolutionClass}</span>
+                    <span className="font-mono text-[12px] text-[#c3cfe2]">{camera.resolution}</span>
+                    <span className="block font-mono text-[10.5px] text-ink-faint">{camera.resolutionClass}</span>
                   </td>
 
                   {/* Codec */}
                   <td className={`${td} border-b border-edge-soft/70`}>
-                    <span className="rounded-[3px] border border-edge bg-[#0d1526] px-1 py-[1px] font-mono text-[9px] text-[#9fc7ff]">{camera.codec}</span>
+                    <span className="rounded-[3px] border border-edge bg-[#0d1526] px-1 py-[1px] font-mono text-[11px] text-[#9fc7ff]">{camera.codec}</span>
                   </td>
 
                   {/* Latency */}
                   <td className={`${td} border-b border-edge-soft/70 text-right`}>
                     <Telemetry value={offline ? '—' : camera.latencyMs} unit="ms" tone={evaluation?.latencyTone} />
-                    <span className="block font-mono text-[8.5px] text-ink-faint">jit {camera.jitterMs} ms</span>
+                    <span className="block font-mono text-[10.5px] text-ink-faint">jit {camera.jitterMs} ms</span>
                   </td>
 
                   {/* Bitrate */}
                   <td className={`${td} border-b border-edge-soft/70 text-right`}>
                     <Telemetry value={offline ? '—' : camera.bitrateMbps.toFixed(2)} unit="Mb/s" muted={offline} />
-                    <span className="block font-mono text-[8.5px] text-ink-faint">buf {camera.bufferMs} ms</span>
+                    <span className="block font-mono text-[10.5px] text-ink-faint">buf {camera.bufferMs} ms</span>
                   </td>
 
                   {/* Packet loss */}
@@ -179,22 +179,22 @@ export function CameraHealthMonitorTable({
                         className={`h-1.5 w-1.5 shrink-0 rounded-full ${offline ? 'bg-accent-red' : 'bg-accent-green animate-pulse-dot'}`}
                         style={offline ? undefined : { boxShadow: '0 0 6px -1px #22c55e' }}
                       />
-                      <span className="font-mono text-[10px] text-[#c3cfe2]">{camera.lastHeartbeat}</span>
+                      <span className="font-mono text-[12px] text-[#c3cfe2]">{camera.lastHeartbeat}</span>
                     </span>
-                    <span className="block font-mono text-[8.5px] text-ink-faint">up {camera.uptime}</span>
+                    <span className="block font-mono text-[10.5px] text-ink-faint">up {camera.uptime}</span>
                   </td>
 
                   {/* AI / ANPR */}
                   <td className={`${td} border-b border-edge-soft/70`}>
                     <span className="flex items-center gap-1">
                       <Cpu size={10} className={camera.ai.aiDetection ? 'text-[#6fe0b0]' : 'text-ink-faint'} />
-                      <span className="font-mono text-[9.5px]" style={{ color: camera.ai.aiDetection ? '#6fe0b0' : '#7f92b0' }}>
+                      <span className="font-mono text-[11.5px]" style={{ color: camera.ai.aiDetection ? '#6fe0b0' : '#7f92b0' }}>
                         {camera.ai.aiDetection ? `AI ${camera.ai.lastInferenceMs} ms` : 'AI off'}
                       </span>
                     </span>
                     <span className="flex items-center gap-1">
                       <ScanLine size={10} className={camera.ai.anprActive ? 'text-[#9fc7ff]' : 'text-ink-faint'} />
-                      <span className="font-mono text-[9.5px]" style={{ color: camera.ai.anprActive ? '#9fc7ff' : '#7f92b0' }}>
+                      <span className="font-mono text-[11.5px]" style={{ color: camera.ai.anprActive ? '#9fc7ff' : '#7f92b0' }}>
                         {camera.ai.anprActive ? `ANPR q${camera.ai.queueDepth}` : 'ANPR off'}
                       </span>
                     </span>
@@ -205,7 +205,7 @@ export function CameraHealthMonitorTable({
                     <span className="inline-flex justify-end">
                       <HealthBar score={evaluation?.score ?? 0} tone={evaluation?.tone ?? 'green'} live={!offline && evaluation?.score !== 100} />
                     </span>
-                    <span className="block truncate font-mono text-[8.5px] text-ink-faint" title={evaluation?.reasons.join(' · ')}>
+                    <span className="block truncate font-mono text-[10.5px] text-ink-faint" title={evaluation?.reasons.join(' · ')}>
                       {offline ? 'no signal' : evaluation?.reasons[0]}
                     </span>
                   </td>
@@ -215,7 +215,7 @@ export function CameraHealthMonitorTable({
 
             {cameras.length === 0 ? (
               <tr>
-                <td colSpan={14} className="px-3 py-8 text-center text-[11px] text-ink-faint">
+                <td colSpan={14} className="px-3 py-8 text-center text-[13px] text-ink-faint">
                   No cameras match the current filters.
                 </td>
               </tr>

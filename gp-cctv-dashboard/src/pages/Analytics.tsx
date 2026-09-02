@@ -94,7 +94,7 @@ export function Analytics() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+    <div className="page">
       <AnalyticsHeader
         filters={filters}
         onFilters={patchFilters}
@@ -107,27 +107,33 @@ export function Analytics() {
       <AnalyticsKpiRow kpis={snapshot.kpis} />
 
       {/* trend + mix + events */}
-      <div className="flex h-[272px] shrink-0 gap-2.5">
-        <div className="min-w-0 flex-[1.35]">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,26fr)_minmax(270px,27fr)]"
+        style={{ height: 'var(--row-mid)' }}
+      >
+        <div className="min-w-0 md:col-span-2 xl:col-span-1">
           <VehicleDetectionTrend snapshot={snapshot} />
         </div>
-        <div className="w-[26%] min-w-[240px]">
+        <div className="min-w-0">
           <VehicleTypesPanel types={snapshot.vehicleTypes} total={snapshot.kpis.vehicles} windowNote={snapshot.windowNote} />
         </div>
-        <div className="w-[27%] min-w-[250px]">
+        <div className="min-w-0">
           <AiEventsByTypePanel events={snapshot.eventTypes} total={snapshot.kpis.events} windowNote={snapshot.windowNote} />
         </div>
       </div>
 
       {/* ANPR + cameras + locations */}
-      <div className="flex h-[236px] shrink-0 gap-2.5">
-        <div className="w-[28%] min-w-[260px]">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(270px,28fr)_minmax(0,1fr)_minmax(280px,30fr)]"
+        style={{ height: 'var(--row-charts)' }}
+      >
+        <div className="min-w-0">
           <AnprPerformancePanel anpr={snapshot.anpr} />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 md:col-span-2 xl:col-span-1">
           <CameraActivityPanel cameras={snapshot.cameras} onSelectCamera={(camera) => patchFilters({ camera })} />
         </div>
-        <div className="w-[30%] min-w-[260px]">
+        <div className="min-w-0">
           <TopDetectionLocationsPanel
             locations={snapshot.locations}
             onSelectLocation={(location) => patchFilters({ location, camera: 'all' })}
@@ -136,11 +142,14 @@ export function Analytics() {
       </div>
 
       {/* watchlist + heatmap */}
-      <div className="flex h-[228px] shrink-0 gap-2.5">
-        <div className="w-[40%] min-w-0">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-10 xl:grid-cols-[40fr_60fr]"
+        style={{ height: 'var(--row-charts)' }}
+      >
+        <div className="min-w-0 md:col-span-4 xl:col-span-1">
           <WatchlistMatchTrendPanel series={snapshot.watchlistTrend} windowNote={snapshot.windowNote} />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 md:col-span-6 xl:col-span-1">
           <HourlyActivityHeatmap grid={snapshot.heatmap} />
         </div>
       </div>
@@ -162,7 +171,7 @@ export function Analytics() {
       />
 
       {notice ? (
-        <div className="fixed bottom-4 right-4 z-[60] animate-flash-in rounded-[6px] border border-accent-green/50 bg-[#0b2e26] px-3 py-2 text-[10.5px] font-medium text-[#6fe0b0] shadow-glow">
+        <div className="fixed bottom-4 right-4 z-[60] animate-flash-in rounded-[6px] border border-accent-green/50 bg-[#0b2e26] px-3 py-2 text-[12.5px] font-medium text-[#6fe0b0] shadow-glow">
           {notice}
         </div>
       ) : null}

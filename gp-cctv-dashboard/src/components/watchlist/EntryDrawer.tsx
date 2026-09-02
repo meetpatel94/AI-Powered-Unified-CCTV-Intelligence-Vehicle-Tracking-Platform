@@ -29,8 +29,8 @@ const priorityChip: Record<WatchlistEntry['priority'], string> = {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-[8.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">{label}</div>
-      <div className="mt-[2px] truncate text-[10.5px] font-medium text-[#dbe6f5]">{value}</div>
+      <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">{label}</div>
+      <div className="mt-[2px] truncate text-[12.5px] font-medium text-[#dbe6f5]">{value}</div>
     </div>
   );
 }
@@ -56,7 +56,7 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
         onClick={onClose}
       />
 
-      <aside className="relative flex h-full w-[430px] flex-col border-l border-edge bg-[#0a1120] shadow-[0_0_40px_rgba(0,0,0,0.6)]">
+      <aside className="relative flex h-full w-[min(470px,94vw)] flex-col border-l border-edge bg-[#0a1120] shadow-[0_0_40px_rgba(0,0,0,0.6)]">
         {/* header */}
         <header className="flex shrink-0 items-center justify-between border-b border-edge px-3.5 py-2.5">
           <div className="flex min-w-0 items-center gap-2">
@@ -65,7 +65,7 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
             </span>
             <div className="min-w-0 leading-tight">
               <div className="truncate text-[12.5px] font-bold tracking-wide text-white">{entry.label}</div>
-              <div className="text-[9px] text-ink-dim">
+              <div className="text-[11px] text-ink-dim">
                 Watchlist entry · {category?.name ?? 'Unassigned'}
               </div>
             </div>
@@ -91,14 +91,14 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
               </div>
             )}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#05070f]/95 to-transparent" />
-            <span className="absolute left-2 top-2 rounded-[3px] bg-[#210e30]/90 px-1.5 py-px text-[8.5px] font-bold uppercase tracking-wide text-[#d0a4f7] ring-1 ring-accent-purple/50">
+            <span className="absolute left-2 top-2 rounded-[3px] bg-[#210e30]/90 px-1.5 py-px text-[10.5px] font-bold uppercase tracking-wide text-[#d0a4f7] ring-1 ring-accent-purple/50">
               {category?.name ?? 'Unassigned'}
             </span>
-            <span className={`absolute right-2 top-2 rounded-[3px] px-1.5 py-px text-[8.5px] font-bold uppercase tracking-wide ring-1 ${statusChip[entry.status]}`}>
+            <span className={`absolute right-2 top-2 rounded-[3px] px-1.5 py-px text-[10.5px] font-bold uppercase tracking-wide ring-1 ${statusChip[entry.status]}`}>
               {entry.status}
             </span>
             {entry.latestMatch ? (
-              <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between text-[9px] text-[#c3cfe2]">
+              <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between text-[11px] text-[#c3cfe2]">
                 <span className="flex items-center gap-1">
                   <MapPin size={9} className="text-accent-cyan" />
                   {entry.latestMatch.location}
@@ -110,7 +110,7 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
 
           {/* identity */}
           <section className="mt-3">
-            <h3 className="text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">Identity</h3>
+            <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">Identity</h3>
             <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-2 rounded-md border border-edge bg-[#0c1424] px-3 py-2.5">
               <Field label="Type" value={entry.type === 'vehicle' ? 'Vehicle' : entry.type === 'person' ? 'Person' : 'Other entity'} />
               <Field label={entry.type === 'vehicle' ? 'Plate Number' : 'Full Name'} value={entry.label} />
@@ -118,14 +118,14 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
               <Field label="Details" value={entry.details} />
               <Field label="Category" value={category?.name ?? '—'} />
               <div className="min-w-0">
-                <div className="text-[8.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">Status</div>
-                <span className={`mt-[2px] inline-block rounded-[3px] px-1.5 py-px text-[9px] font-bold uppercase ring-1 ${statusChip[entry.status]}`}>
+                <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">Status</div>
+                <span className={`mt-[2px] inline-block rounded-[3px] px-1.5 py-px text-[11px] font-bold uppercase ring-1 ${statusChip[entry.status]}`}>
                   {entry.status}
                 </span>
               </div>
               <div className="min-w-0">
-                <div className="text-[8.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">Priority</div>
-                <span className={`mt-[2px] inline-block rounded-[3px] px-1.5 py-px text-[9px] font-bold uppercase ring-1 ${priorityChip[entry.priority]}`}>
+                <div className="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[#6d7f9e]">Priority</div>
+                <span className={`mt-[2px] inline-block rounded-[3px] px-1.5 py-px text-[11px] font-bold uppercase ring-1 ${priorityChip[entry.priority]}`}>
                   {entry.priority}
                 </span>
               </div>
@@ -135,18 +135,18 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
 
           {/* notes */}
           <section className="mt-3">
-            <h3 className="text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">Notes</h3>
-            <p className="mt-1.5 rounded-md border border-edge bg-[#0c1424] px-3 py-2 text-[10px] leading-[15px] text-[#b9c7dd]">
+            <h3 className="text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">Notes</h3>
+            <p className="mt-1.5 rounded-md border border-edge bg-[#0c1424] px-3 py-2 text-[12px] leading-[15px] text-[#b9c7dd]">
               {entry.notes}
             </p>
           </section>
 
           {/* matching cameras */}
           <section className="mt-3">
-            <h3 className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
+            <h3 className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
               <Camera size={10} className="text-accent-cyan" />
               Matching Cameras
-              <span className="tnum rounded-full bg-[#16233a] px-1.5 text-[8.5px] text-[#8ea1c0]">
+              <span className="tnum rounded-full bg-[#16233a] px-1.5 text-[10.5px] text-[#8ea1c0]">
                 {entry.matchingCameras.length}
               </span>
             </h3>
@@ -154,7 +154,7 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
               {entry.matchingCameras.map((camera) => (
                 <span
                   key={camera}
-                  className="tnum rounded-[4px] border border-edge bg-[#0c1424] px-2 py-[3px] text-[9.5px] font-semibold text-[#9fc7ff]"
+                  className="tnum rounded-[4px] border border-edge bg-[#0c1424] px-2 py-[3px] text-[11.5px] font-semibold text-[#9fc7ff]"
                 >
                   {camera}
                 </span>
@@ -165,16 +165,16 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
           {/* latest match */}
           {entry.latestMatch ? (
             <section className="mt-3">
-              <h3 className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
+              <h3 className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
                 <BellRing size={10} className="text-accent-red" />
                 Latest Match
               </h3>
               <div className="mt-1.5 rounded-md border border-accent-red/35 bg-[#2a0d13] px-3 py-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10.5px] font-bold text-[#ff8b96]">{entry.latestMatch.camera} · {entry.latestMatch.location}</span>
-                  <span className="tnum text-[9px] text-ink-dim">{entry.latestMatch.ago}</span>
+                  <span className="text-[12.5px] font-bold text-[#ff8b96]">{entry.latestMatch.camera} · {entry.latestMatch.location}</span>
+                  <span className="tnum text-[11px] text-ink-dim">{entry.latestMatch.ago}</span>
                 </div>
-                <div className="mt-1 flex items-center justify-between text-[9.5px] text-[#e3b6bc]">
+                <div className="mt-1 flex items-center justify-between text-[11.5px] text-[#e3b6bc]">
                   <span className="tnum">{entry.latestMatch.time}</span>
                   <span className="tnum font-bold text-white">{entry.latestMatch.confidence}% confidence</span>
                 </div>
@@ -190,10 +190,10 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
 
           {/* history */}
           <section className="mt-3 pb-1">
-            <h3 className="flex items-center gap-1.5 text-[9.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
+            <h3 className="flex items-center gap-1.5 text-[11.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">
               <History size={10} className="text-accent-blue" />
               Match History
-              <span className="tnum rounded-full bg-[#16233a] px-1.5 text-[8.5px] text-[#8ea1c0]">{entry.matches} total</span>
+              <span className="tnum rounded-full bg-[#16233a] px-1.5 text-[10.5px] text-[#8ea1c0]">{entry.matches} total</span>
             </h3>
             <ol className="mt-1.5 space-y-0">
               {entry.history.map((event, index) => (
@@ -204,12 +204,12 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
                   <span className={`mt-[3px] h-[11px] w-[11px] shrink-0 rounded-full ring-2 ${index === 0 ? 'bg-accent-red ring-accent-red/30' : 'bg-[#1d3a5c] ring-edge'}`} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[10px] font-semibold text-[#dbe6f5]">
+                      <span className="truncate text-[12px] font-semibold text-[#dbe6f5]">
                         {event.camera} · {event.location}
                       </span>
-                      <span className="tnum shrink-0 text-[8.5px] text-[#6d7f9e]">{event.ago}</span>
+                      <span className="tnum shrink-0 text-[10.5px] text-[#6d7f9e]">{event.ago}</span>
                     </div>
-                    <div className="tnum text-[9px] text-[#8ea1c0]">
+                    <div className="tnum text-[11px] text-[#8ea1c0]">
                       {event.time} · {event.confidence}% confidence
                     </div>
                   </div>
@@ -223,14 +223,14 @@ export function EntryDrawer({ entry, onClose }: EntryDrawerProps) {
         <footer className="flex shrink-0 items-center gap-2 border-t border-edge px-3.5 py-2.5">
           <button
             type="button"
-            className="flex h-[28px] flex-1 items-center justify-center gap-1.5 rounded-[5px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] text-[10px] font-semibold text-white transition-all hover:brightness-110"
+            className="flex h-[28px] flex-1 items-center justify-center gap-1.5 rounded-[5px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] text-[12px] font-semibold text-white transition-all hover:brightness-110"
           >
             <Camera size={11} />
             View on Camera Map
           </button>
           <button
             type="button"
-            className="flex h-[28px] flex-1 items-center justify-center gap-1.5 rounded-[5px] border border-edge bg-panel text-[10px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
+            className="flex h-[28px] flex-1 items-center justify-center gap-1.5 rounded-[5px] border border-edge bg-panel text-[12px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
           >
             <Pencil size={11} />
             Edit Entry

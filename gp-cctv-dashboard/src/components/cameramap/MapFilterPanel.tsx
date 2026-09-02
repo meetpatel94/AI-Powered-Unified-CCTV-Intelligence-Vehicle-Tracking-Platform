@@ -18,7 +18,7 @@ interface MapFilterPanelProps {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="border-t border-edge-soft px-2.5 py-2 first:border-t-0">
-      <div className="mb-1.5 text-[8.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">{title}</div>
+      <div className="mb-2 text-[12.5px] font-semibold uppercase tracking-[0.09em] text-ink-dim">{title}</div>
       {children}
     </div>
   );
@@ -50,9 +50,9 @@ export function MapFilterPanel({
     });
 
   return (
-    <div className="pointer-events-auto absolute left-3 top-3 z-30 w-[212px] overflow-hidden rounded-md border border-edge bg-[#0a1220]/95 shadow-panel backdrop-blur-sm">
+    <div className="pointer-events-auto absolute left-3 top-3 z-30 w-[264px] overflow-hidden rounded-md border border-edge bg-[#0a1220]/95 shadow-panel backdrop-blur-sm">
       <header className="flex items-center justify-between gap-1 border-b border-edge px-2.5 py-2">
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
+        <span className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-white">
           <SlidersHorizontal size={11} className="text-accent-blue" />
           Map Filters
         </span>
@@ -81,7 +81,7 @@ export function MapFilterPanel({
                 value={filters.query}
                 onChange={(event) => onChange({ query: event.target.value })}
                 placeholder="Camera, road or area..."
-                className="h-[26px] w-full rounded-[4px] border border-edge bg-[#0c1424] pl-6 pr-2 text-[10px] text-ink placeholder:text-[#6d7f9e] outline-none focus:border-accent-blue/70"
+                className="h-[30px] w-full rounded-[4px] border border-edge bg-[#0c1424] pl-7 pr-2 text-[12px] text-ink placeholder:text-[#6d7f9e] outline-none focus:border-accent-blue/70"
               />
             </div>
           </Section>
@@ -95,7 +95,7 @@ export function MapFilterPanel({
                     key={status.id}
                     type="button"
                     onClick={() => onChange({ status: status.id })}
-                    className={`flex items-center justify-between gap-1 rounded-[3px] border px-1.5 py-[3px] text-[9.5px] transition-colors ${
+                    className={`flex items-center justify-between gap-1 rounded-[3px] border px-2 py-[4px] text-[13px] transition-colors ${
                       active
                         ? 'border-accent-blue/70 bg-accent-blue/15 text-white'
                         : 'border-edge bg-[#0c1424] text-[#a9bcd8] hover:border-edge-strong'
@@ -105,7 +105,7 @@ export function MapFilterPanel({
                       <span className="h-1.5 w-1.5 rounded-full" style={{ background: status.color }} />
                       {status.label}
                     </span>
-                    <span className="tnum text-[8.5px] text-[#7286a6]">{counts[status.id] ?? 0}</span>
+                    <span className="tnum text-[12.5px] text-[#7286a6]">{counts[status.id] ?? 0}</span>
                   </button>
                 );
               })}
@@ -121,15 +121,15 @@ export function MapFilterPanel({
                     <button
                       type="button"
                       onClick={() => toggleDepartment(dept)}
-                      className="flex w-full items-center gap-1.5 rounded-[3px] px-1 py-[2px] text-[9.5px] text-[#c3cfe2] transition-colors hover:bg-panel-hover"
+                      className="flex w-full items-center gap-2 rounded-[3px] px-1.5 py-[3px] text-[13px] text-[#c3cfe2] transition-colors hover:bg-panel-hover"
                     >
                       <span
-                        className={`grid h-[11px] w-[11px] place-items-center rounded-[2px] border ${
+                        className={`grid h-[14px] w-[14px] place-items-center rounded-[3px] border ${
                           active ? 'border-accent-blue bg-accent-blue' : 'border-edge-strong bg-[#0c1424]'
                         }`}
                       >
                         {active && (
-                          <svg width="7" height="7" viewBox="0 0 8 8" fill="none">
+                          <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
                             <path d="M1 4l2 2 4-5" stroke="white" strokeWidth="1.6" strokeLinecap="round" />
                           </svg>
                         )}
@@ -151,7 +151,7 @@ export function MapFilterPanel({
                     key={codec}
                     type="button"
                     onClick={() => toggleCodec(codec)}
-                    className={`rounded-full border px-2 py-[2px] font-mono text-[9px] transition-colors ${
+                    className={`rounded-full border px-2.5 py-[3px] font-mono text-[12.5px] transition-colors ${
                       active
                         ? 'border-accent-cyan/60 bg-accent-cyan/15 text-accent-cyan'
                         : 'border-edge bg-[#0c1424] text-[#8ea3c4] hover:border-edge-strong'
@@ -179,7 +179,7 @@ export function MapFilterPanel({
             </div>
           </Section>
 
-          <footer className="flex items-center justify-between gap-1 border-t border-edge bg-[#0c1424] px-2.5 py-1.5 text-[9px]">
+          <footer className="flex items-center justify-between gap-1 border-t border-edge bg-[#0c1424] px-2.5 py-2 text-[13px]">
             <span className="flex items-center gap-1 text-[#7286a6]">
               <Filter size={9} /> Visible
             </span>
@@ -198,17 +198,17 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
     <button
       type="button"
       onClick={onChange}
-      className="flex w-full items-center justify-between gap-2 rounded-[3px] px-1 py-[2px] text-[9.5px] text-[#c3cfe2] transition-colors hover:bg-panel-hover"
+      className="flex w-full items-center justify-between gap-2 rounded-[3px] px-1.5 py-[3px] text-[13px] text-[#c3cfe2] transition-colors hover:bg-panel-hover"
     >
       {label}
       <span
-        className={`relative h-[12px] w-[22px] rounded-full transition-colors ${
+        className={`relative h-[14px] w-[26px] rounded-full transition-colors ${
           value ? 'bg-accent-green' : 'bg-[#22314b]'
         }`}
       >
         <span
-          className={`absolute top-[2px] h-[8px] w-[8px] rounded-full bg-white transition-all ${
-            value ? 'left-[12px]' : 'left-[2px]'
+          className={`absolute top-[2px] h-[10px] w-[10px] rounded-full bg-white transition-all ${
+            value ? 'left-[13px]' : 'left-[2px]'
           }`}
         />
       </span>

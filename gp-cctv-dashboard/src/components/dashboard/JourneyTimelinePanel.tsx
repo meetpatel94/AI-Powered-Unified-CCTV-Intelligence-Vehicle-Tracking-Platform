@@ -10,10 +10,10 @@ function StopCard({ stop }: { stop: JourneyStop }) {
       }`}
     >
       <div className="px-2 pb-1 pt-1.5">
-        <div className="tnum text-[9.5px] text-[#8ea1c0]">{stop.time}</div>
+        <div className="tnum text-[11.5px] text-[#8ea1c0]">{stop.time}</div>
         <div className="text-[13px] font-bold leading-tight tracking-wide text-white">{stop.cameraCode}</div>
-        <div className="mt-[1px] truncate text-[9px] leading-[12px] text-[#8ea1c0]">{stop.road}</div>
-        <div className="truncate text-[9px] leading-[12px] text-[#6d82a3]">{stop.city}</div>
+        <div className="mt-[1px] truncate text-[11px] leading-[12px] text-[#8ea1c0]">{stop.road}</div>
+        <div className="truncate text-[11px] leading-[12px] text-[#6d82a3]">{stop.city}</div>
       </div>
 
       <div className="relative mx-1.5 mb-1.5 mt-0.5 min-h-[52px] flex-1 overflow-hidden rounded-[3px] border border-edge-soft bg-black">
@@ -22,7 +22,7 @@ function StopCard({ stop }: { stop: JourneyStop }) {
           <>
             <div className="absolute inset-0 bg-accent-red/20 mix-blend-screen" />
             <div className="absolute inset-0 ring-1 ring-inset ring-accent-red/60" />
-            <span className="absolute right-1 top-1 rounded-[2px] bg-accent-red px-1 py-px text-[7.5px] font-bold uppercase tracking-wider text-white">
+            <span className="absolute right-1 top-1 rounded-[2px] bg-accent-red px-1 py-px text-[9.5px] font-bold uppercase tracking-wider text-white">
               Alert
             </span>
           </>
@@ -54,7 +54,7 @@ export function JourneyTimelinePanel() {
           {journeyStops.map((stop) => (
             <span
               key={stop.step}
-              className={`tnum relative grid h-[17px] w-[17px] place-items-center rounded-full text-[9px] font-bold text-white ${
+              className={`tnum relative grid h-[17px] w-[17px] place-items-center rounded-full text-[11px] font-bold text-white ${
                 stop.alert ? 'bg-accent-red' : 'bg-[#17a349]'
               }`}
               style={{

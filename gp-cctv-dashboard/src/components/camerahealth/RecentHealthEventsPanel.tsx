@@ -37,13 +37,13 @@ export function RecentHealthEventsPanel({
       title="Recent Health Events"
       className="h-full min-h-0"
       bodyClassName="flex min-h-0 flex-col"
-      tools={<span className="tnum font-mono text-[9px] text-ink-faint">{shown.length} events · last 60 min</span>}
+      tools={<span className="tnum font-mono text-[11px] text-ink-faint">{shown.length} events · last 60 min</span>}
     >
       <div className="flex shrink-0 flex-wrap items-center gap-1 px-2.5 pb-1.5">
         <button
           type="button"
           onClick={() => setKind('all')}
-          className={`rounded-[3px] border px-1.5 py-[1px] text-[8.5px] font-semibold uppercase tracking-[0.06em] transition-colors ${
+          className={`rounded-[3px] border px-1.5 py-[1px] text-[10.5px] font-semibold uppercase tracking-[0.06em] transition-colors ${
             kind === 'all' ? 'border-accent-blue/50 bg-[#12233f] text-[#9fc7ff]' : 'border-edge bg-[#0c1424] text-ink-faint hover:text-white'
           }`}
         >
@@ -54,7 +54,7 @@ export function RecentHealthEventsPanel({
             key={id}
             type="button"
             onClick={() => setKind(kind === id ? 'all' : id)}
-            className={`tnum rounded-[3px] border px-1.5 py-[1px] text-[8.5px] font-semibold uppercase tracking-[0.06em] transition-colors ${
+            className={`tnum rounded-[3px] border px-1.5 py-[1px] text-[10.5px] font-semibold uppercase tracking-[0.06em] transition-colors ${
               kind === id ? 'border-accent-blue/50 bg-[#12233f] text-[#9fc7ff]' : 'border-edge bg-[#0c1424] text-ink-faint hover:text-white'
             }`}
           >
@@ -87,20 +87,20 @@ export function RecentHealthEventsPanel({
                 >
                   <span className="flex items-center gap-1.5">
                     <Icon size={10} style={{ color }} className="shrink-0" />
-                    <span className="text-[9.5px] font-semibold uppercase tracking-[0.07em]" style={{ color }}>
+                    <span className="text-[11.5px] font-semibold uppercase tracking-[0.07em]" style={{ color }}>
                       {eventKindMeta[event.kind].label}
                     </span>
-                    <span className="font-mono text-[9.5px] font-semibold text-white">{event.cameraId}</span>
-                    <span className="truncate text-[9px] text-ink-dim">{event.location}</span>
-                    <span className="tnum ml-auto shrink-0 font-mono text-[9px] text-ink-faint">{event.time}</span>
+                    <span className="font-mono text-[11.5px] font-semibold text-white">{event.cameraId}</span>
+                    <span className="truncate text-[11px] text-ink-dim">{event.location}</span>
+                    <span className="tnum ml-auto shrink-0 font-mono text-[11px] text-ink-faint">{event.time}</span>
                     {event.autoResolved ? (
-                      <span className="flex shrink-0 items-center gap-[2px] rounded-[3px] border border-accent-green/40 bg-[#0b2e26] px-1 text-[8px] font-semibold text-[#6fe0b0]">
+                      <span className="flex shrink-0 items-center gap-[2px] rounded-[3px] border border-accent-green/40 bg-[#0b2e26] px-1 text-[10px] font-semibold text-[#6fe0b0]">
                         <CheckCircle2 size={8} />
                         auto
                       </span>
                     ) : null}
                   </span>
-                  <span className="mt-[2px] block text-[9px] leading-[12.5px] text-ink-dim">{event.detail}</span>
+                  <span className="mt-[2px] block text-[11px] leading-[12.5px] text-ink-dim">{event.detail}</span>
                 </button>
               </li>
             );

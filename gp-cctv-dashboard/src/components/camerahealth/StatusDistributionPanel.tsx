@@ -52,8 +52,8 @@ export function StatusDistributionPanel({ fleet, onSelect, active }: { fleet: Fl
         <div className="absolute inset-0 grid place-items-center text-center">
           <div>
             <div className="tnum text-[17px] font-bold leading-none text-white">{fleet.total.toLocaleString('en-IN')}</div>
-            <div className="mt-[2px] text-[8.5px] uppercase tracking-[0.1em] text-ink-faint">cameras</div>
-            <div className="tnum mt-1 font-mono text-[9px] text-[#6fe0b0]">
+            <div className="mt-[2px] text-[10.5px] uppercase tracking-[0.1em] text-ink-faint">cameras</div>
+            <div className="tnum mt-1 font-mono text-[11px] text-[#6fe0b0]">
               {primary[0]?.whole ?? 0}% up
             </div>
           </div>
@@ -74,9 +74,9 @@ export function StatusDistributionPanel({ fleet, onSelect, active }: { fleet: Fl
               }`}
             >
               <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: slice.color, boxShadow: `0 0 6px -1px ${slice.color}` }} />
-              <span className="flex-1 truncate text-[10px] text-[#c3cfe2]">{slice.label}</span>
-              <span className="tnum font-mono text-[10.5px] font-semibold text-white">{slice.count.toLocaleString('en-IN')}</span>
-              <span className="tnum w-[34px] text-right font-mono text-[9.5px] text-ink-faint">{slice.whole}%</span>
+              <span className="flex-1 truncate text-[12px] text-[#c3cfe2]">{slice.label}</span>
+              <span className="tnum font-mono text-[12.5px] font-semibold text-white">{slice.count.toLocaleString('en-IN')}</span>
+              <span className="tnum w-[34px] text-right font-mono text-[11.5px] text-ink-faint">{slice.whole}%</span>
             </button>
           );
         })}
@@ -95,16 +95,16 @@ export function StatusDistributionPanel({ fleet, onSelect, active }: { fleet: Fl
               <span className="relative h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: slice.color }}>
                 <span className="absolute inset-0 rounded-full animate-ping2" style={{ backgroundColor: slice.color }} />
               </span>
-              <span className="flex-1 truncate text-[9.5px] text-ink-dim">{slice.label}</span>
-              <span className="tnum font-mono text-[10px] font-semibold" style={{ color: slice.color }}>
+              <span className="flex-1 truncate text-[11.5px] text-ink-dim">{slice.label}</span>
+              <span className="tnum font-mono text-[12px] font-semibold" style={{ color: slice.color }}>
                 {slice.count}
               </span>
-              <span className="w-[92px] truncate text-right font-mono text-[8px] text-ink-faint">of {slice.subsetOf}</span>
+              <span className="w-[92px] truncate text-right font-mono text-[10px] text-ink-faint">of {slice.subsetOf}</span>
             </button>
           ))}
         </div>
 
-        <p className="mt-0.5 text-[8.5px] leading-[12px] text-ink-faint">
+        <p className="mt-0.5 text-[10.5px] leading-[12px] text-ink-faint">
           Reconnecting and Critical are live sub-states, not extra cameras — the three bars above partition the full fleet.
         </p>
       </div>

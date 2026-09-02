@@ -371,7 +371,7 @@ export function Investigation() {
     sightingQuery.query !== '';
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+    <div className="page">
       <InvestigationHeader
         caseId={dossier.caseId}
         status={status}
@@ -416,8 +416,8 @@ export function Investigation() {
       />
 
       {/* target + journey + details rail */}
-      <div className="flex min-h-0 shrink-0 gap-2.5">
-        <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+      <div className="flex shrink-0 flex-col gap-[var(--page-gap)] lg:flex-row">
+        <div className="flex min-w-0 flex-1 flex-col gap-[var(--page-gap)]">
           <TargetVehicleCard
             dossier={dossier}
             onOpenEvidence={(id) => openEvidence(id)}
@@ -425,7 +425,7 @@ export function Investigation() {
             onOpenWatchlist={() => navigate('/watchlist')}
           />
 
-          <div className="h-[292px] shrink-0">
+          <div className="shrink-0" style={{ height: 'clamp(340px, 36vh, 460px)' }}>
             <CrossCameraJourneyPanel
               dossier={dossier}
               legs={legs}
@@ -441,7 +441,7 @@ export function Investigation() {
           </div>
         </div>
 
-        <aside className="w-[336px] shrink-0">
+        <aside className="w-full shrink-0 lg:w-[350px] lg:min-w-[330px]">
           <InvestigationDetailsPanel
             dossier={dossier}
             status={status}
@@ -457,7 +457,7 @@ export function Investigation() {
         </aside>
       </div>
 
-      <div className="h-[262px] shrink-0">
+      <div className="shrink-0" style={{ height: 'clamp(300px, 32vh, 400px)' }}>
         <SightingHistoryPanel
           sightings={visibleSightings}
           totalCount={dossierSightings.length}
@@ -475,8 +475,11 @@ export function Investigation() {
         />
       </div>
 
-      <div className="flex h-[238px] shrink-0 gap-2.5">
-        <div className="w-[42%] min-w-0">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[42fr_29fr_29fr]"
+        style={{ height: 'clamp(280px, 30vh, 380px)' }}
+      >
+        <div className="min-w-0">
           <RelatedEventsPanel
             events={events}
             plate={dossier.target.plate}
@@ -488,10 +491,10 @@ export function Investigation() {
             }}
           />
         </div>
-        <div className="w-[29%] min-w-0">
+        <div className="min-w-0">
           <RouteAnalysisPanel analysis={analysis} legs={legs} />
         </div>
-        <div className="w-[29%] min-w-0">
+        <div className="min-w-0">
           <RelatedVehiclesPanel
             associations={dossier.associations}
             cameraCount={analysis.camerasCrossed}
@@ -504,7 +507,7 @@ export function Investigation() {
         </div>
       </div>
 
-      <div className="h-[212px] shrink-0">
+      <div className="shrink-0" style={{ height: 'clamp(240px, 26vh, 340px)' }}>
         <EvidenceGalleryPanel
           evidence={evidence}
           totalCount={allEvidence.length}
@@ -516,11 +519,14 @@ export function Investigation() {
         />
       </div>
 
-      <div className="flex h-[204px] shrink-0 gap-2.5">
-        <div className="w-[38%] min-w-0">
+      <div
+        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[38fr_32fr_30fr]"
+        style={{ height: 'clamp(260px, 28vh, 360px)' }}
+      >
+        <div className="min-w-0">
           <SightingsOverTimePanel analytics={analytics} bucketLabel="5 min" />
         </div>
-        <div className="w-[32%] min-w-0">
+        <div className="min-w-0">
           <CameraFrequencyPanel
             analytics={analytics}
             activeCamera={sightingQuery.camera}
@@ -529,7 +535,7 @@ export function Investigation() {
             }
           />
         </div>
-        <div className="w-[30%] min-w-0">
+        <div className="min-w-0">
           <LocationDistributionPanel analytics={analytics} />
         </div>
       </div>
@@ -596,7 +602,7 @@ export function Investigation() {
       />
 
       {notice ? (
-        <div className="fixed bottom-4 right-4 z-[80] animate-flash-in rounded-[6px] border border-accent-cyan/50 bg-[#083344] px-3 py-2 text-[10.5px] font-medium text-[#67e8f9] shadow-glow">
+        <div className="fixed bottom-4 right-4 z-[80] animate-flash-in rounded-[6px] border border-accent-cyan/50 bg-[#083344] px-3 py-2 text-[12.5px] font-medium text-[#67e8f9] shadow-glow">
           {notice}
         </div>
       ) : null}

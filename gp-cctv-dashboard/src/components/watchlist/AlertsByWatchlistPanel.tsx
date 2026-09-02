@@ -10,11 +10,11 @@ export function AlertsByWatchlistPanel() {
     <Panel
       title="Alerts by Watchlist"
       action={<span className="tnum text-3xs text-ink-dim">last 24 hrs · 18 total</span>}
-      className="min-h-0"
-      bodyClassName="px-3 pb-2 pt-1"
+      className="h-full min-h-0"
+      bodyClassName="overflow-y-auto px-3 pb-3 pt-1"
     >
       <div className="flex h-full min-h-0 gap-1.5">
-        <div className="flex w-[18px] shrink-0 flex-col justify-between pb-[16px] pt-[12px] text-right text-[8px] tabular-nums text-[#6d82a3]">
+        <div className="flex w-[18px] shrink-0 flex-col justify-between pb-[16px] pt-[12px] text-right text-[10px] tabular-nums text-[#6d82a3]">
           {TICKS.map((tick) => (
             <span key={tick}>{tick}</span>
           ))}
@@ -32,7 +32,7 @@ export function AlertsByWatchlistPanel() {
               const height = `${Math.max(2, (bar.value / MAX) * 100)}%`;
               return (
                 <div key={bar.id} className="flex h-full flex-1 flex-col justify-end">
-                  <span className="tnum mb-[3px] text-center text-[9px] font-semibold leading-none text-[#e2eaf7]">
+                  <span className="tnum mb-[3px] text-center text-[11px] font-semibold leading-none text-[#e2eaf7]">
                     {bar.value}
                   </span>
                   <div
@@ -50,7 +50,7 @@ export function AlertsByWatchlistPanel() {
 
           <div className="absolute inset-x-0 bottom-0 flex h-[16px] items-center justify-around gap-2 px-1">
             {alertsByWatchlist.map((bar) => (
-              <span key={bar.id} className="flex-1 truncate text-center text-[8px] text-[#8ea1c0]">
+              <span key={bar.id} className="flex-1 truncate text-center text-[10px] text-[#8ea1c0]">
                 {bar.label}
               </span>
             ))}

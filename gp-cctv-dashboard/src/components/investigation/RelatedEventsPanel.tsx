@@ -64,35 +64,35 @@ export function RelatedEventsPanel({ events, plate, onOpenEvent, onOpenEvidence,
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="truncate text-[10.5px] font-bold uppercase tracking-[0.05em] text-white">{event.title}</span>
+                  <span className="truncate text-[12.5px] font-bold uppercase tracking-[0.05em] text-white">{event.title}</span>
                   <span
-                    className={`shrink-0 rounded-[3px] px-1 py-px text-[7.5px] font-bold uppercase tracking-[0.07em] ring-1 ${severityChip[event.severity]}`}
+                    className={`shrink-0 rounded-[3px] px-1 py-px text-[9.5px] font-bold uppercase tracking-[0.07em] ring-1 ${severityChip[event.severity]}`}
                   >
                     {event.severity}
                   </span>
                   {event.severity === 'critical' ? (
                     <ShieldAlert size={10} className="shrink-0 animate-pulse-dot text-accent-red" />
                   ) : null}
-                  <span className="tnum ml-auto shrink-0 text-[8.5px] text-[#7f93b3]">{event.time}</span>
+                  <span className="tnum ml-auto shrink-0 text-[10.5px] text-[#7f93b3]">{event.time}</span>
                 </div>
-                <div className="tnum mt-[2px] flex items-center gap-1.5 text-[9px] text-[#94a5c2]">
+                <div className="tnum mt-[2px] flex items-center gap-1.5 text-[11px] text-[#94a5c2]">
                   <span className="font-mono font-semibold text-[#9fc7ff]">{event.cameraId}</span>
                   <span className="truncate">
                     {event.location} · {event.city}
                   </span>
-                  <span className="ml-auto shrink-0 rounded-[3px] bg-[#16233a] px-1 text-[8px] text-[#9fb0cc]">{event.alertId}</span>
+                  <span className="ml-auto shrink-0 rounded-[3px] bg-[#16233a] px-1 text-[10px] text-[#9fb0cc]">{event.alertId}</span>
                 </div>
-                <p className="mt-1 line-clamp-2 text-[9px] leading-[13px] text-[#8ea1c0]">{event.detail}</p>
+                <p className="mt-1 line-clamp-2 text-[11px] leading-[13px] text-[#8ea1c0]">{event.detail}</p>
                 <div className="mt-1 flex items-center gap-1.5">
-                  <span className="tnum truncate rounded-[3px] bg-[#0d1626] px-1.5 py-px text-[8px] text-[#67e8f9] ring-1 ring-edge">
+                  <span className="tnum truncate rounded-[3px] bg-[#0d1626] px-1.5 py-px text-[10px] text-[#67e8f9] ring-1 ring-edge">
                     {event.metric ?? `${event.confidence.toFixed(1)}% confidence`}
                   </span>
-                  <span className="tnum truncate text-[8px] text-[#6d82a3]">{plate}</span>
+                  <span className="tnum truncate text-[10px] text-[#6d82a3]">{plate}</span>
                   <span className="ml-auto flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => onOpenEvidence(event.sightingId)}
-                      className="flex h-[19px] items-center gap-1 rounded-[3px] border border-edge bg-[#0d1626] px-1.5 text-[8.5px] font-semibold text-[#9fc7ff] transition-colors hover:border-accent-cyan/60 hover:text-[#67e8f9]"
+                      className="flex h-[19px] items-center gap-1 rounded-[3px] border border-edge bg-[#0d1626] px-1.5 text-[10.5px] font-semibold text-[#9fc7ff] transition-colors hover:border-accent-cyan/60 hover:text-[#67e8f9]"
                     >
                       <ScanSearch size={9} />
                       Evidence
@@ -100,7 +100,7 @@ export function RelatedEventsPanel({ events, plate, onOpenEvent, onOpenEvidence,
                     <button
                       type="button"
                       onClick={() => onOpenEvent(event)}
-                      className="flex h-[19px] items-center gap-1 rounded-[3px] border border-edge bg-[#0d1626] px-1.5 text-[8.5px] font-semibold text-[#9fc7ff] transition-colors hover:border-accent-blue/60 hover:text-white"
+                      className="flex h-[19px] items-center gap-1 rounded-[3px] border border-edge bg-[#0d1626] px-1.5 text-[10.5px] font-semibold text-[#9fc7ff] transition-colors hover:border-accent-blue/60 hover:text-white"
                     >
                       <ExternalLink size={9} />
                       Alert
@@ -109,7 +109,7 @@ export function RelatedEventsPanel({ events, plate, onOpenEvent, onOpenEvidence,
                       <button
                         type="button"
                         onClick={() => onAcknowledge(event.id)}
-                        className="flex h-[19px] items-center gap-1 rounded-[3px] border border-accent-green/45 bg-[#0b2e26] px-1.5 text-[8.5px] font-semibold text-[#6fe0b0] transition-colors hover:border-accent-green/70"
+                        className="flex h-[19px] items-center gap-1 rounded-[3px] border border-accent-green/45 bg-[#0b2e26] px-1.5 text-[10.5px] font-semibold text-[#6fe0b0] transition-colors hover:border-accent-green/70"
                       >
                         <Bell size={9} />
                         Ack

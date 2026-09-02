@@ -18,7 +18,7 @@ export function AiAnalyticsPanel() {
       <div className="flex h-full min-h-0 flex-col">
         <div className="flex min-h-0 flex-1 gap-1.5">
           {/* y axis */}
-          <div className="flex w-[22px] shrink-0 flex-col justify-between pb-[18px] pt-[14px] text-right text-[8px] tabular-nums text-[#6d82a3]">
+          <div className="flex w-[22px] shrink-0 flex-col justify-between pb-[18px] pt-[14px] text-right text-[10px] tabular-nums text-[#6d82a3]">
             {TICKS.map((tick) => (
               <span key={tick}>{formatTick(tick)}</span>
             ))}
@@ -38,7 +38,7 @@ export function AiAnalyticsPanel() {
                 const height = `${Math.max(3, (bar.value / MAX) * 100)}%`;
                 return (
                   <div key={bar.id} className="flex h-full flex-1 flex-col justify-end">
-                    <span className="tnum mb-[3px] text-center text-[9.5px] font-semibold leading-none text-[#e2eaf7]">
+                    <span className="tnum mb-[3px] text-center text-[11.5px] font-semibold leading-none text-[#e2eaf7]">
                       {bar.value.toLocaleString('en-IN')}
                     </span>
                     <div
@@ -57,7 +57,7 @@ export function AiAnalyticsPanel() {
             {/* x axis */}
             <div className="absolute inset-x-0 bottom-0 flex h-[18px] items-center justify-around gap-3 px-1">
               {analyticsBars.map((bar) => (
-                <span key={bar.id} className="flex-1 truncate text-center text-[8.5px] text-[#8ea1c0]">
+                <span key={bar.id} className="flex-1 truncate text-center text-[10.5px] text-[#8ea1c0]">
                   {bar.label}
                 </span>
               ))}

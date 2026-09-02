@@ -30,8 +30,8 @@ interface EvidenceViewerModalProps {
 function Field({ label, value, tone }: { label: string; value: string; tone?: string }) {
   return (
     <div className="min-w-0 rounded-[4px] border border-edge bg-[#0c1424] px-2 py-1">
-      <div className="truncate text-[7.5px] font-semibold uppercase tracking-[0.09em] text-[#6d7f9e]">{label}</div>
-      <div className={`tnum mt-[2px] truncate text-[10px] font-semibold ${tone ?? 'text-[#dbe6f5]'}`}>{value}</div>
+      <div className="truncate text-[9.5px] font-semibold uppercase tracking-[0.09em] text-[#6d7f9e]">{label}</div>
+      <div className={`tnum mt-[2px] truncate text-[12px] font-semibold ${tone ?? 'text-[#dbe6f5]'}`}>{value}</div>
     </div>
   );
 }
@@ -107,28 +107,28 @@ export function EvidenceViewerModal({
                 <span className="tnum truncate font-mono text-[13px] font-bold tracking-[0.06em] text-white">
                   {sighting.cameraId} · Evidence
                 </span>
-                <span className="rounded-[3px] bg-[#16233a] px-1.5 py-px text-[8px] font-semibold uppercase tracking-[0.06em] text-[#9fb0cc]">
+                <span className="rounded-[3px] bg-[#16233a] px-1.5 py-px text-[10px] font-semibold uppercase tracking-[0.06em] text-[#9fb0cc]">
                   {sighting.id}
                 </span>
                 {sighting.watchlistHit ? (
-                  <span className="flex items-center gap-1 rounded-[3px] bg-accent-red/20 px-1.5 py-px text-[8px] font-bold uppercase tracking-[0.06em] text-[#ff8b96] ring-1 ring-accent-red/45">
+                  <span className="flex items-center gap-1 rounded-[3px] bg-accent-red/20 px-1.5 py-px text-[10px] font-bold uppercase tracking-[0.06em] text-[#ff8b96] ring-1 ring-accent-red/45">
                     <ShieldAlert size={9} /> watchlist match
                   </span>
                 ) : null}
                 {sighting.journeyStep ? (
-                  <span className="tnum rounded-[3px] bg-accent-cyan/15 px-1.5 py-px text-[8px] font-bold uppercase tracking-[0.06em] text-[#67e8f9] ring-1 ring-accent-cyan/40">
+                  <span className="tnum rounded-[3px] bg-accent-cyan/15 px-1.5 py-px text-[10px] font-bold uppercase tracking-[0.06em] text-[#67e8f9] ring-1 ring-accent-cyan/40">
                     route node {sighting.journeyStep}
                   </span>
                 ) : null}
               </div>
-              <div className="tnum truncate text-[9px] text-ink-dim">
+              <div className="tnum truncate text-[11px] text-ink-dim">
                 {sighting.location} · {sighting.area} · {sighting.city} · {sighting.time}
               </div>
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5">
-            <span className="tnum rounded-[4px] border border-edge bg-[#0c1424] px-1.5 py-1 text-[9px] text-[#9fb0cc]">
+            <span className="tnum rounded-[4px] border border-edge bg-[#0c1424] px-1.5 py-1 text-[11px] text-[#9fb0cc]">
               sighting {index} / {total}
             </span>
             <button
@@ -163,29 +163,29 @@ export function EvidenceViewerModal({
               <span className="absolute -right-1 -top-1 h-3 w-3 border-r-2 border-t-2 border-accent-cyan" />
               <span className="absolute -bottom-1 -left-1 h-3 w-3 border-b-2 border-l-2 border-accent-cyan" />
               <span className="absolute -bottom-1 -right-1 h-3 w-3 border-b-2 border-r-2 border-accent-cyan" />
-              <span className="tnum absolute -top-[17px] left-0 rounded-[2px] bg-[#083344]/95 px-1 py-px text-[8.5px] font-bold text-[#67e8f9]">
+              <span className="tnum absolute -top-[17px] left-0 rounded-[2px] bg-[#083344]/95 px-1 py-px text-[10.5px] font-bold text-[#67e8f9]">
                 {sighting.vehicleType} {sighting.confidence.toFixed(1)}%
               </span>
             </span>
 
             {/* ANPR plate box */}
             <span className="pointer-events-none absolute bottom-[26%] left-[30%] h-[9%] w-[22%] border border-accent-red/90">
-              <span className="tnum absolute -top-[16px] left-0 rounded-[2px] bg-[#2a0d13]/95 px-1 py-px font-mono text-[9px] font-bold tracking-[0.1em] text-[#ff8b96]">
+              <span className="tnum absolute -top-[16px] left-0 rounded-[2px] bg-[#2a0d13]/95 px-1 py-px font-mono text-[11px] font-bold tracking-[0.1em] text-[#ff8b96]">
                 {plate}
               </span>
             </span>
 
-            <span className="absolute left-2 top-2 flex items-center gap-1 rounded-[3px] bg-black/75 px-1.5 py-px text-[8.5px] font-bold text-[#9fb0cc] ring-1 ring-edge-strong">
+            <span className="absolute left-2 top-2 flex items-center gap-1 rounded-[3px] bg-black/75 px-1.5 py-px text-[10.5px] font-bold text-[#9fb0cc] ring-1 ring-edge-strong">
               <span className="h-1.5 w-1.5 rounded-full bg-accent-red animate-pulse-dot" /> 01 SEP 2026 · {sighting.cameraId}
             </span>
-            <span className="tnum absolute right-2 top-2 rounded-[3px] bg-black/75 px-1.5 py-px text-[8.5px] font-semibold text-[#c9d6ea] ring-1 ring-edge-strong">
+            <span className="tnum absolute right-2 top-2 rounded-[3px] bg-black/75 px-1.5 py-px text-[10.5px] font-semibold text-[#c9d6ea] ring-1 ring-edge-strong">
               {sighting.time} · {sighting.clip}
             </span>
             <div className="absolute bottom-2 left-2 right-2 flex items-end justify-between gap-2">
-              <span className="tnum flex items-center gap-1 rounded-[3px] bg-black/75 px-1.5 py-px text-[8.5px] text-[#c9d6ea] ring-1 ring-edge-strong">
+              <span className="tnum flex items-center gap-1 rounded-[3px] bg-black/75 px-1.5 py-px text-[10.5px] text-[#c9d6ea] ring-1 ring-edge-strong">
                 <Play size={8} className="text-accent-cyan" /> 00:38 clip · h.265 · {sighting.department}
               </span>
-              <span className="tnum rounded-[3px] bg-black/75 px-1.5 py-px text-[8.5px] text-[#8ea1c0] ring-1 ring-edge-strong">
+              <span className="tnum rounded-[3px] bg-black/75 px-1.5 py-px text-[10.5px] text-[#8ea1c0] ring-1 ring-edge-strong">
                 frame {(frame % frames.length) + 1}/{frames.length} · AI crop 1.0× · {sighting.lat.toFixed(4)}, {sighting.lng.toFixed(4)}
               </span>
             </div>
@@ -210,14 +210,14 @@ export function EvidenceViewerModal({
               <button
                 type="button"
                 onClick={() => onStep(-1)}
-                className="flex h-[26px] items-center gap-1 rounded-[4px] border border-edge bg-[#0c1424] px-2 text-[9.5px] text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
+                className="flex h-[26px] items-center gap-1 rounded-[4px] border border-edge bg-[#0c1424] px-2 text-[11.5px] text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
               >
                 <ChevronLeft size={12} /> Prev sighting
               </button>
               <button
                 type="button"
                 onClick={() => onStep(1)}
-                className="flex h-[26px] items-center gap-1 rounded-[4px] border border-edge bg-[#0c1424] px-2 text-[9.5px] text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
+                className="flex h-[26px] items-center gap-1 rounded-[4px] border border-edge bg-[#0c1424] px-2 text-[11.5px] text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
               >
                 Next sighting <ChevronRight size={12} />
               </button>
@@ -245,7 +245,7 @@ export function EvidenceViewerModal({
           </div>
 
           {sighting.note ? (
-            <p className="mt-1.5 flex items-start gap-1.5 rounded-[5px] border border-edge-soft bg-[#0d1626] px-2.5 py-2 text-[9.5px] leading-[14px] text-[#94a5c2]">
+            <p className="mt-1.5 flex items-start gap-1.5 rounded-[5px] border border-edge-soft bg-[#0d1626] px-2.5 py-2 text-[11.5px] leading-[14px] text-[#94a5c2]">
               <Crosshair size={10} className="mt-px shrink-0 text-accent-cyan" />
               <span>
                 <span className="font-bold uppercase tracking-wide text-[#67e8f9]">Analyst note · </span>
@@ -259,21 +259,21 @@ export function EvidenceViewerModal({
           <button
             type="button"
             onClick={() => onExportFrame(sighting)}
-            className="flex h-[30px] items-center gap-1.5 rounded-[5px] border border-edge bg-panel px-2.5 text-[10px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
+            className="flex h-[30px] items-center gap-1.5 rounded-[5px] border border-edge bg-panel px-2.5 text-[12px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
           >
             <Download size={12} /> Export frame
           </button>
           <button
             type="button"
             onClick={() => onViewCamera(sighting.cameraId)}
-            className="flex h-[30px] items-center gap-1.5 rounded-[5px] border border-edge bg-panel px-2.5 text-[10px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
+            className="flex h-[30px] items-center gap-1.5 rounded-[5px] border border-edge bg-panel px-2.5 text-[12px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
           >
             <CameraIcon size={12} /> View camera
           </button>
           <button
             type="button"
             onClick={toggleFullscreen}
-            className="flex h-[30px] items-center gap-1.5 rounded-[5px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] px-3 text-[10px] font-semibold text-white shadow-[0_0_14px_-4px_rgba(47,125,255,0.8)] transition-all hover:brightness-110"
+            className="flex h-[30px] items-center gap-1.5 rounded-[5px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] px-3 text-[12px] font-semibold text-white shadow-[0_0_14px_-4px_rgba(47,125,255,0.8)] transition-all hover:brightness-110"
           >
             {isFullscreen ? <Minimize2 size={12} /> : <Expand size={12} />}
             {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}

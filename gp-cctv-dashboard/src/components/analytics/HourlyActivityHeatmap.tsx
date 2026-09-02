@@ -43,7 +43,7 @@ export function HourlyActivityHeatmap({ grid }: HourlyActivityHeatmapProps) {
       className="h-full min-h-0"
       bodyClassName="relative flex min-h-0 flex-col px-3 pb-2 pt-1"
     >
-      <div className="mb-1 flex items-center justify-between text-[8px] text-[#6d82a3]">
+      <div className="mb-1 flex items-center justify-between text-[10px] text-[#6d82a3]">
         <span>Detection intensity across 24 hours</span>
         <span className="flex items-center gap-1">
           <span className="text-[#6d82a3]">low</span>
@@ -60,7 +60,7 @@ export function HourlyActivityHeatmap({ grid }: HourlyActivityHeatmapProps) {
         <div className="flex h-full min-h-0">
           <div className="flex w-[52px] shrink-0 flex-col justify-between py-[2px] pr-1.5">
             {grid.days.map((day) => (
-              <span key={day} className="tnum text-right text-[8px] leading-none text-[#7f92b3]">
+              <span key={day} className="tnum text-right text-[10px] leading-none text-[#7f92b3]">
                 {day}
               </span>
             ))}
@@ -107,7 +107,7 @@ export function HourlyActivityHeatmap({ grid }: HourlyActivityHeatmapProps) {
               {grid.hours.map((hour) => (
                 <span
                   key={hour}
-                  className={`tnum min-w-0 flex-1 text-center text-[7.5px] text-[#6d82a3] ${
+                  className={`tnum min-w-0 flex-1 text-center text-[9.5px] text-[#6d82a3] ${
                     hourLabels.includes(hour) ? '' : 'opacity-0'
                   }`}
                 >

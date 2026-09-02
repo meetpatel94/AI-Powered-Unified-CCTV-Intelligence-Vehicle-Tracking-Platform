@@ -11,14 +11,14 @@ const stateStyles: Record<SystemState, string> = {
 /** Compact operational health readout pinned to the bottom of the sidebar. */
 export function SystemStatusCard() {
   return (
-    <div className="rounded-[5px] border border-edge-soft bg-panel/80 px-2 py-2">
-      <div className="mb-1.5 text-[9.5px] font-semibold uppercase tracking-[0.06em] text-ink-dim">
+    <div className="rounded-[5px] border border-edge-soft bg-panel/80 px-2.5 py-2.5">
+      <div className="mb-2 text-2xs font-semibold uppercase tracking-[0.06em] text-ink-dim">
         System Status
       </div>
-      <ul className="space-y-[5px]">
+      <ul className="space-y-1.5">
         {systemStatus.map((item) => (
-          <li key={item.label} className="flex items-center justify-between gap-1">
-            <span className="truncate text-[9.5px] text-[#8a9ab8]">{item.label}</span>
+          <li key={item.label} className="flex items-center justify-between gap-2">
+            <span className="truncate text-[13px] text-[#8a9ab8]">{item.label}</span>
             <span
               className={`flex items-center gap-1 rounded-[3px] px-1.5 py-[2px] text-3xs font-medium ring-1 ${stateStyles[item.state]}`}
             >

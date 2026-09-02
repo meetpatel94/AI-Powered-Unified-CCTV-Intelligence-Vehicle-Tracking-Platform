@@ -60,9 +60,9 @@ interface MarkerLayerProps {
 }
 
 function StatusGlyph({ status }: { status: MapCameraStatus }) {
-  if (status === 'offline') return <WifiOff size={9} strokeWidth={2.4} className="text-white/90" />;
-  if (status === 'warning') return <TriangleAlert size={9} strokeWidth={2.4} className="text-black/85" />;
-  return <Camera size={9} strokeWidth={2.4} className="text-white" />;
+  if (status === 'offline') return <WifiOff size={10} strokeWidth={2.4} className="text-white/90" />;
+  if (status === 'warning') return <TriangleAlert size={10} strokeWidth={2.4} className="text-black/85" />;
+  return <Camera size={10} strokeWidth={2.4} className="text-white" />;
 }
 
 /** All camera pins + cluster bubbles, positioned in screen space. */
@@ -78,7 +78,7 @@ export function CameraMarkerLayer({
       {/* clusters */}
       {clusters.map((cluster) => {
         const color = statusColor[cluster.dominant];
-        const size = cluster.cameras.length > 12 ? 34 : cluster.cameras.length > 6 ? 30 : 26;
+        const size = cluster.cameras.length > 12 ? 38 : cluster.cameras.length > 6 ? 33 : 28;
         return (
           <button
             key={cluster.key}
@@ -96,7 +96,7 @@ export function CameraMarkerLayer({
               style={{ background: color, transform: 'scale(1.45)' }}
             />
             <span
-              className="tnum absolute inset-0 grid place-items-center rounded-full border-2 border-white/80 text-[10px] font-bold text-white"
+              className="tnum absolute inset-0 grid place-items-center rounded-full border-2 border-white/80 text-[12px] font-bold text-white"
               style={{ background: color, boxShadow: `0 0 14px ${color}aa` }}
             >
               {cluster.cameras.length}
@@ -125,12 +125,12 @@ export function CameraMarkerLayer({
           >
             {(isCritical || isSelected) && (
               <span
-                className="absolute left-1/2 top-1/2 h-[18px] w-[18px] -translate-x-1/2 -translate-y-1/2 rounded-full animate-ping2"
+                className="absolute left-1/2 top-1/2 h-[21px] w-[21px] -translate-x-1/2 -translate-y-1/2 rounded-full animate-ping2"
                 style={{ background: isSelected ? '#3b82f6' : color, opacity: 0.5 }}
               />
             )}
             <span
-              className={`relative grid h-[17px] w-[17px] place-items-center rounded-full ${
+              className={`relative grid h-[19px] w-[19px] place-items-center rounded-full ${
                 isSelected ? 'ring-[2.5px] ring-white' : 'ring-1 ring-black/50'
               }`}
               style={{ background: color, boxShadow: `0 0 9px ${color}b0` }}
@@ -138,7 +138,7 @@ export function CameraMarkerLayer({
               <StatusGlyph status={camera.status} />
             </span>
             <span
-              className="absolute left-1/2 top-full -mt-[4px] h-[7px] w-[7px] -translate-x-1/2 rotate-45"
+              className="absolute left-1/2 top-full -mt-[5px] h-[8px] w-[8px] -translate-x-1/2 rotate-45"
               style={{ background: color }}
             />
           </button>

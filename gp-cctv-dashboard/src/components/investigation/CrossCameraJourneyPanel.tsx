@@ -57,7 +57,7 @@ export function CrossCameraJourneyPanel({
       title="Cross-Camera Journey"
       tools={
         <div className="flex items-center gap-1.5">
-          <span className="tnum rounded-[4px] border border-edge bg-[#0c1424] px-1.5 py-[2px] text-[8.5px] text-[#8ea3c4]">
+          <span className="tnum rounded-[4px] border border-edge bg-[#0c1424] px-1.5 py-[2px] text-[10.5px] text-[#8ea3c4]">
             {nodes.length} route nodes · {legs.length} legs · {totalKm.toFixed(1)} km · {Math.floor(totalSec / 60)} min{' '}
             {String(totalSec % 60).padStart(2, '0')} s
           </span>
@@ -68,7 +68,7 @@ export function CrossCameraJourneyPanel({
                 type="button"
                 title={`${node.cameraId} · ${node.time}`}
                 onClick={() => node.journeyStep && onSelectStep(node.journeyStep)}
-                className={`tnum h-[20px] w-[20px] text-[9px] font-bold transition-colors ${
+                className={`tnum h-[20px] w-[20px] text-[11px] font-bold transition-colors ${
                   activeStep === node.journeyStep
                     ? node.watchlistHit
                       ? 'bg-accent-red text-white'
@@ -83,7 +83,7 @@ export function CrossCameraJourneyPanel({
           <button
             type="button"
             onClick={onToggleReplay}
-            className={`flex h-[22px] items-center gap-1 rounded-[4px] border px-2 text-[9px] font-semibold uppercase tracking-[0.06em] transition-colors ${
+            className={`flex h-[22px] items-center gap-1 rounded-[4px] border px-2 text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors ${
               playing
                 ? 'border-accent-cyan/60 bg-[#083344]/70 text-[#67e8f9]'
                 : 'border-edge bg-[#0c1424] text-[#8ea3c4] hover:border-edge-strong hover:text-white'
@@ -94,13 +94,13 @@ export function CrossCameraJourneyPanel({
           </button>
         </div>
       }
-      className="min-h-0"
+      className="h-full min-h-0"
       bodyClassName="px-3 pb-2 pt-1"
     >
       <div className="flex h-full min-h-0 gap-2.5">
         {/* timeline */}
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="mb-1 flex items-center gap-1.5 text-[8.5px] text-[#6d7f9e]">
+          <div className="mb-1 flex items-center gap-1.5 text-[10.5px] text-[#6d7f9e]">
             <RouteIcon size={10} className="text-accent-cyan" />
             <span className="uppercase tracking-[0.09em]">Movement reconstruction</span>
             <span className="truncate text-[#55668a]">
@@ -128,18 +128,18 @@ export function CrossCameraJourneyPanel({
                   >
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`tnum grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border text-[9px] font-bold text-white ${
+                        className={`tnum grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border text-[11px] font-bold text-white ${
                           critical ? 'border-white/80 bg-accent-red' : 'border-white/70 bg-[#2563eb]'
                         }`}
                         style={{ boxShadow: critical ? '0 0 10px rgba(239,68,68,0.8)' : '0 0 8px rgba(37,99,235,0.8)' }}
                       >
                         {node.journeyStep}
                       </span>
-                      <span className="tnum font-mono text-[11px] font-bold tracking-[0.06em] text-white">{node.cameraId}</span>
-                      <span className="tnum ml-auto text-[8.5px] text-[#8ea3c4]">{node.time}</span>
+                      <span className="tnum font-mono text-[13px] font-bold tracking-[0.06em] text-white">{node.cameraId}</span>
+                      <span className="tnum ml-auto text-[10.5px] text-[#8ea3c4]">{node.time}</span>
                     </div>
 
-                    <div className="mt-[2px] flex items-center gap-1 truncate text-[9px] text-[#94a5c2]">
+                    <div className="mt-[2px] flex items-center gap-1 truncate text-[11px] text-[#94a5c2]">
                       <MapPin size={9} className="shrink-0 text-accent-cyan" />
                       <span className="truncate">{node.location}</span>
                       <span className="shrink-0 text-[#55668a]">· {node.city}</span>
@@ -148,20 +148,20 @@ export function CrossCameraJourneyPanel({
                     <div className="relative mt-1 h-[58px] overflow-hidden rounded-[4px] border border-edge-soft bg-black">
                       <img src={node.thumbnail} alt={`${node.cameraId} snapshot`} className="h-full w-full object-cover" />
                       {critical ? <span className="absolute inset-0 bg-accent-red/15 ring-1 ring-inset ring-accent-red/50" /> : null}
-                      <span className="absolute left-1 top-1 rounded-[2px] bg-black/75 px-1 py-px text-[7.5px] font-semibold text-[#c9d6ea]">
+                      <span className="absolute left-1 top-1 rounded-[2px] bg-black/75 px-1 py-px text-[9.5px] font-semibold text-[#c9d6ea]">
                         step {node.journeyStep}
                       </span>
-                      <span className="tnum absolute bottom-1 right-1 rounded-[2px] bg-black/75 px-1 py-px text-[7.5px] font-semibold text-[#67e8f9]">
+                      <span className="tnum absolute bottom-1 right-1 rounded-[2px] bg-black/75 px-1 py-px text-[9.5px] font-semibold text-[#67e8f9]">
                         {node.confidence.toFixed(1)}%
                       </span>
                       {critical ? (
-                        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded-[2px] bg-[#2a0d13]/90 px-1 py-px text-[7px] font-bold uppercase text-[#ff8b96]">
+                        <span className="absolute bottom-1 left-1 flex items-center gap-0.5 rounded-[2px] bg-[#2a0d13]/90 px-1 py-px text-[9px] font-bold uppercase text-[#ff8b96]">
                           <ShieldAlert size={7} /> watchlist
                         </span>
                       ) : null}
                     </div>
 
-                    <div className="mt-1 flex items-center justify-between text-[8px] text-[#7f93b3]">
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-[#7f93b3]">
                       <span className="tnum flex items-center gap-1">
                         <Navigation size={9} className="text-[#6d82a3]" />
                         {node.direction} · {node.speedKph} km/h
@@ -192,13 +192,13 @@ export function CrossCameraJourneyPanel({
                       >
                         <Video size={11} />
                       </span>
-                      <span className="tnum ml-auto truncate text-[7.5px] text-[#55668a]">{node.clip}</span>
+                      <span className="tnum ml-auto truncate text-[9.5px] text-[#55668a]">{node.clip}</span>
                     </div>
                   </button>
 
                   {leg ? (
                     <div className="flex w-[92px] shrink-0 flex-col items-center justify-center px-1">
-                      <span className="tnum rounded-[3px] border border-edge bg-[#0c1424] px-1.5 py-[2px] text-[8px] font-semibold text-[#9fc7ff]">
+                      <span className="tnum rounded-[3px] border border-edge bg-[#0c1424] px-1.5 py-[2px] text-[10px] font-semibold text-[#9fc7ff]">
                         {leg.label.replace(' min ', 'm ').replace(' s', 's')}
                       </span>
                       <span className="relative mt-1 flex w-full items-center">
@@ -210,7 +210,7 @@ export function CrossCameraJourneyPanel({
                           className={`absolute -right-0.5 ${leg.critical ? 'text-accent-red' : 'text-accent-cyan'}`}
                         />
                       </span>
-                      <span className="tnum mt-1 text-[7.5px] text-[#6d82a3]">
+                      <span className="tnum mt-1 text-[9.5px] text-[#6d82a3]">
                         {leg.km.toFixed(1)} km · avg {leg.speedKph} km/h
                       </span>
                     </div>
@@ -220,7 +220,7 @@ export function CrossCameraJourneyPanel({
             })}
           </div>
 
-          <div className="mt-1 flex items-center gap-2 border-t border-edge-soft pt-1 text-[8px] text-[#6d82a3]">
+          <div className="mt-1 flex items-center gap-2 border-t border-edge-soft pt-1 text-[10px] text-[#6d82a3]">
             <span className="flex items-center gap-1">
               <Clock3 size={9} className="text-accent-cyan" />
               {nodes[0]?.time} → {nodes[nodes.length - 1]?.time}

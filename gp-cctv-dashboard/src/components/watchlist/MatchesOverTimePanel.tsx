@@ -25,11 +25,11 @@ export function MatchesOverTimePanel() {
           +38% vs previous 14d
         </span>
       }
-      className="min-h-0"
+      className="h-full min-h-0"
       bodyClassName="px-3 pb-2 pt-1"
     >
       <div className="flex h-full min-h-0 gap-1.5">
-        <div className="flex w-[18px] shrink-0 flex-col justify-between pb-[16px] pt-[6px] text-right text-[8px] tabular-nums text-[#6d82a3]">
+        <div className="flex w-[18px] shrink-0 flex-col justify-between pb-[16px] pt-[6px] text-right text-[10px] tabular-nums text-[#6d82a3]">
           {TICKS.map((tick) => (
             <span key={tick}>{tick}</span>
           ))}
@@ -77,14 +77,14 @@ export function MatchesOverTimePanel() {
               />
             ))}
 
-            <span className="tnum absolute -translate-x-full -translate-y-[130%] rounded-[3px] border border-accent-cyan/40 bg-[#083344]/90 px-1 py-px text-[8.5px] font-bold text-[#67e8f9]" style={{ left: '100%', top: `${points[points.length - 1].y}%` }}>
+            <span className="tnum absolute -translate-x-full -translate-y-[130%] rounded-[3px] border border-accent-cyan/40 bg-[#083344]/90 px-1 py-px text-[10.5px] font-bold text-[#67e8f9]" style={{ left: '100%', top: `${points[points.length - 1].y}%` }}>
               {last.value}
             </span>
           </div>
 
           <div className="absolute inset-x-0 bottom-0 flex h-[16px] items-center justify-between px-0.5">
             {matchesOverTime.map((point, index) => (
-              <span key={point.day} className={`text-[7.5px] text-[#8ea1c0] ${index % 2 === 1 ? 'opacity-0' : ''}`}>
+              <span key={point.day} className={`text-[9.5px] text-[#8ea1c0] ${index % 2 === 1 ? 'opacity-0' : ''}`}>
                 {point.day}
               </span>
             ))}

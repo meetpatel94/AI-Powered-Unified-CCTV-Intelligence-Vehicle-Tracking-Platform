@@ -23,11 +23,11 @@ export function JourneyPanel({
   const active = activePlate === trackedRoute.plate;
 
   return (
-    <div className="pointer-events-auto absolute bottom-[42px] left-3 right-3 z-30 overflow-hidden rounded-md border border-edge bg-[#0a1220]/96 shadow-panel backdrop-blur-sm">
-      <header className="flex items-center justify-between gap-3 border-b border-edge px-2.5 py-1.5">
+    <div className="pointer-events-auto absolute bottom-[56px] left-3 right-3 z-30 overflow-hidden rounded-md border border-edge bg-[#0a1220]/96 shadow-panel backdrop-blur-sm">
+      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-edge px-3 py-2">
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white">
-            <Route size={12} className="text-accent-cyan" />
+          <span className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-white">
+            <Route size={14} className="text-accent-cyan" />
             Vehicle Journey
           </span>
 
@@ -39,7 +39,7 @@ export function JourneyPanel({
                   key={vehicle.plate}
                   type="button"
                   onClick={() => onSelectPlate(isActive ? null : vehicle.plate)}
-                  className={`flex items-center gap-1.5 rounded-full border px-2 py-[2px] text-[9.5px] transition-colors ${
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-[3px] text-[13px] transition-colors ${
                     isActive
                       ? 'border-accent-cyan/60 bg-accent-cyan/15 text-accent-cyan'
                       : 'border-edge bg-[#0c1424] text-[#8ea3c4] hover:border-edge-strong hover:text-ink'
@@ -47,11 +47,11 @@ export function JourneyPanel({
                 >
                   <span className="font-semibold tracking-wide">{vehicle.plate}</span>
                   {vehicle.watchlist && (
-                    <span className="rounded-[2px] bg-accent-red/20 px-1 text-[7.5px] font-bold text-[#ff8b96]">
+                    <span className="rounded-[2px] bg-accent-red/20 px-1.5 py-px text-[11.5px] font-bold text-[#ff8b96]">
                       WL
                     </span>
                   )}
-                  <span className="tnum text-[8px] text-[#6d82a3]">{vehicle.hits} hits</span>
+                  <span className="tnum text-[12px] text-[#6d82a3]">{vehicle.hits} hits</span>
                 </button>
               );
             })}
@@ -60,12 +60,12 @@ export function JourneyPanel({
 
         <div className="flex items-center gap-2">
           {active && (
-            <span className="flex items-center gap-2 text-[9px] text-ink-dim">
+            <span className="flex items-center gap-2 text-[13px] text-ink-dim">
               <span className="tnum">
                 <span className="text-[#c3cfe2]">{trackedRoute.type}</span> · 4 sightings · 22m 48s
               </span>
               <span className="flex items-center gap-1 text-[#ff8b96]">
-                <Crosshair size={9} /> watchlist
+                <Crosshair size={11} /> watchlist
               </span>
             </span>
           )}
@@ -76,27 +76,27 @@ export function JourneyPanel({
             className="text-[#8ea3c4] transition-transform hover:text-white"
             style={{ transform: collapsed ? 'rotate(180deg)' : 'none' }}
           >
-            <ChevronDown size={13} />
+            <ChevronDown size={15} />
           </button>
         </div>
       </header>
 
       {!collapsed && (
-        <div className="px-2.5 py-2">
+        <div className="px-3 py-2.5">
           {!active ? (
-            <div className="py-3 text-center text-[10px] text-ink-dim">
+            <div className="py-4 text-center text-[12.5px] text-ink-dim">
               Select a vehicle above to replay its tracked route across the camera network.
             </div>
           ) : (
-            <div className="flex items-stretch gap-2">
+            <div className="flex items-stretch gap-2.5">
               {trackedRoute.nodes.map((node, index) => {
                 const isActive = activeStep === node.step;
                 return (
-                  <div key={node.step} className="flex min-w-0 flex-1 items-stretch gap-2">
+                  <div key={node.step} className="flex min-w-0 flex-1 items-stretch gap-2.5">
                     <button
                       type="button"
                       onClick={() => onSelectStep(node.step)}
-                      className={`group flex min-w-0 flex-1 items-center gap-2 rounded-[5px] border px-2 py-1.5 text-left transition-colors ${
+                      className={`group flex min-w-0 flex-1 items-center gap-2.5 rounded-[5px] border px-2.5 py-2 text-left transition-colors ${
                         node.critical
                           ? 'border-accent-red/70 bg-accent-red/10'
                           : isActive
@@ -105,24 +105,24 @@ export function JourneyPanel({
                       }`}
                     >
                       <span
-                        className={`tnum grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full text-[9px] font-bold text-white ${
+                        className={`tnum grid h-[20px] w-[20px] shrink-0 place-items-center rounded-full text-[12.5px] font-bold text-white ${
                           node.critical ? 'bg-accent-red' : 'bg-[#2563eb]'
                         }`}
                       >
                         {node.step}
                       </span>
 
-                      <span className="h-[38px] w-[62px] shrink-0 overflow-hidden rounded-[3px] border border-edge-soft bg-black">
+                      <span className="h-[44px] w-[74px] shrink-0 overflow-hidden rounded-[3px] border border-edge-soft bg-black">
                         <img src={node.thumbnail} alt={node.cameraId} className="h-full w-full object-cover" />
                       </span>
 
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center justify-between gap-1">
-                          <span className="text-[11px] font-bold tracking-wide text-white">{node.cameraId}</span>
-                          <span className="tnum text-[8.5px] text-[#8ea1c0]">{node.time}</span>
+                          <span className="text-[13px] font-bold tracking-wide text-white">{node.cameraId}</span>
+                          <span className="tnum text-[12.5px] text-[#8ea1c0]">{node.time}</span>
                         </span>
-                        <span className="block truncate text-[9px] text-[#a9bcd8]">{node.road}</span>
-                        <span className="flex items-center gap-1.5 text-[8px] text-[#6d82a3]">
+                        <span className="block truncate text-[13px] text-[#a9bcd8]">{node.road}</span>
+                        <span className="flex items-center gap-1.5 text-[12.5px] text-[#6d82a3]">
                           <span className="truncate">{node.city}</span>
                           <span className="h-[7px] w-px bg-edge-strong" />
                           <span className="tnum">{node.speed}</span>
@@ -132,7 +132,7 @@ export function JourneyPanel({
                       </span>
 
                       {node.critical && (
-                        <span className="shrink-0 rounded-[2px] bg-accent-red px-1 py-px text-[7px] font-bold tracking-wide text-white">
+                        <span className="shrink-0 rounded-[2px] bg-accent-red px-1.5 py-px text-[11px] font-bold tracking-wide text-white">
                           ALERT
                         </span>
                       )}

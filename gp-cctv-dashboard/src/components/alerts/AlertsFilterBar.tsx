@@ -28,7 +28,7 @@ interface AlertsFilterBarProps {
 }
 
 const selectCls =
-  'h-[28px] shrink-0 rounded-[4px] border border-edge bg-[#0c1424] px-2 text-[10.5px] text-[#c3cfe2] outline-none transition-colors hover:border-edge-strong focus:border-accent-blue/70';
+  'h-[32px] shrink-0 rounded-[4px] border border-edge bg-[#0c1424] px-2.5 text-[13px] text-[#c3cfe2] outline-none transition-colors hover:border-edge-strong focus:border-accent-blue/70';
 
 const scopePills: Array<{ id: AlertScopeId; label: string; tone: string }> = [
   { id: 'all', label: 'All Alerts', tone: 'data' },
@@ -69,7 +69,7 @@ export function AlertsFilterBar({
               key={pill.id}
               type="button"
               onClick={() => onScope(pill.id)}
-              className={`tnum flex h-[26px] items-center gap-1 rounded-[4px] px-2 text-[9.5px] font-semibold transition-all ${
+              className={`tnum flex h-[30px] items-center gap-1.5 rounded-[4px] px-2.5 text-[12.5px] font-semibold transition-all ${
                 active
                   ? 'bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] text-white shadow-[0_0_12px_-4px_rgba(47,125,255,0.9)]'
                   : 'text-[#8ea3c4] hover:bg-panel-hover hover:text-white'
@@ -77,7 +77,7 @@ export function AlertsFilterBar({
             >
               {pill.label}
               <span
-                className={`rounded-[3px] px-1 text-[8.5px] font-bold leading-[13px] ${
+                className={`rounded-[3px] px-1.5 text-[11.5px] font-bold leading-[13px] ${
                   active ? 'bg-white/20 text-white' : 'bg-[#16233a] text-[#9fb0cc]'
                 }`}
               >
@@ -140,7 +140,7 @@ export function AlertsFilterBar({
           value={query}
           onChange={(event) => onQuery(event.target.value)}
           placeholder="Search plate / camera / location…"
-          className="h-[28px] w-full rounded-[4px] border border-edge bg-[#0c1424] pl-7 pr-7 text-[10.5px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70"
+          className="h-[32px] w-full rounded-[4px] border border-edge bg-[#0c1424] pl-8 pr-7 text-[13px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70"
         />
         {query ? (
           <button
@@ -158,7 +158,7 @@ export function AlertsFilterBar({
         <button
           type="button"
           onClick={onReset}
-          className="link-action flex h-[28px] shrink-0 items-center gap-1 rounded-[4px] border border-edge px-2 text-[10px] hover:border-accent-red/50 hover:text-[#ff8b96]"
+          className="link-action flex h-[28px] shrink-0 items-center gap-1 rounded-[4px] border border-edge px-2 text-[12px] hover:border-accent-red/50 hover:text-[#ff8b96]"
         >
           <XCircle size={11} />
           Reset

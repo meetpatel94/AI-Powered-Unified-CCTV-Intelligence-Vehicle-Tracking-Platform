@@ -22,8 +22,8 @@ interface AddWatchlistModalProps {
 }
 
 const inputCls =
-  'h-[30px] w-full rounded-[4px] border border-edge bg-[#0c1424] px-2.5 text-[10.5px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70';
-const labelCls = 'mb-1 block text-[9px] font-semibold uppercase tracking-[0.08em] text-[#8ea1c0]';
+  'h-[30px] w-full rounded-[4px] border border-edge bg-[#0c1424] px-2.5 text-[12.5px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70';
+const labelCls = 'mb-1 block text-[11px] font-semibold uppercase tracking-[0.08em] text-[#8ea1c0]';
 
 const typeOptions: { id: WatchlistType; label: string; icon: typeof Car }[] = [
   { id: 'vehicle', label: 'Vehicle', icon: Car },
@@ -77,7 +77,7 @@ export function AddWatchlistModal({ open, onClose, onCreate }: AddWatchlistModal
         <header className="flex items-center justify-between border-b border-edge px-4 py-3">
           <div>
             <h2 className="text-[12.5px] font-bold uppercase tracking-[0.09em] text-white">Add to Watchlist</h2>
-            <p className="mt-[1px] text-[9.5px] text-ink-dim">New entity will be distributed to all matching cameras within 60 seconds</p>
+            <p className="mt-[1px] text-[11.5px] text-ink-dim">New entity will be distributed to all matching cameras within 60 seconds</p>
           </div>
           <button
             type="button"
@@ -101,7 +101,7 @@ export function AddWatchlistModal({ open, onClose, onCreate }: AddWatchlistModal
                   const first = watchlistCategories.find((category) => category.type === id) ?? watchlistCategories[0];
                   setCategoryId(first.id);
                 }}
-                className={`flex h-[34px] items-center justify-center gap-1.5 rounded-[5px] border text-[10.5px] font-semibold transition-colors ${
+                className={`flex h-[34px] items-center justify-center gap-1.5 rounded-[5px] border text-[12.5px] font-semibold transition-colors ${
                   type === id
                     ? 'border-accent-blue/70 bg-accent-blue/15 text-[#9fc7ff]'
                     : 'border-edge bg-[#0c1424] text-[#8ea3c4] hover:border-edge-strong hover:text-white'
@@ -193,7 +193,7 @@ export function AddWatchlistModal({ open, onClose, onCreate }: AddWatchlistModal
               className="flex h-[72px] w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-edge-strong bg-[#0c1424] text-[#6d7f9e] transition-colors hover:border-accent-blue/60 hover:text-[#9fc7ff]"
             >
               <ImagePlus size={16} strokeWidth={1.7} />
-              <span className="text-[9.5px]">Drop photo here or click to browse (JPG / PNG, max 5 MB)</span>
+              <span className="text-[11.5px]">Drop photo here or click to browse (JPG / PNG, max 5 MB)</span>
             </button>
           </div>
 
@@ -205,7 +205,7 @@ export function AddWatchlistModal({ open, onClose, onCreate }: AddWatchlistModal
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               placeholder="Action to take on positive match, linked FIR / NC numbers, caution flags..."
-              className="w-full resize-none rounded-[4px] border border-edge bg-[#0c1424] px-2.5 py-2 text-[10.5px] leading-[15px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70"
+              className="w-full resize-none rounded-[4px] border border-edge bg-[#0c1424] px-2.5 py-2 text-[12.5px] leading-[15px] text-ink placeholder:text-[#6d7f9e] outline-none transition-colors focus:border-accent-blue/70"
             />
           </div>
         </div>
@@ -214,7 +214,7 @@ export function AddWatchlistModal({ open, onClose, onCreate }: AddWatchlistModal
           <button
             type="button"
             onClick={onClose}
-            className="h-[30px] rounded-[5px] border border-edge bg-panel px-3 text-[10.5px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
+            className="h-[30px] rounded-[5px] border border-edge bg-panel px-3 text-[12.5px] font-medium text-[#c3cfe2] transition-colors hover:border-edge-strong hover:text-white"
           >
             Cancel
           </button>
@@ -222,7 +222,7 @@ export function AddWatchlistModal({ open, onClose, onCreate }: AddWatchlistModal
             type="button"
             onClick={submit}
             disabled={!valid}
-            className="h-[30px] rounded-[5px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] px-4 text-[10.5px] font-semibold text-white shadow-[0_0_14px_-4px_rgba(47,125,255,0.8)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+            className="h-[30px] rounded-[5px] border border-[#2f6fd0] bg-gradient-to-r from-[#1f5fd8] to-[#1a4fb5] px-4 text-[12.5px] font-semibold text-white shadow-[0_0_14px_-4px_rgba(47,125,255,0.8)] transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
           >
             Add to Watchlist
           </button>
