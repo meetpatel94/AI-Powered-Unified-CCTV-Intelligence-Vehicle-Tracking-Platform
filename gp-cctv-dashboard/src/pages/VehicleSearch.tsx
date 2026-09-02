@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -184,7 +184,7 @@ export function VehicleSearch() {
       <KpiStrip />
 
       {/* ==================== MAIN 3-COLUMN WORKSPACE ==================== */}
-      <div className="grid grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[32fr_40fr_28fr]">
+      <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(300px,32fr)_minmax(360px,40fr)_minmax(280px,28fr)]">
         {/* LEFT — Vehicle Profile */}
         <VehicleProfilePanel profile={profile} onViewCamera={handleViewCamera} />
 
@@ -193,7 +193,6 @@ export function VehicleSearch() {
           nodes={nodes}
           focusedNode={focusedNode}
           onNodeClick={handleNodeClick}
-          onEvidenceClick={(id) => setEvidencePreview(id)}
         />
 
         {/* RIGHT — Vehicle Intelligence */}
@@ -224,7 +223,7 @@ export function VehicleSearch() {
       <RelatedEventsPanel events={relatedEvents} />
 
       {/* ==================== SEARCH ANALYTICS ==================== */}
-      <div className="grid grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-2 xl:grid-cols-[35fr_30fr_17fr_18fr]">
+      <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-2 xl:grid-cols-[minmax(320px,35fr)_minmax(280px,30fr)_minmax(180px,17fr)_minmax(180px,18fr)]">
         <MatchesOverTimeChart data={matchesOverTime} />
         <DetectionsByCameraChart data={detectionsByCamera} />
         <LocationsVisitedRank data={locationsVisited} />
@@ -695,12 +694,10 @@ function VehicleJourneyPanel({
   nodes,
   focusedNode,
   onNodeClick,
-  onEvidenceClick,
 }: {
   nodes: typeof import('@/data/vehicleSearchData').journeyNodes;
   focusedNode: number;
   onNodeClick: (step: number) => void;
-  onEvidenceClick: (id: string) => void;
 }) {
   return (
     <Panel title="Vehicle Journey" tools={

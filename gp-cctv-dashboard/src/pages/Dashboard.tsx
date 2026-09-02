@@ -20,8 +20,7 @@ export function Dashboard() {
 
       {/* Situational awareness row */}
       <div
-        className="grid shrink-0 gap-[var(--page-gap)] grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(300px,34fr)_minmax(340px,39fr)_minmax(300px,27fr)]"
-        style={{ height: 'var(--row-main)' }}
+        className="responsive-band responsive-band-main grid shrink-0 gap-[var(--page-gap)] grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(300px,34fr)_minmax(340px,39fr)_minmax(300px,27fr)]"
       >
         <div className="min-w-0">
           <LiveFeedsPanel />
@@ -41,8 +40,7 @@ export function Dashboard() {
 
       {/* Vehicle intelligence row */}
       <div
-        className="grid shrink-0 gap-[var(--page-gap)] grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(250px,20fr)_minmax(380px,47fr)_minmax(300px,33fr)]"
-        style={{ height: 'var(--row-mid)' }}
+        className="responsive-band responsive-band-mid grid shrink-0 gap-[var(--page-gap)] grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(250px,20fr)_minmax(380px,47fr)_minmax(300px,33fr)]"
       >
         <div className="min-w-0">
           <VehicleSearchPanel />

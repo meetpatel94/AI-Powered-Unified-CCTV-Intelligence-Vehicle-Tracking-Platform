@@ -276,7 +276,7 @@ export function Reports() {
       <ReportsKpiRow extraGenerated={generatedDelta} />
 
       {/* builder + registry | preview */}
-      <div className="grid min-w-0 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_384px]">
+      <div className="grid min-w-0 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,384px)]">
         <div className="flex min-w-0 flex-col gap-[var(--page-gap)]">
           <ReportBuilderPanel filters={filters} onChange={patchFilters} onGenerate={() => openGenerate('now')} />
           <RecentReportsTable
@@ -312,16 +312,16 @@ export function Reports() {
         <span className="tnum text-2xs uppercase tracking-[0.1em] text-ink-faint">rolling 30-day window</span>
       </div>
       <div className="grid gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-4">
-        <div className="h-[300px] min-w-0">
+        <div className="flex min-h-[300px] min-w-0 flex-col [&>*]:flex-1">
           <ReportsByTypePanel />
         </div>
-        <div className="h-[300px] min-w-0">
+        <div className="flex min-h-[300px] min-w-0 flex-col [&>*]:flex-1">
           <ReportsOverTimePanel />
         </div>
-        <div className="h-[300px] min-w-0">
+        <div className="flex min-h-[300px] min-w-0 flex-col [&>*]:flex-1">
           <ReportDistributionPanel />
         </div>
-        <div className="h-[300px] min-w-0">
+        <div className="flex min-h-[300px] min-w-0 flex-col [&>*]:flex-1">
           <TopReportedLocationsPanel />
         </div>
       </div>

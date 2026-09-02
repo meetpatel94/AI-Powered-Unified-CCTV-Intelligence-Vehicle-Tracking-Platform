@@ -40,10 +40,30 @@
     overflow-x: hidden;
   }
 
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   body {
     @apply bg-base-900 text-ink antialiased;
     font-size: var(--fs-body);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+  }
+
+  img,
+  svg,
+  canvas,
+  video {
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    min-width: 0;
   }
 
   ::-webkit-scrollbar {
@@ -68,21 +88,79 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    width: 100%;
     padding: var(--page-pad);
     gap: var(--page-gap);
     overflow-x: hidden;
   }
 
-  /* Workspace page (Live View / Camera Map): fills the main area,
-     never scrolls the page itself — panels scroll internally. */
+  .page > *,
+  .page-viewport > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* Workspace page (Live View / Camera Map): fills the main area but does
+     not force-fit content into the viewport. If toolbars/panels need more
+     space at 1366×768 or below, the main shell scrolls vertically instead
+     of shrinking maps, CCTV feeds or text. */
   .page-viewport {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    height: 100%;
+    min-height: 100%;
     padding: var(--page-pad);
     gap: var(--page-gap);
-    overflow: hidden;
+    overflow-x: hidden;
+  }
+
+  /* Readable content bands used by high-density pages. These replace fixed
+     inline heights: the band establishes a practical minimum, then can grow
+     naturally and let the main content area scroll. */
+  .responsive-band {
+    min-width: 0;
+    align-items: stretch;
+  }
+  .responsive-band > * {
+    min-width: 0;
+    min-height: 0;
+  }
+  .responsive-band-main {
+    min-height: var(--row-main);
+  }
+  .responsive-band-mid {
+    min-height: var(--row-mid);
+  }
+  .responsive-band-chart {
+    min-height: var(--row-charts);
+  }
+
+  /* When a multi-column band collapses to fewer columns, fixed band heights
+     are what make cards/charts microscopic. Stack rows with readable
+     minimums instead. */
+  @media (max-width: 1279px) {
+    .responsive-band-main,
+    .responsive-band-mid,
+    .responsive-band-chart {
+      min-height: 0;
+    }
+    .responsive-band-main > * {
+      min-height: 360px;
+    }
+    .responsive-band-mid > * {
+      min-height: 300px;
+    }
+    .responsive-band-chart > * {
+      min-height: 280px;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .responsive-band-main > *,
+    .responsive-band-mid > *,
+    .responsive-band-chart > * {
+      min-height: 260px;
+    }
   }
 
   /* Page title (22–27px) */
@@ -112,6 +190,8 @@
   /* Standard command-center panel shell */
   .panel {
     @apply rounded-md border border-edge bg-panel shadow-panel;
+    min-width: 0;
+    max-width: 100%;
   }
 
   /* Section heading used on every panel header (15–17px) */

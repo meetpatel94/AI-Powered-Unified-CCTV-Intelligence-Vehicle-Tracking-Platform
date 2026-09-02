@@ -12,9 +12,9 @@ import { useTelemetryTick } from '@/hooks/useTelemetryTick';
 import type { CameraFilterId } from '@/types/liveView';
 
 const gridColumns: Record<GridSize, string> = {
-  2: 'grid-cols-2',
-  3: 'grid-cols-3',
-  4: 'grid-cols-4',
+  2: 'grid-cols-[repeat(auto-fit,minmax(min(100%,360px),1fr))]',
+  3: 'grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))]',
+  4: 'grid-cols-[repeat(auto-fit,minmax(min(100%,220px),1fr))]',
 };
 
 /**
@@ -98,11 +98,11 @@ export function LiveView() {
         clock={clock}
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-[var(--page-gap)] overflow-y-auto lg:flex-row lg:overflow-hidden">
+      <div className="flex min-h-[640px] flex-1 flex-col gap-[var(--page-gap)] overflow-visible lg:flex-row">
         {/* ---------------- camera wall ---------------- */}
         <div className="flex min-h-[460px] w-full shrink-0 flex-col gap-[var(--page-gap)] lg:min-h-0 lg:shrink lg:flex-1">
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col rounded-md border border-edge bg-panel">
-          <header className="flex shrink-0 items-center justify-between gap-3 px-3.5 pb-2 pt-2.5">
+          <section className="flex min-h-0 min-w-0 flex-1 flex-col rounded-md border border-edge bg-panel">
+            <header className="flex shrink-0 items-center justify-between gap-3 px-3.5 pb-2 pt-2.5">
             <h2 className="panel-title">
               Camera Wall
               <span className="ml-2 font-normal normal-case tracking-normal text-ink-dim">

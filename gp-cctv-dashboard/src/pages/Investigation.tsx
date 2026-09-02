@@ -425,7 +425,7 @@ export function Investigation() {
             onOpenWatchlist={() => navigate('/watchlist')}
           />
 
-          <div className="shrink-0" style={{ height: 'clamp(340px, 36vh, 460px)' }}>
+          <div className="flex min-h-[420px] shrink-0 flex-col [&>*]:flex-1">
             <CrossCameraJourneyPanel
               dossier={dossier}
               legs={legs}
@@ -457,7 +457,7 @@ export function Investigation() {
         </aside>
       </div>
 
-      <div className="shrink-0" style={{ height: 'clamp(300px, 32vh, 400px)' }}>
+      <div className="flex min-h-[360px] shrink-0 flex-col [&>*]:flex-1">
         <SightingHistoryPanel
           sightings={visibleSightings}
           totalCount={dossierSightings.length}
@@ -476,8 +476,7 @@ export function Investigation() {
       </div>
 
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[42fr_29fr_29fr]"
-        style={{ height: 'clamp(280px, 30vh, 380px)' }}
+        className="responsive-band min-h-[340px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[42fr_29fr_29fr]"
       >
         <div className="min-w-0">
           <RelatedEventsPanel
@@ -507,7 +506,7 @@ export function Investigation() {
         </div>
       </div>
 
-      <div className="shrink-0" style={{ height: 'clamp(240px, 26vh, 340px)' }}>
+      <div className="flex min-h-[320px] shrink-0 flex-col [&>*]:flex-1">
         <EvidenceGalleryPanel
           evidence={evidence}
           totalCount={allEvidence.length}
@@ -520,8 +519,7 @@ export function Investigation() {
       </div>
 
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[38fr_32fr_30fr]"
-        style={{ height: 'clamp(260px, 28vh, 360px)' }}
+        className="responsive-band min-h-[320px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[38fr_32fr_30fr]"
       >
         <div className="min-w-0">
           <SightingsOverTimePanel analytics={analytics} bucketLabel="5 min" />

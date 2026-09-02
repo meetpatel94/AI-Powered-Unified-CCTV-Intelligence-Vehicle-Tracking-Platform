@@ -345,8 +345,7 @@ export function Alerts() {
 
       {/* main workspace: feed + ops rail */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-[minmax(0,1fr)_minmax(330px,360px)]"
-        style={{ height: 'var(--row-main)' }}
+        className="responsive-band responsive-band-main grid shrink-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-[minmax(0,1fr)_minmax(330px,360px)]"
       >
         <AlertFeedPanel
           alerts={visibleAlerts}
@@ -371,8 +370,7 @@ export function Alerts() {
 
       {/* analytics bottom row */}
       <div
-        className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] xl:grid-cols-[29fr_27fr_21fr_23fr]"
-        style={{ height: 'var(--row-charts)' }}
+        className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] sm:grid-cols-2 xl:grid-cols-[29fr_27fr_21fr_23fr]"
       >
         <div className="min-w-0">
           <AlertsByTypePanel alerts={alerts} />

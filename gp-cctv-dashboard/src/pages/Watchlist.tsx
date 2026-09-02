@@ -164,8 +164,7 @@ export function Watchlist() {
 
       {/* three-column body */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(290px,26fr)_minmax(0,1fr)_minmax(310px,310px)]"
-        style={{ height: 'var(--row-main)' }}
+        className="responsive-band responsive-band-main grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(290px,26fr)_minmax(0,1fr)_minmax(310px,310px)]"
       >
         <div className="min-w-0">
           <WatchlistCategoriesPanel activeCategory={categoryFilter} onSelectCategory={setCategoryFilter} />
@@ -187,8 +186,7 @@ export function Watchlist() {
 
       {/* analytics bottom row */}
       <div
-        className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[33fr_40fr_27fr]"
-        style={{ height: 'var(--row-charts)' }}
+        className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[33fr_40fr_27fr]"
       >
         <div className="min-w-0">
           <AlertsByWatchlistPanel />
