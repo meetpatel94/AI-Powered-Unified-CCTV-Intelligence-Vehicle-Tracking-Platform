@@ -45,7 +45,7 @@ export const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/', available: true },
   { id: 'live-view', label: 'Live View', icon: Video, path: '/live-view', available: true },
   { id: 'camera-map', label: 'Camera Map', icon: Map, path: '/camera-map', available: true },
-  { id: 'vehicle-search', label: 'Vehicle Search', icon: Search, path: '/vehicle-search' },
+  { id: 'vehicle-search', label: 'Vehicle Search', icon: Search, path: '/vehicle-search', available: true },
   { id: 'watchlist', label: 'Watchlist', icon: ShieldAlert, path: '/watchlist', available: true },
   { id: 'alerts', label: 'Alerts', icon: Bell, badge: 12, path: '/alerts', available: true },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, path: '/analytics', available: true },

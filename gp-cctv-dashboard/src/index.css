@@ -254,6 +254,23 @@ input[type='number'] {
   animation: toastIn 0.22s cubic-bezier(0.22, 0.9, 0.3, 1) both;
 }
 
+/* Vehicle Search advanced filter inputs */
+.filter-input {
+  height: 32px;
+  border-radius: 5px;
+  border: 1px solid #1a2942;
+  background: #0c1424;
+  padding: 0 10px;
+  font-size: 12.5px;
+  color: #e6edf7;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.filter-input:focus {
+  border-color: rgba(47, 125, 255, 0.6);
+  box-shadow: 0 0 0 2px rgba(47, 125, 255, 0.12);
+}
+
 /* Thin scan-line sweep for the apply-progress modal */
 @keyframes scanSweep {
   0% {
