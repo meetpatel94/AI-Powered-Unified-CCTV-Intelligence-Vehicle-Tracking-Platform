@@ -1,0 +1,134 @@
+# ============================================================================
+# Gujarat Police — Unified CCTV Intelligence & Vehicle Tracking Platform
+# Production deployment.
+#
+#   db        PostgreSQL 16 + PostGIS 3.4 (production GIS database)
+#   backend   FastAPI + Stream Gateway (FFmpeg) + Vehicle Intelligence Pipeline
+#   dashboard Nginx-served React/TypeScript command centre (proxies /api)
+#
+# Redis is intentionally NOT included: the rate limiter, event hub and worker
+# state are all in-process. Add Redis only if you scale to multiple backend
+# replicas.
+#
+# All secrets come from environment / .env — nothing is hard-coded here.
+# Copy .env.example to .env and set strong values before deploying.
+# ============================================================================
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: gp-cctv-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cctv}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-cctv_intelligence}
+    volumes:
+      - cctv_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cctv} -d ${POSTGRES_DB:-cctv_intelligence}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    # Only publish the port when you need host access for backups/debugging;
+    # the backend reaches the DB over the private compose network.
+    ports:
+      - "${DB_HOST_PORT:-127.0.0.1:5432}:5432"
+    networks:
+      - gpnet
+
+  backend:
+    build:
+      context: ./backend
+    container_name: gp-cctv-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Connection pooling: keep pool modest per replica.
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      DB_STATEMENT_TIMEOUT_MS: ${DB_STATEMENT_TIMEOUT_MS:-15000}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-cctv}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-cctv_intelligence}
+      # Security — MUST be provided for production.
+      AUTH_ENABLED: "true"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      # CORS — the dashboard is same-origin via the nginx proxy; add any extra
+      # origins (e.g. a standalone console) via CORS_ORIGINS.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost}
+      # Sentinel camera catalogue (official dynamic source).
+      SENTINEL_BASE_URL: ${SENTINEL_BASE_URL:-https://sentinel.gujarat.gov.in}
+      SENTINEL_INGEST_PATH: ${SENTINEL_INGEST_PATH:-/api/ingest}
+      SENTINEL_API_KEY: ${SENTINEL_API_KEY:-}
+      SENTINEL_API_SECRET: ${SENTINEL_API_SECRET:-}
+      SENTINEL_VERIFY_TLS: ${SENTINEL_VERIFY_TLS:-true}
+      # Stream gateway / FFmpeg.
+      STREAM_RTSP_TRANSPORT: ${STREAM_RTSP_TRANSPORT:-tcp}
+      STREAM_MAX_WORKERS: ${STREAM_MAX_WORKERS:-32}
+      STREAM_AUTO_START: ${STREAM_AUTO_START:-true}
+      STREAM_AUTO_START_LIMIT: ${STREAM_AUTO_START_LIMIT:-4}
+      # Vehicle intelligence pipeline (mount model weights as a volume).
+      VEHICLE_PIPELINE_ENABLED: ${VEHICLE_PIPELINE_ENABLED:-true}
+      VEHICLE_MODEL_PATH: ${VEHICLE_MODEL_PATH:-/models/yolov8n.pt}
+      VEHICLE_DEVICE: ${VEHICLE_DEVICE:-auto}
+      VEHICLE_INFER_FPS: ${VEHICLE_INFER_FPS:-5}
+      AI_MAX_CONCURRENT_INFERENCE: ${AI_MAX_CONCURRENT_INFERENCE:-4}
+      VEHICLE_ALLOW_SYNTHETIC_FALLBACK: "false"
+      EVIDENCE_FRAMES_DIR: /data/shots/evidence
+      REPORTS_DIR: /data/shots/reports
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+    volumes:
+      - gp_data:/data
+      # Mount genuine YOLO weights read-only at /models.
+      - ${MODEL_WEIGHTS_PATH:-./models}:/models:ro
+    # The backend needs host access to live government RTSP endpoints; egress
+    # is outward so no inbound port beyond the API is required.
+    ports:
+      - "${BACKEND_HOST_PORT:-127.0.0.1:8000}:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/system/readiness"]
+      interval: 15s
+      timeout: 8s
+      retries: 6
+      start_period: 60s
+    networks:
+      - gpnet
+
+  dashboard:
+    build:
+      context: ./gp-cctv-dashboard
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: gp-cctv-dashboard
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${DASHBOARD_HOST_PORT:-80:80}"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - gpnet
+
+volumes:
+  cctv_pgdata:
+  gp_data:
+
+networks:
+  gpnet:
+    driver: bridge

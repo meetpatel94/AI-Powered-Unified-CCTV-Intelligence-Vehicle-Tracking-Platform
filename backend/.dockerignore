@@ -1,0 +1,15 @@
+.git
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+shots/
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+docker-compose.yml
+*.pt
+*.onnx
+models/

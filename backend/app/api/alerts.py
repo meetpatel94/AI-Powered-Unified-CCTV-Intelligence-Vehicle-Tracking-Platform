@@ -4,14 +4,20 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
 from app.core.permissions import ALERTS_ACKNOWLEDGE, ALERTS_READ, ALERTS_RESOLVE
 from app.db.session import get_db
+from app.models.audit import (
+    ACTION_ALERT_ACKNOWLEDGE,
+    ACTION_ALERT_RESOLVE,
+    ACTION_ALERT_STATUS,
+)
 from app.schemas.auth import AlertResolveRequest, AlertStatusRequest
 from app.services import alerts as alerts_service
+from app.services import audit as audit_service
 from app.services import watchlist as watchlist_service
 from app.services.auth import Principal
 
@@ -108,17 +114,29 @@ def get_alert(
 @router.post("/{alert_id}/acknowledge")
 def acknowledge(
     alert_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(ALERTS_ACKNOWLEDGE)),
 ) -> dict:
     alert = _load_alert(db, alert_id)
     alert = alerts_service.acknowledge_alert(db, alert, actor=principal.display_name)
+    audit_service.record(
+        db=db,
+        action=ACTION_ALERT_ACKNOWLEDGE,
+        principal=principal,
+        resource_type="alert",
+        resource_id=alert.alert_id,
+        detail=f"Alert {alert.alert_id} acknowledged ({alert.type})",
+        context={"plate": alert.plate, "camera_id": alert.camera_id},
+        request=request,
+    )
     return _with_entry(db, alert)
 
 
 @router.post("/{alert_id}/resolve")
 def resolve(
     alert_id: str,
+    request: Request,
     payload: AlertResolveRequest | None = None,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(ALERTS_RESOLVE)),
@@ -126,6 +144,16 @@ def resolve(
     alert = _load_alert(db, alert_id)
     note = payload.note if payload else None
     alert = alerts_service.resolve_alert(db, alert, actor=principal.display_name, note=note)
+    audit_service.record(
+        db=db,
+        action=ACTION_ALERT_RESOLVE,
+        principal=principal,
+        resource_type="alert",
+        resource_id=alert.alert_id,
+        detail=f"Alert {alert.alert_id} resolved ({alert.type})",
+        context={"plate": alert.plate, "camera_id": alert.camera_id, "note": note},
+        request=request,
+    )
     return _with_entry(db, alert)
 
 
@@ -133,6 +161,7 @@ def resolve(
 def set_status(
     alert_id: str,
     payload: AlertStatusRequest,
+    request: Request,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(ALERTS_ACKNOWLEDGE)),
 ) -> dict:
@@ -144,10 +173,21 @@ def set_status(
             detail=f"Insufficient permissions (requires '{ALERTS_RESOLVE}')",
         )
     alert = _load_alert(db, alert_id)
+    from_status = alert.status
     try:
         alert = alerts_service.set_alert_status(
             db, alert, payload.status, actor=principal.display_name, note=payload.note
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    audit_service.record(
+        db=db,
+        action=ACTION_ALERT_STATUS,
+        principal=principal,
+        resource_type="alert",
+        resource_id=alert.alert_id,
+        detail=f"Alert {alert.alert_id} moved {from_status} → {alert.status}",
+        context={"from": from_status, "to": alert.status, "plate": alert.plate},
+        request=request,
+    )
     return _with_entry(db, alert)

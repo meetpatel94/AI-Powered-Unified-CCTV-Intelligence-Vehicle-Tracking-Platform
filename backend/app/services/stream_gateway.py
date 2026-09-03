@@ -76,7 +76,13 @@ def _ffmpeg_timeout_flag(ffmpeg_bin: str) -> str:
     return flag
 
 
-_STREAM_RE = re.compile(r"Stream #0:\d+.+: Video: (\w+).*, (\d+)x(\d+)", re.IGNORECASE)
+# Match the INPUT video stream only. ffmpeg logs both the decoded input
+# ("Stream #0:0: Video: h264 …, 640x360, 12 fps") and, once encoding starts,
+# the OUTPUT stream ("Stream #0:0: Video: mjpeg …"). Restricting to the input
+# (`-i`) block — which arrives before the "Stream mapping"/"Press" output and
+# is the only line before `_parse_probe` sees an `->` mapping — and rejecting
+# our own mjpeg output keeps codec/resolution/source-FPS truthful.
+_STREAM_RE = re.compile(r"Stream #0:0(?:\(.*?\))?: Video: (\w+).*?, (\d+)x(\d+)", re.IGNORECASE)
 _FPS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*fps", re.IGNORECASE)
 _FATAL_MARKERS = (
     "connection refused",
@@ -112,10 +118,12 @@ class StreamSnapshot:
     source_fps: float | None = None
     measured_fps: float = 0.0
     frame_count: int = 0
+    frames_dropped: int = 0
     last_pts_ms: float | None = None
     last_frame_at: str | None = None
     last_error: str | None = None
     reconnect_attempt: int = 0
+    restarts_total: int = 0
     next_retry_in_s: float | None = None
     started_at: str | None = None
     uptime_s: float = 0.0
@@ -172,11 +180,19 @@ class CameraStreamWorker:
         self.last_frame_at: float | None = None
         self.last_error: str | None = None
         self.reconnect_attempt = 0
+        self.restarts_total = 0
+        self.frames_dropped = 0
         self.next_retry_in_s: float | None = None
         self.started_at: float | None = None
         self._jpeg: bytes | None = None
         self._session_start: float | None = None
         self._fps_window: list[float] = []
+        # PTS (presentation timestamp, ms) of the frame currently being
+        # piped by FFmpeg — published by -progress and applied to the next
+        # JPEG accepted from stdout. Guarded by self._lock.
+        self._pending_pts_ms: float | None = None
+        self._session_frame_total = 0
+        self._input_locked = False
 
     def start(self) -> None:
         if self._thread and self._thread.is_alive():
@@ -201,6 +217,20 @@ class CameraStreamWorker:
 
     def update_url(self, rtsp_url: str) -> None:
         self._rtsp_url = rtsp_url
+
+    def restart(self) -> None:
+        """Stop and restart the worker (operator-initiated camera restart).
+
+        The run loop performs its own exponential-backoff reconnect on stream
+        loss; this forces an immediate reconnect cycle for a healthy but
+        wedged camera.
+        """
+        with self._lock:
+            self.restarts_total += 1
+            self._pending_pts_ms = None
+            self._session_frame_total = 0
+        self._kill_proc()  # the run loop will reconnect with backoff
+        logger.info("stream.worker.restart_requested", camera_id=self.camera_id)
 
     def latest_jpeg(self) -> bytes | None:
         with self._lock:
@@ -230,10 +260,12 @@ class CameraStreamWorker:
                 source_fps=self.source_fps,
                 measured_fps=self.measured_fps,
                 frame_count=self.frame_count,
+                frames_dropped=self.frames_dropped,
                 last_pts_ms=self.last_pts_ms,
                 last_frame_at=last_iso,
                 last_error=self.last_error,
                 reconnect_attempt=self.reconnect_attempt,
+                restarts_total=self.restarts_total,
                 next_retry_in_s=self.next_retry_in_s,
                 started_at=started_iso,
                 uptime_s=uptime,
@@ -313,8 +345,10 @@ class CameraStreamWorker:
         return [
             ffmpeg_bin,
             "-hide_banner",
+            # Keep codec/RES/FPS probe logs visible (info) so _parse_probe can
+            # report H.264 vs H.265 and source geometry; warnings still surface.
             "-loglevel",
-            "warning",
+            "info",
             "-rtsp_transport",
             settings.stream_rtsp_transport,
             _ffmpeg_timeout_flag(ffmpeg_bin),
@@ -334,11 +368,21 @@ class CameraStreamWorker:
             "mjpeg",
             "-q:v",
             str(settings.stream_jpeg_quality),
+            # Emit machine-readable progress (incl. frame pts_time) on stderr
+            # so we can stamp frames with the SOURCE presentation timestamp —
+            # works for both H.264 and H.265 sources.
+            "-progress",
+            "pipe:2",
+            "-nostats",
             "pipe:1",
         ]
 
     def _pump_once(self) -> bool:
         """Run one FFmpeg session. Returns True if at least one frame was decoded."""
+        with self._lock:
+            self._pending_pts_ms = None
+        self._session_frame_total = 0
+        self._input_locked = False
         cmd = self._build_cmd()
         logged_cmd = cmd.copy()
         # Never log the raw RTSP URL (may contain credentials).
@@ -383,12 +427,47 @@ class CameraStreamWorker:
         proc = self._proc
         if not proc or not proc.stderr:
             return
+        # Progress block state: "-progress pipe:2" emits key=value lines for
+        # each encoded frame, terminated by "progress=continue|end".
+        pending_pts: float | None = None
         for raw in iter(proc.stderr.readline, b""):
             if self._stop.is_set():
                 break
             line = raw.decode("utf-8", errors="replace").strip()
             if not line:
                 continue
+
+            # --- machine-readable progress (source PTS per output frame) --- #
+            # FFmpeg emits, per encoded frame:  frame=N ... pts_time=T ...
+            # progress=continue. pts_time (the source presentation time of the
+            # frame just written) is therefore the authoritative value.
+            if line.startswith("pts_time="):
+                try:
+                    pts_ms = float(line.split("=", 1)[1]) * 1000.0  # s → ms
+                    with self._lock:
+                        self._pending_pts_ms = pts_ms
+                    pending_pts = pts_ms
+                except (ValueError, IndexError):
+                    pass
+                continue
+            if line.startswith("frame="):
+                try:
+                    frame_no = int(line.split("=", 1)[1].strip())
+                    if frame_no > self._session_frame_total:
+                        self._session_frame_total = frame_no
+                except (ValueError, IndexError):
+                    pass
+                continue
+            if line.startswith("progress="):
+                pending_pts = None
+                continue
+            # FFmpeg progress blocks also contain out_time/fps/etc. — ignore.
+            if "=" in line and line.split("=", 1)[0] in (
+                "out_time", "out_time_ms", "out_time_us", "fps", "stream_0_0_q",
+                "total_size", "bitrate", "speed", "dup_frames", "drop_frames",
+            ):
+                continue
+
             self._parse_probe(line)
             lower = line.lower()
             if any(m in lower for m in _FATAL_MARKERS):
@@ -400,9 +479,18 @@ class CameraStreamWorker:
                 logger.debug("stream.ffmpeg.warn", camera_id=self.camera_id, line=line[:300])
 
     def _parse_probe(self, line: str) -> None:
+        # Once ffmpeg prints the stream-mapping/output banner, later "Video:"
+        # lines describe OUR mjpeg encoder output, not the camera input.
+        if "stream mapping" in line.lower() or "->" in line:
+            self._input_locked = True
+            return
+        if getattr(self, "_input_locked", False):
+            return
         match = _STREAM_RE.search(line)
         if match:
             codec, w, h = match.group(1), int(match.group(2)), int(match.group(3))
+            if codec.lower() in {"mjpeg", "png"}:  # our own encoder output
+                return
             with self._lock:
                 self.codec = codec.upper()
                 if self.codec in {"H264", "AVC"}:
@@ -415,6 +503,7 @@ class CameraStreamWorker:
             if fps_m:
                 with self._lock:
                     self.source_fps = float(fps_m.group(1))
+            self._input_locked = True
 
     def _read_jpegs(self) -> bool:
         proc = self._proc
@@ -427,22 +516,38 @@ class CameraStreamWorker:
         soi = b"\xff\xd8"
         eoi = b"\xff\xd9"
 
+        stalled = False
+        import select
+
         while not self._stop.is_set() and proc.poll() is None:
-            chunk = proc.stdout.read(4096)
+            # Non-blocking read so a wedged producer can't pin us inside
+            # read(); select on the pipe with a short timeout lets us notice
+            # shutdown/stall promptly.
+            ready, _, _ = select.select([proc.stdout], [], [], 0.2)
+            if not ready:
+                now = time.monotonic()
+                if now - last_data > stale:
+                    self.last_error = "Stream stalled (no frames)"
+                    stalled = True
+                    break
+                continue
+            chunk = proc.stdout.read(65536)
             now = time.monotonic()
             if not chunk:
                 if now - last_data > stale:
                     self.last_error = "Stream stalled (no frames)"
+                    stalled = True
                     break
-                time.sleep(0.01)
                 continue
             last_data = now
             buf.extend(chunk)
+            # Bound memory if the producer outruns our parser.
+            if len(buf) > 4_000_000:
+                del buf[:-2_000_000]
+                self.frames_dropped += 1
             while True:
                 start = buf.find(soi)
                 if start < 0:
-                    if len(buf) > 1_000_000:
-                        del buf[:-2]
                     break
                 end = buf.find(eoi, start + 2)
                 if end < 0:
@@ -456,6 +561,12 @@ class CameraStreamWorker:
         if proc.poll() not in (None, 0) and not got:
             if not self.last_error:
                 self.last_error = f"FFmpeg exited with code {proc.returncode}"
+        if stalled:
+            # The source stalled mid-session: count the missed window as dropped
+            # frames so /metrics can surface stream-quality degradation.
+            expected = int(get_settings().stream_stale_seconds * (self.source_fps or 5.0))
+            with self._lock:
+                self.frames_dropped += max(1, expected)
         return got
 
     def _accept_frame(self, jpeg: bytes) -> None:
@@ -476,14 +587,32 @@ class CameraStreamWorker:
                 )
             self._jpeg = jpeg
             self.frame_count += 1
-            self.last_pts_ms = mono * 1000.0
+            # Prefer the SOURCE presentation timestamp published by FFmpeg
+            # (works for H.264 and H.265, independent of wall clock); fall back
+            # to monotonic time before the first progress line arrives.
+            if self._pending_pts_ms is not None:
+                self.last_pts_ms = self._pending_pts_ms
+                self._pending_pts_ms = None
+            else:
+                self.last_pts_ms = mono * 1000.0
             self.last_frame_at = now
             self._fps_window.append(mono)
             cutoff = mono - 2.0
+            # A real camera cannot deliver frames faster than its encoded
+            # frame rate. A test/bursty producer (or a catch-up burst after a
+            # network hiccup) can momentarily dump a backlog; cap the reported
+            # delivery rate at the source rate (or a sane ceiling) so /metrics
+            # reflects a believable live FPS instead of the decode burst speed.
+            ceiling = self.source_fps or 60.0
+            ceiling = max(ceiling, 1.0) * 1.5 + 5.0  # tolerate mild jitter
+            # Window can grow on fast feeds while the lock is held — bound it.
+            if len(self._fps_window) > 256:
+                self._fps_window = self._fps_window[-200:]
             self._fps_window = [t for t in self._fps_window if t >= cutoff]
             if len(self._fps_window) >= 2:
                 span = self._fps_window[-1] - self._fps_window[0]
-                self.measured_fps = (len(self._fps_window) - 1) / span if span > 0 else 0.0
+                raw = (len(self._fps_window) - 1) / span if span > 0 else 0.0
+                self.measured_fps = min(raw, ceiling)
 
 
 class StreamGateway:
@@ -522,6 +651,18 @@ class StreamGateway:
         if not worker:
             return None
         worker.stop()
+        return worker.snapshot()
+
+    def restart(self, camera_id: str, rtsp_url: str | None = None) -> StreamSnapshot | None:
+        """Force an immediate reconnect for one camera without destroying the
+        worker (stats / counters are preserved). Starts the worker if absent."""
+        with self._lock:
+            worker = self._workers.get(camera_id)
+            if worker is None:
+                return None
+            if rtsp_url:
+                worker.update_url(rtsp_url)
+        worker.restart()
         return worker.snapshot()
 
     def stop_all(self) -> None:

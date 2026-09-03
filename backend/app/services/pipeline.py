@@ -38,6 +38,26 @@ from app.vision.detector import VehicleDetector
 
 logger = structlog.get_logger(__name__)
 
+# Global concurrency limiter: bounds how many cameras run YOLO inference at the
+# SAME instant (CPU/GPU limit). Frame *sampling* (vehicle_infer_fps) limits
+# per-camera load; this bounds fleet-wide load. Acquisition is timed out and
+# skipped-with-count rather than blocking indefinitely so a wedged model can
+# never stall the whole fleet. Important events (persisted ANPR/watchlist) are
+# never dropped — the limiter only delays/throttles the inference cadence.
+_inference_semaphore: threading.BoundedSemaphore | None = None
+_semaphore_lock = threading.Lock()
+
+
+def _get_semaphore() -> threading.BoundedSemaphore:
+    global _inference_semaphore
+    if _inference_semaphore is None:
+        with _semaphore_lock:
+            if _inference_semaphore is None:
+                _inference_semaphore = threading.BoundedSemaphore(
+                    max(1, get_settings().ai_max_concurrent_inference)
+                )
+    return _inference_semaphore
+
 try:  # cv2 is used for JPEG decode + crops
     import cv2  # type: ignore
 
@@ -74,11 +94,22 @@ class PipelineWorker:
         # Stats
         self.frames_processed = 0
         self.frames_skipped = 0
+        self.frames_dropped = 0
+        self.inference_throttled = 0
         self.detections_total = 0
         self.anpr_reads = 0
+        self.avg_inference_ms: float | None = None
+        self.avg_anpr_ms: float | None = None
         self.last_error: str | None = None
         self.started_at: float | None = None
         self.last_infer_at: float | None = None
+        # queue_depth mirrors how many NEW frames the gateway has produced
+        # since we last consumed one — the consumer lag / back-pressure state.
+        # The stream gateway is a latest-wins (bounded) design so this never
+        # grows unbounded; it stays ~1 when inference keeps up and climbs when
+        # the AI stage falls behind.
+        self.queue_depth = 0
+        self._last_seen_frame_count = 0
 
     # -------------------------------------------------------------- #
     def start(self) -> None:
@@ -115,8 +146,13 @@ class PipelineWorker:
             "synthetic": bool(det.get("synthetic")),
             "frames_processed": self.frames_processed,
             "frames_skipped": self.frames_skipped,
+            "frames_dropped": self.frames_dropped,
+            "inference_throttled": self.inference_throttled,
             "detections_total": self.detections_total,
             "anpr_reads": self.anpr_reads,
+            "avg_inference_ms": round(self.avg_inference_ms, 1) if self.avg_inference_ms else None,
+            "avg_anpr_ms": round(self.avg_anpr_ms, 1) if self.avg_anpr_ms else None,
+            "queue_depth": self.queue_depth,
             "last_error": self.last_error,
             "last_infer_at": (
                 datetime.fromtimestamp(self.last_infer_at, tz=timezone.utc).isoformat()
@@ -163,6 +199,15 @@ class PipelineWorker:
                 logger.info("pipeline.stream_lost", camera_id=self.camera_id, state=snap.state)
             prev_state = snap.state
 
+            # Consumer lag: frames produced by the gateway minus the count at
+            # which we last consumed. Bounded to a small positive number because
+            # the gateway keeps only the latest JPEG (latest-wins queue).
+            produced = snap.frame_count
+            if self._last_seen_frame_count == 0 and produced:
+                self._last_seen_frame_count = produced
+            if produced >= self._last_seen_frame_count:
+                self.queue_depth = min(produced - self._last_seen_frame_count, 32)
+
             if snap.state != StreamState.LIVE.value:
                 if self._stop.wait(0.5):
                     break
@@ -188,15 +233,31 @@ class PipelineWorker:
                 if self._stop.wait(0.03):
                     break
                 continue
-            self._last_jpeg_id = jpeg_id
-            self._last_infer_ts = now
 
-            pts_ms = snap.last_pts_ms
+            # Fleet-wide concurrency limit: acquire an inference slot. On
+            # timeout we skip this *sampling* tick (frame sampling, not an
+            # event — no ANPR data is lost, the same plate is read on a later
+            # tick) and count the throttle for observability.
+            semaphore = _get_semaphore()
+            acquired = semaphore.acquire(timeout=0.1)
+            if not acquired:
+                self.inference_throttled += 1
+                if self._stop.wait(0.02):
+                    break
+                continue
             try:
-                self._process_frame(jpeg, pts_ms, anpr)
-            except Exception as exc:  # never let one frame kill the loop
-                self.last_error = str(exc)
-                logger.exception("pipeline.frame_failed", camera_id=self.camera_id)
+                self._last_jpeg_id = jpeg_id
+                self._last_infer_ts = now
+
+                pts_ms = snap.last_pts_ms
+                try:
+                    self._process_frame(jpeg, pts_ms, anpr)
+                except Exception as exc:  # never let one frame kill the loop
+                    self.last_error = str(exc)
+                    self.frames_dropped += 1
+                    logger.exception("pipeline.frame_failed", camera_id=self.camera_id)
+            finally:
+                semaphore.release()
 
     # -------------------------------------------------------------- #
     def _process_frame(self, jpeg: bytes, pts_ms: float | None, anpr) -> None:
@@ -206,7 +267,13 @@ class PipelineWorker:
             return
 
         assert self._detector is not None
+        infer_start = time.monotonic()
         detections = self._detector.detect_and_track(frame, pts_ms)
+        infer_ms = (time.monotonic() - infer_start) * 1000.0
+        self.avg_inference_ms = (
+            0.8 * self.avg_inference_ms + 0.2 * infer_ms
+            if self.avg_inference_ms is not None else infer_ms
+        )
         self.frames_processed += 1
         self.last_infer_at = time.time()
 
@@ -267,7 +334,14 @@ class PipelineWorker:
                     crop = self._crop(frame, det)
                     if crop is not None:
                         try:
+                            anpr_start = time.monotonic()
                             plate_read = anpr.read_plate(crop)
+                            anpr_ms = (time.monotonic() - anpr_start) * 1000.0
+                            if plate_read is not None:
+                                self.avg_anpr_ms = (
+                                    0.8 * self.avg_anpr_ms + 0.2 * anpr_ms
+                                    if self.avg_anpr_ms is not None else anpr_ms
+                                )
                         except Exception:
                             logger.exception("pipeline.anpr_failed", camera_id=self.camera_id)
 
@@ -553,20 +627,35 @@ class PipelineManager:
 
     def _monitor_loop(self) -> None:
         settings = get_settings()
+        # Cameras whose worker died on a fatal init error (e.g. OpenCV/model
+        # unavailable) are NOT respawned on every poll — retry on a slow
+        # backoff instead so logs/stats aren't flooded.
+        retry_backoff = 300.0
+        last_attempt: dict[str, float] = {}
         while not self._stop.wait(3.0):
             try:
+                now_mono = time.monotonic()
                 for snap in gateway.list_snapshots():
-                    if snap.state == StreamState.LIVE.value:
-                        with self._lock:
-                            existing = self._workers.get(snap.camera_id)
-                        if existing is None or not existing.is_alive():
-                            if len(self._workers) < settings.vehicle_pipeline_max_workers:
-                                try:
-                                    self.start(snap.camera_id)
-                                except Exception:
-                                    logger.exception(
-                                        "pipeline.auto_attach.failed", camera_id=snap.camera_id
-                                    )
+                    if snap.state != StreamState.LIVE.value:
+                        continue
+                    with self._lock:
+                        existing = self._workers.get(snap.camera_id)
+                    if existing is not None and existing.is_alive():
+                        continue
+                    # A worker object exists but its thread exited — it logged
+                    # a fatal init error. Retry only after the backoff window.
+                    if existing is not None and not existing.is_alive():
+                        last = last_attempt.get(snap.camera_id, 0.0)
+                        if now_mono - last < retry_backoff:
+                            continue
+                    if len(self._workers) < settings.vehicle_pipeline_max_workers:
+                        last_attempt[snap.camera_id] = now_mono
+                        try:
+                            self.start(snap.camera_id)
+                        except Exception:
+                            logger.exception(
+                                "pipeline.auto_attach.failed", camera_id=snap.camera_id
+                            )
             except Exception:
                 logger.exception("pipeline.monitor_loop_error")
 

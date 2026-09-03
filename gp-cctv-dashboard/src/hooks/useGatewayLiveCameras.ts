@@ -94,7 +94,9 @@ export function mergeLiveCameras(
       vehicleCount: mock?.vehicleCount ?? 0,
       lastPlate: mock?.lastPlate,
       alertLabel: mock?.alertLabel,
-      streamUrl: cam?.rtsp_url ?? mock?.streamUrl ?? '',
+      // The real stream URL is secret-bearing and never sent to the browser;
+      // show a capability label instead (mock feeds keep their demo string).
+      streamUrl: cam ? (cam.rtsp_configured ? 'rtsp://secured-stream' : '') : (mock?.streamUrl ?? ''),
       events: mock?.events ?? [],
     };
   });
