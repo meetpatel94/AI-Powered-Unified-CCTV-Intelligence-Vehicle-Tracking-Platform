@@ -13,7 +13,6 @@ from datetime import datetime
 from sqlalchemy import (
     DateTime,
     ForeignKey,
-    Index,
     Integer,
     String,
     Text,
@@ -82,5 +81,4 @@ class CaseEvidence(Base):
 
     __table_args__ = (
         UniqueConstraint("case_id", "evidence_id", name="uq_case_evidence"),
-        Index("ix_case_evidence_evidence", "evidence_id"),
     )

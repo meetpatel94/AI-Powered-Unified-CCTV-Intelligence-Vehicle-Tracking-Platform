@@ -1,20 +1,33 @@
-import { ScanLine } from 'lucide-react';
+import { ScanLine, Signal } from 'lucide-react';
 
 import { Panel, ViewAll } from '@/components/common/Panel';
 import { useAnprFeed } from '@/hooks/useAnprFeed';
 
-/** Continuously updating plate-read ticker (simulated `anpr:hit` stream). */
+/**
+ * Continuously updating plate-read ticker. Hits come ONLY from the real
+ * Vehicle Intelligence Pipeline (`/api/anpr/recent` + the `/api/ws` anpr:hit
+ * topic). The status pill reflects the true connection state — no "streaming"
+ * indicator is shown while the pipeline is offline.
+ */
 export function AnprFeedPanel() {
-  const hits = useAnprFeed();
+  const { hits, live, demo } = useAnprFeed();
 
   return (
     <Panel
       title="Live ANPR OCR Feed"
       action={<ViewAll label="Open Log" />}
       tools={
-        <span className="flex items-center gap-1 text-3xs text-accent-green">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent-green animate-pulse-dot" />
-          streaming
+        <span
+          className={`flex items-center gap-1 text-3xs ${
+            live ? 'text-accent-green' : 'text-ink-dim'
+          }`}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              live ? 'bg-accent-green animate-pulse-dot' : 'bg-ink-dim/60'
+            }`}
+          />
+          {live ? (demo ? 'demo streaming' : 'streaming') : 'offline'}
         </span>
       }
       className="min-h-0 flex-1"
@@ -61,6 +74,17 @@ export function AnprFeedPanel() {
           </li>
         ))}
       </ul>
+
+      {hits.length === 0 && !live && (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 py-6 text-center text-ink-dim">
+          <Signal className="h-5 w-5 text-ink-dim/50" />
+          <p className="text-[12px]">
+            {demo
+              ? 'Demo mode — no backend ANPR feed reachable (VITE_DEMO_MODE=true).'
+              : 'No ANPR feed. Vehicle Intelligence Pipeline offline or not producing reads yet.'}
+          </p>
+        </div>
+      )}
     </Panel>
   );
 }

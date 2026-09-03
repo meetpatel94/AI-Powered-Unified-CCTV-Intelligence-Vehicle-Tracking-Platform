@@ -70,7 +70,8 @@ class WatchlistEntry(Base):
         nullable=False,
     )
 
-    # Denormalized match stats (cheap list rendering).
+    # Denormalized match stats (cheap list rendering). Indexed — the console
+    # lists "most recently matched" entries frequently.
     match_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_match_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -81,6 +82,8 @@ class WatchlistEntry(Base):
     __table_args__ = (
         Index("ix_watchlist_active_plate", "is_active", "plate"),
         Index("ix_watchlist_category_active", "category", "is_active"),
+        # "Most recently matched" ordering (matches the migration-created name).
+        Index("ix_watchlist_entries_last_match", "last_match_at"),
     )
 
 
@@ -112,9 +115,10 @@ class WatchlistMatch(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     # Alert raised by the Real-Time Alert Engine for this match (nullable —
-    # duplicate suppression may have folded it into an earlier alert).
+    # duplicate suppression may have folded it into an earlier alert). Indexed
+    # for alert↔match joins and suppression lookups.
     alert_id: Mapped[int | None] = mapped_column(
-        ForeignKey("alerts.id", ondelete="SET NULL"), nullable=True
+        ForeignKey("alerts.id", ondelete="SET NULL"), nullable=True, index=True
     )
     # Evidence snapshot captured from the live-frame buffer, if enabled.
     evidence_id: Mapped[int | None] = mapped_column(

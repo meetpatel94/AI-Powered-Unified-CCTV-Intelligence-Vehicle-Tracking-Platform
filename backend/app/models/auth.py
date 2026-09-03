@@ -64,7 +64,7 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
-    email: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     full_name: Mapped[str] = mapped_column(String(128), nullable=False)
     rank: Mapped[str | None] = mapped_column(String(64), nullable=True)
     employee_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
@@ -91,6 +91,11 @@ class User(Base):
     role: Mapped[Role] = relationship(back_populates="users", lazy="joined")
     sessions: Mapped[list["UserSession"]] = relationship(
         back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+
+    __table_args__ = (
+        # email is unique among non-null values (matches the migration index).
+        Index("ix_users_email", "email", unique=True),
     )
 
 

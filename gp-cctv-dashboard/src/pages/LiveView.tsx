@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import { VideoOff } from 'lucide-react';
+
 import { AnprFeedPanel } from '@/components/liveview/AnprFeedPanel';
 import { LiveCameraCard } from '@/components/liveview/LiveCameraCard';
 import { LiveViewHeader, type GridSize } from '@/components/liveview/LiveViewHeader';
 import { SelectedCameraPanel } from '@/components/liveview/SelectedCameraPanel';
 import { StreamHealthPanel } from '@/components/liveview/StreamHealthPanel';
+import { DEMO_MODE } from '@/config';
 import { liveCameras as mockLiveCameras } from '@/data/liveViewData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
 import { useGatewayLiveCameras } from '@/hooks/useGatewayLiveCameras';
@@ -31,10 +34,11 @@ export function LiveView() {
   const now = useLiveClock();
   const tick = useTelemetryTick();
   const clock = formatClock(now);
-  const { cameras: liveCameras, health } = useGatewayLiveCameras(tick);
-  const [selectedId, setSelectedId] = useState(
-    () => deepLinkedCamera || mockLiveCameras[0]?.id || '',
-  );
+  const { cameras: liveCameras, health, demoActive } = useGatewayLiveCameras(tick);
+  // In production (VITE_DEMO_MODE !== 'true') camera selection must come only
+  // from the real registry/gateway — never a bundled demo fixture.
+  const demoDefaultId = DEMO_MODE ? mockLiveCameras[0]?.id : '';
+  const [selectedId, setSelectedId] = useState(() => deepLinkedCamera || demoDefaultId || '');
   const [mutedIds, setMutedIds] = useState<string[]>([]);
 
   const counts = useMemo(
@@ -84,7 +88,7 @@ export function LiveView() {
     liveCameras.find((camera) => camera.id === selectedId) ??
     visibleCameras[0] ??
     liveCameras[0] ??
-    mockLiveCameras[0];
+    (DEMO_MODE ? mockLiveCameras[0] : undefined);
 
   const toggleMute = (id: string) =>
     setMutedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -124,7 +128,13 @@ export function LiveView() {
           </header>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
-            {visibleCameras.length === 0 ? (
+            {liveCameras.length === 0 ? (
+              <div className="grid h-full place-items-center text-[13px] text-ink-dim">
+                {demoActive
+                  ? 'Demo mode — no backend registry reachable (VITE_DEMO_MODE=true).'
+                  : 'Camera registry / stream gateway unreachable — no live feeds available.'}
+              </div>
+            ) : visibleCameras.length === 0 ? (
               <div className="grid h-full place-items-center text-[13px] text-ink-dim">
                 No cameras match the current filters.
               </div>
@@ -154,7 +164,18 @@ export function LiveView() {
         {/* ---------------- intelligence rail ---------------- */}
         <aside className="flex w-full min-w-0 shrink-0 flex-row gap-[var(--page-gap)] lg:w-[360px] lg:min-w-[330px] lg:flex-col lg:overflow-y-auto lg:pr-0.5">
           <div className="min-w-0 flex-1 lg:flex-none lg:shrink-0">
-            <SelectedCameraPanel camera={selectedCamera} clock={clock} tick={tick} />
+            {selectedCamera ? (
+              <SelectedCameraPanel camera={selectedCamera} clock={clock} tick={tick} />
+            ) : (
+              <div className="flex min-h-[240px] flex-col items-center justify-center gap-2 rounded-md border border-edge bg-panel p-6 text-center text-ink-dim">
+                <VideoOff className="h-6 w-6 text-ink-dim/50" />
+                <p className="text-[13px]">No camera selected.</p>
+                <p className="text-3xs max-w-[240px] text-ink-dim/70">
+                  Connect to the Camera Registry / Stream Gateway to view live
+                  feeds and intelligence.
+                </p>
+              </div>
+            )}
           </div>
           <div className="min-h-[300px] min-w-0 flex-1 lg:min-h-[260px]">
             <AnprFeedPanel />
