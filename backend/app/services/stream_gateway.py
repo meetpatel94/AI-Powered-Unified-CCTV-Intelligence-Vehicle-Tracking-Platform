@@ -23,6 +23,59 @@ from app.core.config import get_settings
 
 logger = structlog.get_logger(__name__)
 
+def _resolve_ffmpeg(configured: str) -> str:
+    """Resolve an ffmpeg binary.
+
+    Honour an explicit configured path first. Otherwise prefer a system ``ffmpeg``
+    on PATH, and finally fall back to the wheel-bundled binary from
+    ``imageio-ffmpeg`` so the gateway works on hosts without a system install.
+    """
+    import shutil
+
+    if configured and configured != "ffmpeg":
+        return configured
+    system = shutil.which(configured or "ffmpeg")
+    if system:
+        return system
+    try:  # pragma: no cover - environment dependent
+        import imageio_ffmpeg  # type: ignore
+
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return configured or "ffmpeg"
+
+
+_FFMPEG_TIMEOUT_FLAG: str | None = None
+
+
+def _ffmpeg_timeout_flag(ffmpeg_bin: str) -> str:
+    """Return the correct socket-timeout option for this ffmpeg build.
+
+    FFmpeg < 5 uses ``-stimeout`` for RTSP; FFmpeg 5+/7.x renamed it to
+    ``-timeout``. Detect once and cache.
+    """
+    global _FFMPEG_TIMEOUT_FLAG
+    if _FFMPEG_TIMEOUT_FLAG is not None:
+        return _FFMPEG_TIMEOUT_FLAG
+    flag = "-stimeout"
+    try:
+        out = subprocess.run(
+            [ffmpeg_bin, "-hide_banner", "-version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        first = (out.stdout or "").splitlines()[0] if out.stdout else ""
+        match = re.search(r"version\s+(\d+)", first)
+        major = int(match.group(1)) if match else 0
+        if major >= 5:
+            flag = "-timeout"
+    except Exception:
+        flag = "-timeout"
+    _FFMPEG_TIMEOUT_FLAG = flag
+    return flag
+
+
 _STREAM_RE = re.compile(r"Stream #0:\d+.+: Video: (\w+).*, (\d+)x(\d+)", re.IGNORECASE)
 _FPS_RE = re.compile(r"(\d+(?:\.\d+)?)\s*fps", re.IGNORECASE)
 _FATAL_MARKERS = (
@@ -254,16 +307,17 @@ class CameraStreamWorker:
 
     def _build_cmd(self) -> list[str]:
         settings = get_settings()
+        ffmpeg_bin = _resolve_ffmpeg(settings.ffmpeg_path)
         timeout_us = int(settings.stream_connect_timeout_seconds * 1_000_000)
         scale = f"scale='min({settings.stream_ai_max_width},iw)':-2"
         return [
-            settings.ffmpeg_path,
+            ffmpeg_bin,
             "-hide_banner",
             "-loglevel",
             "warning",
             "-rtsp_transport",
             settings.stream_rtsp_transport,
-            "-stimeout",
+            _ffmpeg_timeout_flag(ffmpeg_bin),
             str(timeout_us),
             "-fflags",
             "nobuffer+discardcorrupt",

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -58,6 +58,7 @@ import {
   type Sighting,
 } from '@/data/vehicleSearchData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
+import { useVehicleSearch } from '@/hooks/useVehicleSearch';
 
 /* ================================================================== *
  * Vehicle Search — VEHICLE INTELLIGENCE & SEARCH workspace
@@ -97,11 +98,16 @@ export function VehicleSearch() {
     noticeTimer.current = window.setTimeout(() => setNotice(null), 3400);
   }, []);
 
+  /* ---------------- live backend data ---------------- */
+  const [searchTrigger, setSearchTrigger] = useState(0);
+  const live = useVehicleSearch(plate, searchTrigger);
+
   /* ---------------- interactions ---------------- */
   const handleSearch = () => {
     setScanning(true);
     window.setTimeout(() => setScanning(false), 700);
-    flash(`Vehicle search completed · ${searchKpis.totalMatches} matches across ${searchKpis.camerasDetected} cameras`);
+    setSearchTrigger((n) => n + 1);
+    flash(`Searching ${plate.replace(/\s+/g, '').toUpperCase()} across the Sentinel network…`);
   };
 
   const handleRefresh = () => {
@@ -141,9 +147,26 @@ export function VehicleSearch() {
     }
   };
 
-  /* ---------------- derived ---------------- */
-  const profile = vehicleProfile;
-  const nodes = journeyNodes;
+  /* ---------------- derived ----------------
+     Prefer real Vehicle Intelligence data when the backend has a record for the
+     searched plate; otherwise fall back to the bundled sample so the Gujarat
+     Police workspace always renders. */
+  const useLive = live.found && !!live.profile;
+  const profile = useLive && live.profile ? { ...vehicleProfile, ...live.profile } : vehicleProfile;
+  const nodes = useLive && live.journeyNodes.length ? live.journeyNodes : journeyNodes;
+  const tableSightings = useLive && live.sightings.length ? live.sightings : sightings;
+
+  useEffect(() => {
+    if (live.found && live.profile) {
+      flash(
+        `Live match · ${live.profile.plate} · ${live.profile.totalSightings} sightings` +
+          (live.anomalies ? ` · ${live.anomalies} travel anomaly flagged` : ''),
+      );
+    } else if (live.error && searchTrigger > 0) {
+      flash('No live backend record — showing sample dossier');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live.found, live.error, searchTrigger]);
 
   return (
     <div className="page">
@@ -208,7 +231,7 @@ export function VehicleSearch() {
 
       {/* ==================== SIGHTING HISTORY TABLE ==================== */}
       <SightingHistoryTable
-        sightings={sightings}
+        sightings={tableSightings}
         selectedId={selectedSighting?.id ?? null}
         onSelect={handleSightingClick}
       />

@@ -15,7 +15,11 @@ export type RealtimeEvent =
   | 'analytics:tick'
   | 'investigation:tick'
   /** Per-camera stream health frame (fps, latency, loss, RTSP/WebRTC/HLS state). */
-  | 'camera:health';
+  | 'camera:health'
+  /* Vehicle Intelligence Pipeline topics (served by backend `/api/ws`). */
+  | 'detection'
+  | 'track'
+  | 'journey';
 
 type Handler = (payload: unknown) => void;
 
@@ -24,25 +28,47 @@ export interface RealtimeChannel {
   close: () => void;
 }
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? '';
+/** Resolve the realtime WebSocket URL.
+ *
+ * Defaults to the backend pipeline feed at `/api/ws` on the current origin
+ * (proxied by Vite in dev), so realtime works out-of-the-box. Override with
+ * `VITE_WS_URL` to point at an external gateway. */
+function resolveWsUrl(): string {
+  const configured = import.meta.env.VITE_WS_URL as string | undefined;
+  if (configured) return configured;
+  if (typeof window === 'undefined') return '';
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${window.location.host}/api/ws`;
+}
+
+const WS_URL = resolveWsUrl();
 
 export function createRealtimeChannel(): RealtimeChannel {
   const handlers = new Map<RealtimeEvent, Set<Handler>>();
   let socket: WebSocket | null = null;
 
   if (WS_URL) {
-    socket = new WebSocket(WS_URL);
-    socket.onmessage = (message) => {
-      try {
-        const { event, payload } = JSON.parse(message.data) as {
-          event: RealtimeEvent;
-          payload: unknown;
-        };
-        handlers.get(event)?.forEach((handler) => handler(payload));
-      } catch {
-        // ignore malformed frames
-      }
-    };
+    try {
+      socket = new WebSocket(WS_URL);
+    } catch {
+      socket = null;
+    }
+    if (socket) {
+      socket.onmessage = (message) => {
+        try {
+          const { event, payload } = JSON.parse(message.data) as {
+            event: RealtimeEvent;
+            payload: unknown;
+          };
+          handlers.get(event)?.forEach((handler) => handler(payload));
+        } catch {
+          // ignore malformed frames
+        }
+      };
+      socket.onerror = () => {
+        // Non-fatal: components keep their last state / mock fallback.
+      };
+    }
   }
 
   return {

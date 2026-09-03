@@ -85,6 +85,98 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+/* The backend foundation (cameras, streams, vehicle intelligence) is served
+   from `/api/...` directly rather than the versioned `/api/v1` REST surface the
+   mock stubs above target. `apiRoot` calls that namespace. */
+async function apiRoot<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${API_ROOT}${path}`, {
+    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+    ...init,
+  });
+  if (!response.ok) {
+    throw new Error(`[GP-API] ${response.status} ${response.statusText} for ${path}`);
+  }
+  return (await response.json()) as T;
+}
+
+/* ------------------------------------------------------------------ *
+ * Vehicle Intelligence Pipeline DTOs (mirror backend Pydantic models)
+ * ------------------------------------------------------------------ */
+export interface BBoxDto {
+  x: number | null;
+  y: number | null;
+  w: number | null;
+  h: number | null;
+}
+
+export interface SightingDto {
+  id: number;
+  plate: string;
+  plate_raw: string | null;
+  camera_id: string;
+  track_id: number | null;
+  vehicle_class: string | null;
+  ocr_confidence: number | null;
+  detection_confidence: number | null;
+  bbox: BBoxDto | null;
+  pts_ms: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  location_name: string | null;
+  evidence_path: string | null;
+  seen_at: string | null;
+}
+
+export interface VehicleDto {
+  id: number;
+  plate: string;
+  vehicle_class: string | null;
+  first_seen: string | null;
+  last_seen: string | null;
+  last_camera_id: string | null;
+  total_sightings: number;
+  camera_count: number;
+  best_confidence: number | null;
+  recent_sightings?: SightingDto[] | null;
+}
+
+export interface JourneyPointDto {
+  vehicle_id: number | null;
+  journey_id: number;
+  sequence: number;
+  camera_id: string;
+  timestamp: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  location_name: string | null;
+  confidence: number | null;
+  distance_km: number | null;
+  interval_seconds: number | null;
+  speed_kph: number | null;
+  anomaly: boolean;
+  anomaly_reason: string | null;
+}
+
+export interface JourneyDto {
+  plate: string;
+  point_count: number;
+  segment_count: number;
+  anomaly_count: number;
+  points: JourneyPointDto[];
+}
+
+export interface TrackDto {
+  id: number;
+  camera_id: string;
+  track_id: number;
+  vehicle_class: string | null;
+  plate: string | null;
+  first_seen: string | null;
+  last_seen: string | null;
+  frame_count: number;
+  trajectory: Array<Record<string, number>>;
+}
+
 export const api = {
   getDashboardKpis: () => request<KpiStat[]>('/dashboard/kpis'),
   getLiveFeeds: (limit = 4) => request<CameraFeed[]>(`/cameras/live?limit=${limit}`),
@@ -153,6 +245,38 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ active }),
     }),
+
+  /* ------------------------------------------------------------------ *
+   * Camera Registry + Stream Gateway (backend foundation, `/api/...`).
+   * ------------------------------------------------------------------ */
+  getRegistryCameras: () => apiRoot<RegistryCamera[]>('/cameras'),
+  getStreams: () => apiRoot<StreamStatusDto[]>('/streams'),
+
+  /* ------------------------------------------------------------------ *
+   * Vehicle Intelligence Pipeline (real ANPR / tracking / journeys).
+   * ------------------------------------------------------------------ */
+  searchVehicles: (q: string, limit = 25) =>
+    apiRoot<VehicleDto[]>(`/vehicles/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  getVehicleIdentity: (plate: string) =>
+    apiRoot<VehicleDto>(`/vehicles/${encodeURIComponent(plate)}`),
+  getVehicleSightings: (plate: string, limit = 200) =>
+    apiRoot<SightingDto[]>(`/vehicles/${encodeURIComponent(plate)}/sightings?limit=${limit}`),
+  getVehicleJourneyReal: (plate: string) =>
+    apiRoot<JourneyDto>(`/vehicles/${encodeURIComponent(plate)}/journey`),
+  getRecentDetections: (limit = 50, cameraId?: string) =>
+    apiRoot<SightingDto[]>(
+      `/detections/recent?limit=${limit}${cameraId ? `&camera_id=${encodeURIComponent(cameraId)}` : ''}`,
+    ),
+  getRecentAnpr: (limit = 50, cameraId?: string) =>
+    apiRoot<SightingDto[]>(
+      `/anpr/recent?limit=${limit}${cameraId ? `&camera_id=${encodeURIComponent(cameraId)}` : ''}`,
+    ),
+  getRecentTracking: (limit = 50, cameraId?: string) =>
+    apiRoot<TrackDto[]>(
+      `/tracking/recent?limit=${limit}${cameraId ? `&camera_id=${encodeURIComponent(cameraId)}` : ''}`,
+    ),
+  getRecentJourneys: (limit = 25) => apiRoot<VehicleDto[]>(`/journeys/recent?limit=${limit}`),
+  getPipelineStatus: () => apiRoot<unknown[]>('/pipeline'),
 };
 
 /** Fire-and-forget wrapper used by the console until the gateway exists. */

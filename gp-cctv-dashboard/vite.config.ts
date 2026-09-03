@@ -17,6 +17,13 @@ export default defineConfig({
     // Allow the sandbox preview proxy host (and any future tunnel host)
     allowedHosts: true,
     proxy: {
+      // WebSocket realtime feed (Vehicle Intelligence Pipeline) — must be
+      // declared before the generic '/api' rule and enable ws upgrades.
+      '/api/ws': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        ws: true,
+      },
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,

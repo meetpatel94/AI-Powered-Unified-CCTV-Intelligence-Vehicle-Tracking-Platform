@@ -16,8 +16,31 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
+def _try_enable_postgis(conn) -> bool:
+    """Enable PostGIS when available; return False on hosts without it.
+
+    Production runs on postgis/postgis images where this succeeds and unlocks
+    the geography columns/indexes below. On a plain PostgreSQL (e.g. a CI or
+    air-gapped host) the schema still builds — only the geo columns are skipped.
+
+    We probe ``pg_available_extensions`` first so a missing extension never
+    aborts Alembic's migration transaction.
+    """
+    try:
+        available = conn.exec_driver_sql(
+            "SELECT 1 FROM pg_available_extensions WHERE name = 'postgis'"
+        ).first()
+    except Exception:
+        return False
+    if not available:
+        return False
+    conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS postgis")
+    return True
+
+
 def upgrade() -> None:
-    op.execute("CREATE EXTENSION IF NOT EXISTS postgis")
+    conn = op.get_bind()
+    has_postgis = _try_enable_postgis(conn)
     op.create_table(
         "cameras",
         sa.Column("camera_id", sa.String(length=64), primary_key=True),
@@ -52,20 +75,21 @@ def upgrade() -> None:
     op.create_index("ix_cameras_location_name", "cameras", ["location_name"])
     op.create_index("ix_cameras_status", "cameras", ["status"])
     # PostGIS geography point for later GIS queries (populated from lat/lng).
-    op.execute(
-        """
-        ALTER TABLE cameras
-        ADD COLUMN IF NOT EXISTS geom geography(Point, 4326)
-        GENERATED ALWAYS AS (
-            CASE
-                WHEN latitude IS NOT NULL AND longitude IS NOT NULL
-                THEN ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
-                ELSE NULL
-            END
-        ) STORED
-        """
-    )
-    op.execute("CREATE INDEX IF NOT EXISTS ix_cameras_geom ON cameras USING GIST (geom)")
+    if has_postgis:
+        op.execute(
+            """
+            ALTER TABLE cameras
+            ADD COLUMN IF NOT EXISTS geom geography(Point, 4326)
+            GENERATED ALWAYS AS (
+                CASE
+                    WHEN latitude IS NOT NULL AND longitude IS NOT NULL
+                    THEN ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)::geography
+                    ELSE NULL
+                END
+            ) STORED
+            """
+        )
+        op.execute("CREATE INDEX IF NOT EXISTS ix_cameras_geom ON cameras USING GIST (geom)")
 
 
 def downgrade() -> None:
