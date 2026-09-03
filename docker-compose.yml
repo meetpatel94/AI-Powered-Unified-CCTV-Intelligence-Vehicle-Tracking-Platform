@@ -109,6 +109,8 @@ services:
       context: ./gp-cctv-dashboard
       args:
         VITE_API_BASE_URL: /api
+        # Production must never present demo fixtures as real operational data.
+        VITE_DEMO_MODE: "false"
     container_name: gp-cctv-dashboard
     restart: unless-stopped
     depends_on:

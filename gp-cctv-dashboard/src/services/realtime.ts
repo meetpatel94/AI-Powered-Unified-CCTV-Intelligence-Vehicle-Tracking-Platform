@@ -1,10 +1,27 @@
 /**
- * Realtime channel stub (alerts, camera state, ANPR hits).
+ * Realtime event client for the Gujarat Police CCTV Intelligence backend.
  *
- * Usage once the gateway exists:
- *   const bus = createRealtimeChannel();
- *   bus.on('alert:new', (payload) => ...);
+ * Backend contract (`/api/ws`, see `backend/app/api/intelligence.py`) — every
+ * frame is `{ event, payload }`. Topics mirror the Vehicle Intelligence
+ * Pipeline / Watchlist / Alerts / Camera-health event hub:
+ *
+ *   detection, anpr:hit, track, journey,
+ *   watchlist:match, alert:new, alert:ack, alert:update,
+ *   camera:state, camera:health, kpi:tick, analytics:tick
+ *
+ * This module owns ONE shared WebSocket for the whole SPA:
+ *   - multiple `createRealtimeChannel()` handles share a single connection
+ *     (no duplicate sockets / duplicate deliveries);
+ *   - auto-(re)connect with exponential backoff (~2s → 30s) and automatic
+ *     teardown when the last channel closes;
+ *   - exposes a connection-status subscription so the UI can show a real
+ *     "connecting / reconnecting / open / offline" state instead of silently
+ *     pretending data is live.
+ *
+ * No synthetic events are generated here — every frame is real backend output.
  */
+
+import { resolveWsUrl } from '@/config';
 
 export type RealtimeEvent =
   | 'alert:new'
@@ -32,22 +49,24 @@ export interface RealtimeChannel {
   close: () => void;
 }
 
-/** Resolve the realtime WebSocket URL.
- *
- * Defaults to the backend pipeline feed at `/api/ws` on the current origin
- * (proxied by Vite in dev), so realtime works out-of-the-box. Override with
- * `VITE_WS_URL` to point at an external gateway. */
-function resolveWsUrl(): string {
-  const configured = import.meta.env.VITE_WS_URL as string | undefined;
-  if (configured) return configured;
-  if (typeof window === 'undefined') return '';
-  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const base = `${proto}//${window.location.host}/api/ws`;
-  // When the backend runs with AUTH_ENABLED=true, browsers cannot set
-  // WebSocket headers — pass the stored access token as a query parameter.
-  const token = readStoredToken();
-  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
-}
+export type RealtimeStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'closed';
+
+/** Known server topics — frames whose `event` is not recognised are ignored. */
+const KNOWN_EVENTS = new Set<RealtimeEvent>([
+  'alert:new',
+  'alert:ack',
+  'alert:update',
+  'camera:state',
+  'anpr:hit',
+  'kpi:tick',
+  'analytics:tick',
+  'investigation:tick',
+  'watchlist:match',
+  'camera:health',
+  'detection',
+  'track',
+  'journey',
+]);
 
 /** Access-token persistence shared with the API layer (auth deployments). */
 const TOKEN_STORAGE_KEY = 'gp.cctv.access_token';
@@ -69,46 +88,173 @@ export function readStoredToken(): string | null {
   }
 }
 
-const WS_URL = resolveWsUrl();
+/* ------------------------------------------------------------------ *
+ * Shared connection state (module scope — one socket for the whole app)
+ * ------------------------------------------------------------------ */
+const handlers = new Map<RealtimeEvent, Set<Handler>>();
+const statusListeners = new Set<(status: RealtimeStatus) => void>();
+
+let socket: WebSocket | null = null;
+let status: RealtimeStatus = 'idle';
+let reconnectAttempts = 0;
+let reconnectTimer: number | null = null;
+let refCount = 0;
+let stopped = true;
+
+const RECONNECT_MIN_MS = 2000;
+const RECONNECT_MAX_MS = 30000;
+
+function setStatus(next: RealtimeStatus): void {
+  status = next;
+  statusListeners.forEach((listener) => listener(status));
+}
+
+/** Subscribe to the shared connection status. Returns an unsubscribe fn. */
+export function onRealtimeStatus(listener: (status: RealtimeStatus) => void): () => void {
+  statusListeners.add(listener);
+  listener(status);
+  return () => statusListeners.delete(listener);
+}
+
+/** Current shared connection status. */
+export function getRealtimeStatus(): RealtimeStatus {
+  return status;
+}
+
+/** True only while the socket is actually open (events are really live). */
+export function isRealtimeOpen(): boolean {
+  return status === 'open';
+}
+
+function dispatch(event: RealtimeEvent, payload: unknown): void {
+  handlers.get(event)?.forEach((handler) => {
+    try {
+      handler(payload);
+    } catch {
+      /* a handler's error must not break the shared socket */
+    }
+  });
+}
+
+function clearReconnectTimer(): void {
+  if (reconnectTimer != null) {
+    window.clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+}
+
+function scheduleReconnect(): void {
+  clearReconnectTimer();
+  if (stopped) return;
+  const delay = Math.min(
+    RECONNECT_MAX_MS,
+    RECONNECT_MIN_MS * 2 ** reconnectAttempts,
+  );
+  reconnectAttempts += 1;
+  setStatus('reconnecting');
+  reconnectTimer = window.setTimeout(connect, delay);
+}
+
+function connect(): void {
+  if (stopped || socket) return;
+  let url: string;
+  try {
+    url = buildWsUrl();
+  } catch {
+    setStatus('closed');
+    return;
+  }
+  if (!url) {
+    setStatus('closed');
+    return;
+  }
+  let ws: WebSocket;
+  try {
+    ws = new WebSocket(url);
+  } catch {
+    scheduleReconnect();
+    return;
+  }
+  socket = ws;
+  setStatus('connecting');
+
+  ws.onopen = () => {
+    if (socket !== ws) return;
+    reconnectAttempts = 0;
+    setStatus('open');
+  };
+
+  ws.onmessage = (message) => {
+    if (socket !== ws) return;
+    try {
+      const parsed = JSON.parse(message.data as string) as { event?: unknown; payload?: unknown };
+      if (!parsed || typeof parsed.event !== 'string') return;
+      const event = parsed.event as RealtimeEvent;
+      if (!KNOWN_EVENTS.has(event)) return; // ignore unknown/foreign topics
+      dispatch(event, parsed.payload);
+    } catch {
+      /* ignore malformed / non-JSON frames (e.g. MJPEG is not on this socket) */
+    }
+  };
+
+  ws.onerror = () => {
+    /* onclose drives reconnection — keep this no-op minimal */
+  };
+
+  ws.onclose = () => {
+    if (socket !== ws) return;
+    socket = null;
+    if (!stopped) scheduleReconnect();
+    else setStatus('closed');
+  };
+}
+
+/** Resolve `/api/ws` on the current origin and attach the auth token (if any). */
+function buildWsUrl(): string {
+  const base = resolveWsUrl();
+  if (!base) return '';
+  const token = readStoredToken();
+  return token ? `${base}${base.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}` : base;
+}
+
+/** Open the shared connection when the first channel is created. */
+function ensureConnected(): void {
+  stopped = false;
+  if (!socket && reconnectTimer == null) connect();
+}
+
+/** Close the shared connection when the last channel goes away. */
+function releaseConnection(): void {
+  if (refCount > 0) return;
+  stopped = true;
+  clearReconnectTimer();
+  if (socket) {
+    socket.onclose = null;
+    socket.close();
+    socket = null;
+  }
+  handlers.clear();
+  reconnectAttempts = 0;
+  setStatus('closed');
+}
 
 export function createRealtimeChannel(): RealtimeChannel {
-  const handlers = new Map<RealtimeEvent, Set<Handler>>();
-  let socket: WebSocket | null = null;
-
-  if (WS_URL) {
-    try {
-      socket = new WebSocket(WS_URL);
-    } catch {
-      socket = null;
-    }
-    if (socket) {
-      socket.onmessage = (message) => {
-        try {
-          const { event, payload } = JSON.parse(message.data) as {
-            event: RealtimeEvent;
-            payload: unknown;
-          };
-          handlers.get(event)?.forEach((handler) => handler(payload));
-        } catch {
-          // ignore malformed frames
-        }
-      };
-      socket.onerror = () => {
-        // Non-fatal: components keep their last state / mock fallback.
-      };
-    }
-  }
+  refCount += 1;
+  ensureConnected();
 
   return {
     on(event, handler) {
-      const set = handlers.get(event) ?? new Set<Handler>();
+      let set = handlers.get(event);
+      if (!set) {
+        set = new Set<Handler>();
+        handlers.set(event, set);
+      }
       set.add(handler);
-      handlers.set(event, set);
-      return () => set.delete(handler);
+      return () => set!.delete(handler);
     },
     close() {
-      socket?.close();
-      handlers.clear();
+      refCount = Math.max(0, refCount - 1);
+      if (refCount === 0) releaseConnection();
     },
   };
 }

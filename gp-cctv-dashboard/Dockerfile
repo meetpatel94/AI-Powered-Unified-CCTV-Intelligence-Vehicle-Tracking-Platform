@@ -20,6 +20,12 @@ COPY . .
 ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
+# Production must NEVER enable demo mode (bundled demo fixtures shown as if
+# live operational data). Force it false for container builds; override only
+# for an explicitly labelled demo build.
+ARG VITE_DEMO_MODE=false
+ENV VITE_DEMO_MODE=${VITE_DEMO_MODE}
+
 RUN npm run build
 
 

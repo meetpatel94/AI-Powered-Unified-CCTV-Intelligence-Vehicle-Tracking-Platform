@@ -1,36 +1,16 @@
 /**
- * REST client stubs.
+ * REST client for the Gujarat Police CCTV Intelligence FastAPI backend.
  *
- * The dashboard currently renders from `src/data/mockData.ts`. When the backend
- * is available, implement these functions against the real endpoints and swap
- * the mock imports for hooks that call them — no component changes required,
- * because every component is already typed against `src/types`.
+ * Every backend route is served under the single production prefix `/api`
+ * (there is NO `/api/v1` namespace). All helpers target `API_BASE` (=`/api`)
+ * from `src/config.ts`, which the dashboard reaches same-origin through the
+ * reverse proxy in production and via the Vite proxy in local development.
+ *
+ * Types in this file mirror the FastAPI Pydantic response schemas 1:1 so that
+ * swapped-in real data matches the existing UI contracts.
  */
 
-import type {
-  AlertItem,
-  AnalyticsBar,
-  CameraFeed,
-  HealthSlice,
-  JourneyStop,
-  KpiStat,
-  VehicleRecord,
-} from '@/types';
-import type { AnalyticsFilters, AnalyticsSnapshot } from '@/types/analytics';
-import type { HealthCamera } from '@/types/cameraHealth';
-import type {
-  InvestigationCase,
-  InvestigationDossier,
-  NewCasePayload,
-  VehicleSighting,
-} from '@/types/investigation';
-import type {
-  GenerateReportConfig,
-  ReportPreviewDoc,
-  ReportRecord,
-  ScheduledReport,
-} from '@/types/reports';
-
+import { API_BASE } from '@/config';
 import { readStoredToken } from '@/services/realtime';
 
 /** Bearer header when an access token is stored (AUTH_ENABLED deployments). */
@@ -43,9 +23,6 @@ function authHeaders(extra?: HeadersInit): Record<string, string> {
   }
   return headers;
 }
-
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
-const API_ROOT = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/v1\/?$/, '') || '/api';
 
 export interface RegistryCamera {
   camera_id: string;
@@ -86,8 +63,9 @@ export interface StreamStatusDto {
   live_mjpeg_path: string;
 }
 
+/** Single request helper targeting the unified `/api` FastAPI base. */
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: authHeaders(init?.headers),
   });
@@ -99,19 +77,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-/* The backend foundation (cameras, streams, vehicle intelligence) is served
-   from `/api/...` directly rather than the versioned `/api/v1` REST surface the
-   mock stubs above target. `apiRoot` calls that namespace. */
-async function apiRoot<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_ROOT}${path}`, {
-    ...init,
-    headers: authHeaders(init?.headers),
-  });
-  if (!response.ok) {
-    throw new Error(`[GP-API] ${response.status} ${response.statusText} for ${path}`);
-  }
-  return (await response.json()) as T;
-}
+/* Backward-compatible alias used by the live methods below (all hit `/api`). */
+const apiRoot = request;
 
 /* ------------------------------------------------------------------ *
  * Vehicle Intelligence Pipeline DTOs (mirror backend Pydantic models)
@@ -835,75 +802,8 @@ export interface RoleDto {
 }
 
 export const api = {
-  getDashboardKpis: () => request<KpiStat[]>('/dashboard/kpis'),
-  getLiveFeeds: (limit = 4) => request<CameraFeed[]>(`/cameras/live?limit=${limit}`),
-  getRecentAlerts: (limit = 4) => request<AlertItem[]>(`/alerts/recent?limit=${limit}`),
-  getCameraHealth: () => request<HealthSlice[]>('/cameras/health'),
-  getVehicle: (plate: string) => request<VehicleRecord>(`/vehicles/${encodeURIComponent(plate)}`),
-  getVehicleJourney: (plate: string) =>
-    request<JourneyStop[]>(`/vehicles/${encodeURIComponent(plate)}/journey`),
-  getAnalyticsToday: () => request<AnalyticsBar[]>('/analytics/today'),
-  getAnalyticsSnapshot: (filters: AnalyticsFilters) => {
-    const params = new URLSearchParams({
-      range: filters.range,
-      location: filters.location,
-      camera: filters.camera,
-    });
-    return request<AnalyticsSnapshot>(`/analytics?${params.toString()}`);
-  },
-
-  /* Investigation console. `data/investigationData.ts` returns exactly these
-     shapes today, so swapping the mock import for these calls is the only
-     change the screen needs. */
-  getInvestigation: (plate: string) =>
-    request<InvestigationDossier>(`/investigations/${encodeURIComponent(plate)}`),
-  getInvestigationSightings: (plate: string, range: string) => {
-    const params = new URLSearchParams({ range });
-    return request<VehicleSighting[]>(
-      `/investigations/${encodeURIComponent(plate)}/sightings?${params.toString()}`,
-    );
-  },
-  createInvestigationCase: (plate: string, payload: NewCasePayload) =>
-    request<InvestigationCase>(`/investigations/${encodeURIComponent(plate)}/case`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  /* Camera health console. `data/cameraHealthData.ts` serves these shapes
-     today; the live grid replaces `liveCamera(camera, tick)` with the
-     `camera:health` WebSocket frames described in `services/realtime.ts`. */
-  getCameraHealthDetail: (cameraId: string) =>
-    request<HealthCamera>(`/cameras/${encodeURIComponent(cameraId)}/health`),
-  restartCameraStream: (cameraId: string) =>
-    request<{ cameraId: string; state: string }>(`/cameras/${encodeURIComponent(cameraId)}/stream/restart`, {
-      method: 'POST',
-    }),
-
-  /* Reports workspace (legacy v1 mock stubs). The LIVE implementations are the
-     `/api/reports...` methods on the `apiRoot` surface below (real PostgreSQL
-     data). These remain only as typed placeholders for the mock-only path. */
-  getReportsMock: (limit = 25) => request<ReportRecord[]>(`/reports?limit=${limit}`),
-  generateReportMock: (config: GenerateReportConfig) =>
-    request<ReportRecord>('/reports/generate', { method: 'POST', body: JSON.stringify(config) }),
-  getReportPreviewMock: (reportId: string) =>
-    request<ReportPreviewDoc>(`/reports/${encodeURIComponent(reportId)}/preview`),
-  getReportDownloadUrl: (reportId: string) =>
-    request<{ url: string; expiresAt: string }>(`/reports/${encodeURIComponent(reportId)}/download`),
-  shareReport: (reportId: string) =>
-    request<{ url: string; expiresAt: string }>(`/reports/${encodeURIComponent(reportId)}/share`, {
-      method: 'POST',
-    }),
-  getReportSchedules: () => request<ScheduledReport[]>('/reports/schedules'),
-  createReportSchedule: (config: GenerateReportConfig) =>
-    request<ScheduledReport>('/reports/schedules', { method: 'POST', body: JSON.stringify(config) }),
-  toggleReportSchedule: (scheduleId: string, active: boolean) =>
-    request<ScheduledReport>(`/reports/schedules/${encodeURIComponent(scheduleId)}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ active }),
-    }),
-
   /* ------------------------------------------------------------------ *
-   * Camera Registry + Stream Gateway (backend foundation, `/api/...`).
+   * Camera Registry + Stream Gateway (FastAPI `/api/...`).
    * ------------------------------------------------------------------ */
   getRegistryCameras: () => apiRoot<RegistryCamera[]>('/cameras'),
   getStreams: () => apiRoot<StreamStatusDto[]>('/streams'),
@@ -1093,7 +993,7 @@ export const api = {
       `/reports/${encodeURIComponent(reportId)}/preview`,
     ),
   // Download URL (same-origin via the proxy).
-  reportDownloadUrl: (reportId: string) => `${API_ROOT}/reports/${encodeURIComponent(reportId)}/download`,
+  reportDownloadUrl: (reportId: string) => `${API_BASE}/reports/${encodeURIComponent(reportId)}/download`,
 
   /* ---- Audit logs (admin) ---- */
   getAuditLogs: (params?: {
@@ -1118,8 +1018,3 @@ export const api = {
   getSystemMetrics: () => apiRoot<SystemMetricsDto>('/system/metrics'),
   getSystemHealth: () => apiRoot<Record<string, unknown>>('/system/health'),
 };
-
-/** Fire-and-forget wrapper used by the console until the gateway exists. */
-export function restartCameraStream(cameraId: string): Promise<unknown> {
-  return api.restartCameraStream(cameraId).catch(() => undefined);
-}

@@ -84,7 +84,7 @@ class Alert(Base):
     )
 
     # Duplicate suppression: unique per source (match id / camera failure key).
-    dedupe_key: Mapped[str] = mapped_column(String(96), nullable=False, unique=True)
+    dedupe_key: Mapped[str] = mapped_column(String(96), nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
@@ -105,4 +105,6 @@ class Alert(Base):
         Index("ix_alerts_status_created", "status", "created_at"),
         Index("ix_alerts_plate_created", "plate", "created_at"),
         Index("ix_alerts_camera_created", "camera_id", "created_at"),
+        # Unique per dedupe key — enforces duplicate-alert suppression at the DB.
+        Index("ix_alerts_dedupe_key", "dedupe_key", unique=True),
     )
