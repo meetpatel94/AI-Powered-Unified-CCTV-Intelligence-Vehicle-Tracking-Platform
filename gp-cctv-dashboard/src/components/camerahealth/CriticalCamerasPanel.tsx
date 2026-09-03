@@ -24,7 +24,7 @@ export function CriticalCamerasPanel({
 }) {
   return (
     <Panel
-      title="Critical Cameras"
+      title="Critical Cameras / Action Required"
       className="h-full min-h-0"
       bodyClassName="flex min-h-0 flex-col"
       tools={
@@ -37,7 +37,7 @@ export function CriticalCamerasPanel({
       }
     >
       <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-2">
-        <ul className="space-y-1">
+        <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((item) => {
             const color = toneInk[item.tone];
             const isSelected = item.cameraId === selectedId;
@@ -83,7 +83,7 @@ export function CriticalCamerasPanel({
           })}
 
           {items.length === 0 ? (
-            <li className="rounded-[5px] border border-accent-green/30 bg-[#08180f] px-2 py-3 text-center">
+            <li className="col-span-full rounded-[5px] border border-accent-green/30 bg-[#08180f] px-2 py-3 text-center">
               <p className="text-[12px] font-medium text-[#6fe0b0]">All monitored feeds nominal</p>
               <p className="mt-[2px] text-[11px] text-ink-faint">No camera is past a critical threshold right now.</p>
             </li>

@@ -1,4 +1,4 @@
-import { Activity, AlertOctagon, Radio, Signal, WifiOff } from 'lucide-react';
+import { Activity, AlertOctagon, Signal, WifiOff } from 'lucide-react';
 
 import { fleetHealth, statusSlices } from '@/data/cameraHealthData';
 
@@ -72,20 +72,20 @@ export function CameraHealthKpiRow({
       filter: 'poor',
     },
     {
-      id: 'reconnecting',
-      label: 'Reconnecting',
-      value: fleet.reconnecting,
-      hint: 'of 471 poor-signal · retrying now',
-      color: '#2f7dff',
-      icon: Radio,
-      filter: 'reconnecting',
+      id: 'critical',
+      label: 'Critical / Needs Attention',
+      value: attention,
+      hint: 'Feeds past critical threshold or requiring operator action',
+      color: '#ff5c72',
+      icon: AlertOctagon,
+      filter: 'all',
     },
   ];
 
   return (
     <div className="grid shrink-0 grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
       {cards.map((card) => {
-        const Icon = card.id === 'offline' ? WifiOff : card.id === 'reconnecting' ? Radio : card.icon;
+        const Icon = card.id === 'offline' ? WifiOff : card.icon;
         const selected = active === card.filter;
         return (
           <button
@@ -127,14 +127,14 @@ export function CameraHealthKpiRow({
               <span
                 className="block h-full rounded-full transition-[width] duration-700"
                 style={{
-                  width: card.id === 'total' ? '100%' : `${((byId.get(card.id)?.count ?? card.value) / fleet.total) * 100}%`,
+                  width: card.id === 'total' ? '100%' : card.id === 'critical' ? `${Math.min(100, (card.value / Math.max(1, fleet.total)) * 100)}%` : `${((byId.get(card.id)?.count ?? card.value) / fleet.total) * 100}%`,
                   backgroundColor: card.color,
                   boxShadow: `0 0 8px -1px ${card.color}`,
                 }}
               />
             </span>
 
-            {card.id === 'reconnecting' && attention > 0 ? (
+            {card.id === 'critical' && attention > 0 ? (
               <span className="absolute right-2.5 bottom-2.5 flex items-center gap-1 text-3xs font-semibold text-[#ff8b96]">
                 <AlertOctagon size={11} strokeWidth={2.4} />
                 {attention} flagged

@@ -298,43 +298,46 @@ export function CameraHealth() {
         <StreamQualityPanel series={streamQualitySeries} settings={settings} />
       </div>
 
-      {/* distribution · location ranking · critical feeds */}
+      {/* compact status distribution + location ranking (two-column) */}
       <div
-        className="responsive-band min-h-[340px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[30fr_34fr_36fr]"
+        className="responsive-band grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"
       >
-        <div className="min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-col">
           <StatusDistributionPanel
-          fleet={
-            fleet.live
-              ? {
-                  total: cameras.length,
-                  online: counts.online,
-                  offline: counts.offline,
-                  poor: counts.poor,
-                  reconnecting: counts.reconnecting,
-                  critical: counts.critical,
-                  avgLatencyMs: Math.round(
-                    cameras.filter((c) => c.latencyMs > 0).reduce((sum, c) => sum + c.latencyMs, 0) /
-                      Math.max(1, cameras.filter((c) => c.latencyMs > 0).length),
-                  ),
-                  avgFps: Number((cameras.reduce((sum, c) => sum + c.fps, 0) / Math.max(1, cameras.length)).toFixed(1)),
-                  ingestMbps: Number(cameras.reduce((sum, c) => sum + c.bitrateMbps, 0).toFixed(1)),
-                  anprReadsToday: cameras.filter((c) => c.ai.anprActive).length,
-                }
-              : fleetHealth
-          }
-          active={filters.status}
-          onSelect={(id) => patchFilters({ status: id as HealthFilters['status'] })}
-        />
+            fleet={
+              fleet.live
+                ? {
+                    total: cameras.length,
+                    online: counts.online,
+                    offline: counts.offline,
+                    poor: counts.poor,
+                    reconnecting: counts.reconnecting,
+                    critical: counts.critical,
+                    avgLatencyMs: Math.round(
+                      cameras.filter((c) => c.latencyMs > 0).reduce((sum, c) => sum + c.latencyMs, 0) /
+                        Math.max(1, cameras.filter((c) => c.latencyMs > 0).length),
+                    ),
+                    avgFps: Number((cameras.reduce((sum, c) => sum + c.fps, 0) / Math.max(1, cameras.length)).toFixed(1)),
+                    ingestMbps: Number(cameras.reduce((sum, c) => sum + c.bitrateMbps, 0).toFixed(1)),
+                    anprReadsToday: cameras.filter((c) => c.ai.anprActive).length,
+                  }
+                : fleetHealth
+            }
+            active={filters.status}
+            onSelect={(id) => patchFilters({ status: id as HealthFilters['status'] })}
+          />
         </div>
-        <div className="min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-col">
           <HealthByLocationPanel rows={locations} onDrill={(area) => patchFilters({ query: area })} />
-        </div>
-        <div className="min-w-0 md:col-span-2 xl:col-span-1">
-          <CriticalCamerasPanel items={critical} busyId={busyId} onAct={handleCriticalAction} onSelect={setSelectedId} selectedId={selectedId} />
         </div>
       </div>
 
+      {/* critical cameras — full width */}
+      <div className="flex min-h-[200px] shrink-0 flex-col [&>*]:flex-1">
+        <CriticalCamerasPanel items={critical} busyId={busyId} onAct={handleCriticalAction} onSelect={setSelectedId} selectedId={selectedId} />
+      </div>
+
+      {/* recent health events — full width */}
       <div className="flex min-h-[320px] shrink-0 flex-col [&>*]:flex-1">
         <RecentHealthEventsPanel
           events={fleet.live && fleet.events ? fleet.events : healthEvents}
