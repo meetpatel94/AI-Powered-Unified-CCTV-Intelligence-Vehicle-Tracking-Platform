@@ -192,6 +192,8 @@ def main() -> int:
             track_id=7,
             bbox=(120.0, 80.0, 240.0, 160.0),
             pts_ms=12345.0,
+            plate_valid=True,
+            plate_uncertain=False,
         )
         db.commit()
         check("record_anpr_sighting persists (dev fixture)", result is not None)
@@ -245,6 +247,8 @@ def main() -> int:
             track_id=9,
             bbox=(10, 10, 100, 100),
             pts_ms=20000.0,
+            plate_valid=True,
+            plate_uncertain=False,
         )
         db.commit()
         worker._process_watchlist(db, result2, tiny_jpeg, datetime.now(timezone.utc))

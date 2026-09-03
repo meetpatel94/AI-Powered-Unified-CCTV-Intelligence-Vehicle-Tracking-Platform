@@ -590,8 +590,18 @@ class PipelineWorker:
         )
 
     def _raise_journey_anomaly(self, db, result: dict, journey_info: dict) -> None:
-        """Flag an impossible-travel interval computed by the journey builder."""
+        """Flag an impossible-travel interval computed by the journey builder.
+
+        Cooldown-bucketed like watchlist alerts: a vehicle that keeps producing
+        anomalous legs on the SAME plate + camera pair (e.g. two closely-spaced
+        cameras with clock skew, or a stuck/duplicated ANPR read) must fold into
+        one alert per ``ALERT_DEDUPE_SECONDS`` window instead of flooding the
+        alert feed with one row per sighting. A genuinely new anomaly after the
+        window still raises a fresh alert.
+        """
         try:
+            window = max(1.0, float(self.settings.alert_dedupe_seconds))
+            bucket = int(time.time() // window)
             alerts_service.create_alert(
                 db,
                 type="JOURNEY_ANOMALY",
@@ -601,12 +611,12 @@ class PipelineWorker:
                     f"after {journey_info.get('camera_id')}"
                 ),
                 source_type="journey",
-                dedupe_key=f"journey:{result['plate']}:{journey_info.get('journey_id')}:{journey_info.get('sequence')}",
+                dedupe_key=f"journey:{result['plate']}:{journey_info.get('camera_id') or self.camera_id}:{bucket}",
                 plate=result["plate"],
                 camera_id=journey_info.get("camera_id") or self.camera_id,
                 location_name=result.get("location_name"),
                 source_ref=f"journey:{result['plate']}:{journey_info.get('journey_id')}",
-                suppress_window_seconds=0,
+                suppress_window_seconds=self.settings.alert_dedupe_seconds,
             )
         except Exception:
             db.rollback()

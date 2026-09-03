@@ -404,13 +404,24 @@ class VehicleDetector:
         return detections
 
     def reset_tracker(self) -> None:
-        """Drop tracker state (e.g. after a stream reconnect)."""
+        """Drop tracker state (e.g. after a stream reconnect).
+
+        Ultralytics' ``track(persist=True, ...)`` only (re)initialises
+        ``predictor.trackers`` when the attribute is *absent*
+        (``ultralytics.trackers.track.on_predict_start``: ``if
+        hasattr(predictor, "trackers") and persist: return``). Setting the
+        list to ``[]`` therefore leaves the attribute present-but-empty,
+        which makes every later ``track()`` call crash inside Ultralytics
+        with ``IndexError: list index out of range`` (it indexes
+        ``predictor.trackers[0]``) — silently killing detection on every
+        camera after its first RTSP reconnect. We must delete the attribute
+        entirely so Ultralytics rebuilds a fresh tracker (correct BYTETrack
+        state, no stale IDs) on the next frame.
+        """
         if self.model is not None:
             try:
-                # Ultralytics stores trackers on the predictor; clearing forces
-                # a fresh tracker on the next track() call.
                 predictor = getattr(self.model, "predictor", None)
                 if predictor is not None and hasattr(predictor, "trackers"):
-                    predictor.trackers = []
+                    delattr(predictor, "trackers")
             except Exception:
                 logger.debug("detector.tracker_reset_noop", camera_id=self.camera_id)
