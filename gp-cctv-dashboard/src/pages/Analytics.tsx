@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { AiEventsByTypePanel } from '@/components/analytics/AiEventsByTypePanel';
 import { AnalyticsHeader } from '@/components/analytics/AnalyticsHeader';
@@ -12,12 +12,12 @@ import { TopDetectionLocationsPanel } from '@/components/analytics/TopDetectionL
 import { VehicleDetectionTrend } from '@/components/analytics/VehicleDetectionTrend';
 import { VehicleTypesPanel } from '@/components/analytics/VehicleTypesPanel';
 import { WatchlistMatchTrendPanel } from '@/components/analytics/WatchlistMatchTrendPanel';
-import { computeAnalytics, defaultAnalyticsFilters } from '@/data/analyticsData';
+import { defaultAnalyticsFilters } from '@/data/analyticsData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
-import type { AnalyticsFilters } from '@/types/analytics';
+import { useAnalyticsSnapshot } from '@/hooks/useIntelligence';
+import type { AnalyticsFilters, AnalyticsSnapshot } from '@/types/analytics';
 
-function exportSnapshot(filters: AnalyticsFilters) {
-  const snapshot = computeAnalytics(filters);
+function exportSnapshot(snapshot: AnalyticsSnapshot) {
   const lines = [
     '# Gujarat Police — AI Analytics & Intelligence',
     `# Range,${snapshot.rangeLabel}`,
@@ -59,8 +59,9 @@ function exportSnapshot(filters: AnalyticsFilters) {
 
 /**
  * AI ANALYTICS & INTELLIGENCE workspace: KPI strip, dense chart grid and an
- * auto-generated briefing. Frontend mock data only — `computeAnalytics(filters)`
- * is the seam for a future `/analytics` API + `analytics:tick` websocket.
+ * auto-generated briefing. `/api/analytics/summary` + `/api/dashboard/activity`
+ * feed a real `AnalyticsSnapshot` merged over the mock `computeAnalytics`
+ * baseline, so every panel keeps rendering when the backend is unreachable.
  */
 export function Analytics() {
   const [filters, setFilters] = useState<AnalyticsFilters>(defaultAnalyticsFilters);
@@ -76,7 +77,7 @@ export function Analytics() {
     noticeTimer.current = window.setTimeout(() => setNotice(null), 2600);
   };
 
-  const snapshot = useMemo(() => computeAnalytics(filters), [filters]);
+  const { snapshot, live, refresh } = useAnalyticsSnapshot(filters);
 
   const patchFilters = (next: Partial<AnalyticsFilters>) => {
     setFilters((prev) => ({ ...prev, ...next }));
@@ -84,12 +85,15 @@ export function Analytics() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    refresh();
     window.setTimeout(() => setRefreshing(false), 800);
-    flash(`Analytics synced · ${snapshot.kpis.vehicles.toLocaleString('en-IN')} vehicles · ${snapshot.generatedAt}`);
+    flash(
+      `Analytics synced${live ? ' · live pipeline data' : ' · offline fixtures'} · ${snapshot.kpis.vehicles.toLocaleString('en-IN')} vehicles · ${snapshot.generatedAt}`,
+    );
   };
 
   const handleExport = () => {
-    exportSnapshot(filters);
+    exportSnapshot(snapshot);
     flash(`Exported analytics briefing (${snapshot.rangeLabel})`);
   };
 

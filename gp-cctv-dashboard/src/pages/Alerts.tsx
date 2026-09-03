@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { AlertDetailsPanel, type AlertDetailAction } from '@/components/alerts/AlertDetailsPanel';
@@ -15,6 +15,7 @@ import { severityRank } from '@/components/alerts/tones';
 import { LiveActivityPanel } from '@/components/alerts/LiveActivityPanel';
 import { alerts as seedAlerts, computeKpis } from '@/data/alertsData';
 import { formatClock } from '@/hooks/useLiveClock';
+import { useAlertsConsole, useAiActivity } from '@/hooks/useIntelligence';
 import type { AlertRecord, AlertResponseEvent, AlertStatus } from '@/types/alerts';
 
 const WINDOW_MINUTES: Record<AlertWindow, number> = {
@@ -30,11 +31,26 @@ const PROGRESS_STATUSES: AlertStatus[] = ['acknowledged', 'investigating', 'esca
 /**
  * ALERT MANAGEMENT & RESPONSE screen: KPI strip, dense filter bar,
  * alert feed + live-activity/response rail, analytics bottom row and the
- * right-side ALERT DETAILS workspace. Frontend mock data only.
+ * right-side ALERT DETAILS workspace. Live alerts stream in from the
+ * FastAPI backend (WS `alert:new` / `alert:update`); actions POST back to
+ * `/api/alerts/*` with optimistic local UI and mock fallback offline.
  */
 export function Alerts() {
   const navigate = useNavigate();
+  const intel = useAlertsConsole();
+  const activity = useAiActivity(24);
   const [alerts, setAlerts] = useState<AlertRecord[]>(seedAlerts);
+  const [syncedAt, setSyncedAt] = useState('10:46 AM');
+  const [liveFeed, setLiveFeed] = useState(false);
+
+  // Adopt backend alerts whenever the console hook pulls a fresh page.
+  useEffect(() => {
+    if (intel.live) {
+      setLiveFeed(true);
+      setAlerts(intel.alerts);
+      setSyncedAt(formatClock(new Date()).replace(/\s?[AP]M$/i, ''));
+    }
+  }, [intel.alerts, intel.live]);
   const [severity, setSeverity] = useState('all');
   const [group, setGroup] = useState('all');
   const [camera, setCamera] = useState('all');
@@ -54,6 +70,31 @@ export function Alerts() {
   };
 
   const kpis = useMemo(() => computeKpis(alerts), [alerts]);
+
+  // Real camera locations ranked by live alert volume (mock ranking offline).
+  const topLocations = useMemo(() => {
+    if (!liveFeed) return undefined;
+    const byLocation = new Map<string, { count: number; city: string }>();
+    alerts.forEach((alert) => {
+      const hit = byLocation.get(alert.location);
+      byLocation.set(alert.location, {
+        count: (hit?.count ?? 0) + 1,
+        city: hit?.city ?? alert.city,
+      });
+    });
+    return [...byLocation.entries()]
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 8)
+      .map(([name, { count, city }], index) => ({
+        id: `loc-${index}`,
+        rank: index + 1,
+        name,
+        city,
+        alerts: count,
+        peak: '—',
+        trend: 'flat' as const,
+      }));
+  }, [alerts, liveFeed]);
 
   const scopeCounts: Record<AlertScopeId, number> = useMemo(
     () => ({
@@ -188,6 +229,7 @@ export function Alerts() {
   const handleAction = (alert: AlertRecord, action: AlertDetailAction, payload?: string) => {
     switch (action) {
       case 'acknowledge':
+        void intel.acknowledge(alert.id);
         applyStatus(alert.id, 'acknowledged', {
           label: 'Acknowledged by operator',
           detail: `Reviewed at console — ${alert.id} moved to acknowledged queue`,
@@ -197,6 +239,7 @@ export function Alerts() {
         flash(`${alert.id} acknowledged`);
         break;
       case 'investigate':
+        void intel.setStatus(alert.id, 'investigating');
         applyStatus(alert.id, 'investigating', {
           label: 'Investigation opened',
           detail: 'Cross-camera reconstruction + registry pull requested',
@@ -206,6 +249,7 @@ export function Alerts() {
         flash(`${alert.id} investigation opened`);
         break;
       case 'escalate':
+        void intel.setStatus(alert.id, 'escalated');
         applyStatus(alert.id, 'escalated', {
           label: 'Escalated to supervisor',
           detail: 'Priority tone sent to control-room duty officer',
@@ -215,6 +259,7 @@ export function Alerts() {
         flash(`${alert.id} escalated to control room`);
         break;
       case 'resolve':
+        void intel.resolve(alert.id);
         applyStatus(alert.id, 'resolved', {
           label: 'Resolved',
           detail: 'Marked resolved from ALERT DETAILS workspace',
@@ -241,6 +286,7 @@ export function Alerts() {
   const quickResolve = (id: string) => {
     const alert = alerts.find((a) => a.id === id);
     if (!alert) return;
+    void intel.resolve(id);
     applyStatus(id, 'resolved', {
       label: 'Resolved (quick action)',
       detail: 'Closed from feed card — no further action required',
@@ -257,6 +303,7 @@ export function Alerts() {
       return;
     }
     const ids = new Set(targets.map((t) => t.id));
+    targets.forEach((target) => void intel.setStatus(target.id, 'acknowledged'));
     setAlerts((prev) =>
       prev.map((alert) =>
         ids.has(alert.id)
@@ -274,6 +321,7 @@ export function Alerts() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    intel.refresh();
     window.setTimeout(() => setRefreshing(false), 800);
     flash(`Feed synced · ${alerts.length} alerts · ${kpis.unreviewed} unreviewed`);
   };
@@ -312,7 +360,7 @@ export function Alerts() {
         filtersVisible={filtersVisible}
         refreshing={refreshing}
         unreviewed={kpis.unreviewed}
-        syncedAt="10:46 AM"
+        syncedAt={liveFeed ? syncedAt : '10:46 AM'}
         onToggleFilters={() => setFiltersVisible((value) => !value)}
         onRefresh={handleRefresh}
         onExport={handleExport}
@@ -376,13 +424,22 @@ export function Alerts() {
           <AlertsByTypePanel alerts={alerts} />
         </div>
         <div className="min-w-0">
-          <AlertsOverTimePanel />
+          <AlertsOverTimePanel
+            series={
+              activity.series && activity.live
+                ? activity.series.points.map((point) => ({
+                    label: point.bucket.slice(11, 13),
+                    value: point.alerts,
+                  }))
+                : undefined
+            }
+          />
         </div>
         <div className="min-w-0">
           <SeverityDonutPanel alerts={alerts} kpis={kpis} />
         </div>
         <div className="min-w-0">
-          <TopAlertLocationsPanel />
+          <TopAlertLocationsPanel locations={topLocations} />
         </div>
       </div>
 

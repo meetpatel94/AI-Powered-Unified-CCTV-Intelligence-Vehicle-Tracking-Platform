@@ -5,6 +5,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_permission
+from app.core.permissions import VEHICLES_READ
 from app.db.session import get_db
 from app.schemas.vehicle import (
     JourneyOut,
@@ -13,6 +15,7 @@ from app.schemas.vehicle import (
     VehicleOut,
 )
 from app.services import vehicle_intel as vi
+from app.services.auth import Principal
 
 router = APIRouter(prefix="/api/vehicles", tags=["vehicles"])
 
@@ -22,12 +25,17 @@ def search(
     q: str = Query(..., min_length=1, description="Full or partial normalized plate"),
     limit: int = Query(25, ge=1, le=200),
     db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(VEHICLES_READ)),
 ) -> list[VehicleOut]:
     return [VehicleOut(**v) for v in vi.search_vehicles(db, q, limit)]
 
 
 @router.get("/{plate}", response_model=VehicleOut)
-def vehicle(plate: str, db: Session = Depends(get_db)) -> VehicleOut:
+def vehicle(
+    plate: str,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(VEHICLES_READ)),
+) -> VehicleOut:
     data = vi.get_vehicle(db, plate)
     if data is None:
         raise HTTPException(status_code=404, detail=f"No vehicle identity for plate {plate}")
@@ -39,12 +47,17 @@ def sightings(
     plate: str,
     limit: int = Query(200, ge=1, le=1000),
     db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(VEHICLES_READ)),
 ) -> list[SightingOut]:
     return [SightingOut(**s) for s in vi.get_vehicle_sightings(db, plate, limit)]
 
 
 @router.get("/{plate}/journey", response_model=JourneyOut)
-def journey(plate: str, db: Session = Depends(get_db)) -> JourneyOut:
+def journey(
+    plate: str,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(VEHICLES_READ)),
+) -> JourneyOut:
     return JourneyOut(**vi.get_vehicle_journey(db, plate))
 
 
@@ -53,6 +66,7 @@ def vehicle_tracks(
     plate: str,
     limit: int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(VEHICLES_READ)),
 ) -> list[TrackOut]:
     plate_u = plate.upper().strip()
     rows = [t for t in vi.recent_tracks(db, limit=limit) if t.get("plate") == plate_u]

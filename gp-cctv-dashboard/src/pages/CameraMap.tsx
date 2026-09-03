@@ -14,6 +14,7 @@ import { RouteLayer } from '@/components/cameramap/RouteLayer';
 import { WORLD_H, WORLD_W, places, roads } from '@/data/gisGeometry';
 import { mapCameraNodes, statusColor, trackedRoute } from '@/data/cameraMapData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
+import { useDashboardKpis, useGisCameras, useGisRoute } from '@/hooks/useIntelligence';
 import { useMapViewport } from '@/hooks/useMapViewport';
 import { useTelemetryTick } from '@/hooks/useTelemetryTick';
 import type { CameraMapFilters, MapCameraNode, MapLayerState } from '@/types/cameraMap';
@@ -37,11 +38,16 @@ const defaultFilters: CameraMapFilters = {
 
 /**
  * GIS Camera Map workspace: pan/zoom basemap, clustered camera network,
- * marker dossiers, tracked-vehicle replay and fleet statistics.
+ * marker dossiers, tracked-vehicle replay and fleet statistics. The camera
+ * fleet streams from `/api/gis/cameras` (projected onto the SVG world via
+ * `latLngToWorld`); the tracked route comes from `/api/gis/vehicles/{plate}`.
+ * Mock fixtures render when the backend is unreachable.
  */
 export function CameraMap() {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLDivElement | null>(null);
+  const gis = useGisCameras();
+  const { raw: kpiRaw } = useDashboardKpis(24);
 
   const { containerRef, size, project, view, zoomLevel, isPanning, zoomIn, zoomOut, centerOn, handlers } =
     useMapViewport();
@@ -65,6 +71,8 @@ export function CameraMap() {
   const [selectedId, setSelectedId] = useState<string | null>('C-038');
   const [popupId, setPopupId] = useState<string | null>(null);
   const [activePlate, setActivePlate] = useState<string | null>(trackedRoute.plate);
+  /** Real route when the backend has one for the active plate, else the mock journey. */
+  const route = useGisRoute(activePlate);
   const [activeStep, setActiveStep] = useState<number | undefined>(4);
   const [journeyCollapsed, setJourneyCollapsed] = useState(false);
   const [showAlert, setShowAlert] = useState(true);
@@ -72,17 +80,19 @@ export function CameraMap() {
 
   /* ---------------- filtering ---------------- */
 
+  const cameraNodes = useMemo(() => gis.nodes ?? mapCameraNodes, [gis.nodes]);
+
   const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: mapCameraNodes.length, online: 0, offline: 0, warning: 0, critical: 0 };
-    mapCameraNodes.forEach((camera) => {
+    const counts: Record<string, number> = { all: cameraNodes.length, online: 0, offline: 0, warning: 0, critical: 0 };
+    cameraNodes.forEach((camera) => {
       counts[camera.status] += 1;
     });
     return counts;
-  }, []);
+  }, [cameraNodes]);
 
   const visibleCameras = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
-    return mapCameraNodes.filter((camera) => {
+    return cameraNodes.filter((camera) => {
       if (filters.status !== 'all' && camera.status !== filters.status) return false;
       if (filters.departments.length && !filters.departments.includes(camera.department)) return false;
       if (filters.codecs.length && !filters.codecs.includes(camera.codec)) return false;
@@ -100,7 +110,7 @@ export function CameraMap() {
         return false;
       return true;
     });
-  }, [filters]);
+  }, [cameraNodes, filters]);
 
   /* ---------------- clustering ---------------- */
 
@@ -120,8 +130,8 @@ export function CameraMap() {
 
   /* ---------------- selection ---------------- */
 
-  const selectedCamera = selectedId ? mapCameraNodes.find((c) => c.id === selectedId) ?? null : null;
-  const popupCamera = popupId ? mapCameraNodes.find((c) => c.id === popupId) ?? null : null;
+  const selectedCamera = selectedId ? cameraNodes.find((c) => c.id === selectedId) ?? null : null;
+  const popupCamera = popupId ? cameraNodes.find((c) => c.id === popupId) ?? null : null;
   const popupPos = popupCamera ? project(popupCamera.x, popupCamera.y) : null;
 
   const handleSelect = useCallback((camera: MapCameraNode) => {
@@ -145,14 +155,14 @@ export function CameraMap() {
 
   const handleSelectStep = useCallback(
     (step: number) => {
-      const node = trackedRoute.nodes.find((n) => n.step === step);
+      const node = route.nodes.find((n) => n.step === step);
       if (!node) return;
       setActiveStep(step);
       setSelectedId(node.cameraId);
       setPopupId(null);
       centerOn(node.x, node.y);
     },
-    [centerOn],
+    [centerOn, route],
   );
 
   const refresh = () => {
@@ -227,7 +237,28 @@ export function CameraMap() {
         </div>
       </div>
 
-      <MapStatsStrip />
+      <MapStatsStrip
+        stats={
+          gis.live
+            ? {
+                total: cameraNodes.length.toLocaleString('en-IN'),
+                online: {
+                  value: statusCounts.online.toLocaleString('en-IN'),
+                  pct: `${Math.round((statusCounts.online / Math.max(1, cameraNodes.length)) * 100)}%`,
+                },
+                offline: {
+                  value: statusCounts.offline.toLocaleString('en-IN'),
+                  pct: `${Math.round((statusCounts.offline / Math.max(1, cameraNodes.length)) * 100)}%`,
+                },
+                warning: {
+                  value: statusCounts.warning.toLocaleString('en-IN'),
+                  pct: `${Math.round((statusCounts.warning / Math.max(1, cameraNodes.length)) * 100)}%`,
+                },
+                activeAlerts: kpiRaw?.active_alerts ?? 0,
+              }
+            : undefined
+        }
+      />
 
       {/* map canvas */}
       <div
@@ -315,8 +346,9 @@ export function CameraMap() {
           )}
 
           {/* tracked vehicle route */}
-          {layers.route && activePlate === trackedRoute.plate && (
+          {layers.route && activePlate === route.plate && (
             <RouteLayer
+              route={route}
               project={project}
               bounds={{ w: size.w, h: size.h }}
               insets={{
@@ -330,13 +362,17 @@ export function CameraMap() {
               onSelectStep={handleSelectStep}
               onDismissAlert={() => setShowAlert(false)}
               onViewDetails={() => {
-                setSelectedId('C-038');
-                setPopupId('C-038');
+                const last = route.nodes[route.nodes.length - 1];
+                if (last) {
+                  setSelectedId(last.cameraId);
+                  setPopupId(last.cameraId);
+                }
               }}
               onTrackVehicle={() => {
-                setActivePlate(trackedRoute.plate);
+                setActivePlate(route.plate);
                 setJourneyCollapsed(false);
-                centerOn(890, 400, Math.max(view.scale, 1.1));
+                const mid = route.nodes[Math.floor(route.nodes.length / 2)];
+                if (mid) centerOn(mid.x, mid.y, Math.max(view.scale, 1.1));
               }}
             />
           )}
@@ -377,7 +413,7 @@ export function CameraMap() {
             filters={filters}
             counts={statusCounts}
             visibleCount={visibleCameras.length}
-            totalCount={mapCameraNodes.length}
+            totalCount={cameraNodes.length}
             onChange={(next) => setFilters((prev) => ({ ...prev, ...next }))}
             onReset={() => setFilters(defaultFilters)}
           />
@@ -409,6 +445,7 @@ export function CameraMap() {
         )}
 
         <JourneyPanel
+          route={route}
           activePlate={activePlate}
           onSelectPlate={(plate) => {
             setActivePlate(plate);

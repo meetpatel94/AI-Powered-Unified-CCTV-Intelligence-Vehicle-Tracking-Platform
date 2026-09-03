@@ -226,36 +226,52 @@ import with a data hook touches one file.
 
 ---
 
-## Backend integration seams (already stubbed)
+## Backend integration (live)
+
+The dashboard runs against the FastAPI backend in `../backend` (v0.2.0). The
+Vite dev server proxies `/api` → `http://127.0.0.1:8000` (see `vite.config.ts`),
+and every operational screen renders **real pipeline data when the backend is
+reachable, bundled mock fixtures when it is not** — no mode switch, no UI
+change.
 
 | File | Purpose |
 | --- | --- |
-| `services/api.ts` | Typed REST client (`VITE_API_BASE_URL`, default `/api/v1`) returning the same types the UI already consumes — includes `getInvestigation`, `getInvestigationSightings` and `createInvestigationCase` for the investigation console plus `getCameraHealthDetail` and `restartCameraStream` for the health console |
-| `services/realtime.ts` | WebSocket channel for `alert:new`, `camera:state`, `anpr:hit`, `kpi:tick`, `analytics:tick`, `investigation:tick`, `camera:health` (`VITE_WS_URL`) |
-| `services/streams.ts` | RTSP → HLS/WHEP URL helpers (`VITE_STREAM_GATEWAY`); cameras already carry `streamUrl` |
+| `services/api.ts` | Typed REST client for all 14 backend routers (watchlist, alerts, evidence, GIS, camera health, investigation, dashboard/analytics, auth) with `authHeaders()` bearer-token injection |
+| `services/realtime.ts` | WebSocket channel (`/api/ws`) for `alert:new`, `alert:update`, `watchlist:match`, `camera:health`, `camera:state`, `anpr:hit` — auto-appends `?token=` when a JWT is stored |
+| `services/streams.ts` | Live-frame/MJPEG URL helpers for thumbnails (`toLiveFrameUrl`) |
+| `hooks/useIntelligence.ts` | The integration layer: DTO → UI-type mappers + polling/WS hooks for every screen (KPIs, recent alerts, health donut, journey timeline, alerts console, watchlist console + CRUD, health fleet, GIS cameras/route, analytics snapshot, investigation dossier + case filing, users/roles) |
+
+Wired screens: **Dashboard** (KPI strip, alert rail, health donut, journey
+timeline, AI activity, GIS mini-map), **Alerts** (feed, lifecycle actions,
+over-time, top locations), **Watchlist** (KPIs, categories, entries + create,
+alert rail, summary, bottom row), **Camera Map** (fleet markers from
+`/api/gis/cameras`, tracked route from `/api/gis/vehicle/{plate}/route`),
+**Camera Health** (fleet table, distribution, events, real stream restart),
+**Investigation** (live dossier, case filing via `POST /api/investigation/cases`),
+**Analytics** (real `/api/analytics/summary` merged over the mock baseline).
+Users & Access Control still runs on mock fixtures (backend endpoints exist —
+`hooks/useIntelligence.ts` ships `useUsersDirectory` ready to wire).
+
+### GIS projection
 
 The GIS layers are hand-authored SVG in fixed world coordinate spaces — `1000 × 700` for
 the dashboard mini-map (`data/mapData.ts`) and `1600 × 1000` for the Camera Map
-(`data/gisGeometry.ts`). Every screen-space value goes through one `project(x, y)` from
+(`data/gisGeometry.ts`). Real registry lat/lngs are projected onto those worlds by
+`data/gisProjection.ts` (`worldToLatLng` / `latLngToWorld`, anchored on C-001 Shahibaug
+and C-038 GIFT City). Every screen-space value goes through one `project(x, y)` from
 `useMapViewport`, so swapping in MapLibre/Leaflet means replacing that projection and
 re-expressing `mapCameraNodes` / `trackedRoute` as lat-lng — markers, clustering, popup,
-route and decks are unchanged. `MapCameraNode` already carries `lat`/`lng` placeholders
-for real camera coordinates.
+route and decks are unchanged.
 
 ### Suggested next steps
-1. ~~Add `react-router-dom` and promote the sidebar items to real routes.~~ Done — eight
-   routes are live; the remaining sidebar items are still inert placeholders.
+1. Wire the Users & Access Control screen onto `useUsersDirectory` (backend RBAC
+   endpoints already exist) and add a login screen for `AUTH_ENABLED=true` mode
+   (`api.login` / `storeAccessToken` are ready).
 2. Introduce TanStack Query wrapping `services/api.ts`, then delete the mock imports.
 3. Replace wall thumbnails with `<video>` + `hls.js` / WebRTC using `toHlsUrl(camera.id)`
    or `toWhepUrl(camera.id)` — `LiveCamera.streamUrl` already carries the RTSP source.
-4. Wire `createRealtimeChannel()` into the alerts rail, KPI strip, ANPR ticker and the
-   Camera Map (`camera:state` → marker status, `alert:new` → map alert callout).
-5. Build the next module (Vehicle Search or Reports) and flip its `available` flag in
+4. Build the next module (Vehicle Search or Reports) and flip its `available` flag in
    `data/mockData.ts` to make the sidebar item routable.
-6. Point the Investigation console at the tracking service: replace the
-   `investigationDossiers` import with `GET /api/v1/investigations/:plate` and feed
-   `investigation:tick` frames into `setSightings` — the selectors, map and case form
-   are unchanged.
 
 ---
 

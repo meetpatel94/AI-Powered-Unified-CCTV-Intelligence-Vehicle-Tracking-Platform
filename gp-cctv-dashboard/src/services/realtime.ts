@@ -9,11 +9,15 @@
 export type RealtimeEvent =
   | 'alert:new'
   | 'alert:ack'
+  /** Alert lifecycle update (acknowledge / status / resolve / auto-resolve). */
+  | 'alert:update'
   | 'camera:state'
   | 'anpr:hit'
   | 'kpi:tick'
   | 'analytics:tick'
   | 'investigation:tick'
+  /** Watchlist match raised from a genuine ANPR sighting. */
+  | 'watchlist:match'
   /** Per-camera stream health frame (fps, latency, loss, RTSP/WebRTC/HLS state). */
   | 'camera:health'
   /* Vehicle Intelligence Pipeline topics (served by backend `/api/ws`). */
@@ -38,7 +42,31 @@ function resolveWsUrl(): string {
   if (configured) return configured;
   if (typeof window === 'undefined') return '';
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${proto}//${window.location.host}/api/ws`;
+  const base = `${proto}//${window.location.host}/api/ws`;
+  // When the backend runs with AUTH_ENABLED=true, browsers cannot set
+  // WebSocket headers — pass the stored access token as a query parameter.
+  const token = readStoredToken();
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+}
+
+/** Access-token persistence shared with the API layer (auth deployments). */
+const TOKEN_STORAGE_KEY = 'gp.cctv.access_token';
+
+export function storeAccessToken(token: string | null): void {
+  try {
+    if (token) window.localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    else window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    /* storage unavailable — token stays in memory only */
+  }
+}
+
+export function readStoredToken(): string | null {
+  try {
+    return window.localStorage.getItem(TOKEN_STORAGE_KEY);
+  } catch {
+    return null;
+  }
 }
 
 const WS_URL = resolveWsUrl();

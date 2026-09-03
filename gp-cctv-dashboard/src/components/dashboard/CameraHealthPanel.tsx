@@ -1,5 +1,6 @@
 import { Panel, ViewAll } from '@/components/common/Panel';
 import { cameraHealth } from '@/data/mockData';
+import type { HealthSlice } from '@/types';
 
 const SIZE = 98;
 const STROKE = 15;
@@ -7,7 +8,7 @@ const RADIUS = (SIZE - STROKE) / 2;
 const CIRC = 2 * Math.PI * RADIUS;
 
 /** Donut chart + legend of the fleet's operational state. */
-export function CameraHealthPanel() {
+export function CameraHealthPanel({ slices = cameraHealth }: { slices?: HealthSlice[] }) {
   let offset = 0;
 
   return (
@@ -27,7 +28,7 @@ export function CameraHealthPanel() {
             stroke="#111c30"
             strokeWidth={STROKE}
           />
-          {cameraHealth.map((slice) => {
+          {slices.map((slice) => {
             const len = (slice.percent / 100) * CIRC;
             const dash = `${len} ${CIRC - len}`;
             const el = (
@@ -51,7 +52,7 @@ export function CameraHealthPanel() {
       </div>
 
       <ul className="min-w-0 flex-1 space-y-[9px]">
-        {cameraHealth.map((slice) => (
+        {slices.map((slice) => (
           <li key={slice.id} className="flex items-center gap-2 text-[12.5px]">
             <span
               className="h-2 w-2 shrink-0 rounded-[2px]"

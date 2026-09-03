@@ -8,8 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_permission
+from app.core.permissions import CAMERAS_CONTROL, STREAMS_READ
 from app.db.session import get_db
 from app.schemas.stream import StreamActionResult, StreamStatus
+from app.services.auth import Principal
 from app.services.cameras import get_camera, list_cameras
 from app.services.stream_gateway import StreamState, gateway
 
@@ -30,7 +33,10 @@ def _status_or_idle(camera_id: str, rtsp_configured: bool) -> StreamStatus:
 
 
 @router.get("", response_model=list[StreamStatus])
-def list_streams(db: Session = Depends(get_db)) -> list[StreamStatus]:
+def list_streams(
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(STREAMS_READ)),
+) -> list[StreamStatus]:
     cameras = list_cameras(db)
     known = {c.camera_id: bool(c.rtsp_url) for c in cameras}
     out: list[StreamStatus] = []
@@ -46,7 +52,11 @@ def list_streams(db: Session = Depends(get_db)) -> list[StreamStatus]:
 
 
 @router.get("/{camera_id}/status", response_model=StreamStatus)
-def stream_status(camera_id: str, db: Session = Depends(get_db)) -> StreamStatus:
+def stream_status(
+    camera_id: str,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(STREAMS_READ)),
+) -> StreamStatus:
     camera = get_camera(db, camera_id)
     if camera is None and gateway.get_worker(camera_id) is None:
         raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
@@ -54,7 +64,11 @@ def stream_status(camera_id: str, db: Session = Depends(get_db)) -> StreamStatus
 
 
 @router.post("/{camera_id}/start", response_model=StreamActionResult)
-def start_stream(camera_id: str, db: Session = Depends(get_db)) -> StreamActionResult:
+def start_stream(
+    camera_id: str,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(CAMERAS_CONTROL)),
+) -> StreamActionResult:
     camera = get_camera(db, camera_id)
     if camera is None:
         raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
@@ -75,7 +89,10 @@ def start_stream(camera_id: str, db: Session = Depends(get_db)) -> StreamActionR
 
 
 @router.post("/{camera_id}/stop", response_model=StreamActionResult)
-def stop_stream(camera_id: str) -> StreamActionResult:
+def stop_stream(
+    camera_id: str,
+    _: Principal = Depends(require_permission(CAMERAS_CONTROL)),
+) -> StreamActionResult:
     snap = gateway.stop(camera_id)
     if snap is None:
         raise HTTPException(status_code=404, detail=f"No active stream for {camera_id}")

@@ -27,3 +27,7 @@ onnxruntime>=1.17
 # Bundled ffmpeg binary fallback when the host has no system ffmpeg.
 imageio-ffmpeg>=0.5.1
 websockets>=12.0
+# --- Auth / RBAC -------------------------------------------------------------
+PyJWT==2.10.1
+bcrypt==4.3.0
+email-validator==2.3.0

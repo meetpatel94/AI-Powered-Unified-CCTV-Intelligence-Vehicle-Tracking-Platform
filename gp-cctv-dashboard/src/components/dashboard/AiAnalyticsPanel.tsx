@@ -1,13 +1,14 @@
 import { Panel, ViewAll } from '@/components/common/Panel';
 import { analyticsBars } from '@/data/mockData';
+import type { AnalyticsBar } from '@/types';
 
 const MAX = 20000;
 const TICKS = [20000, 15000, 10000, 5000, 0];
 
 const formatTick = (v: number) => (v === 0 ? '0' : `${v / 1000}k`);
 
-/** Today's edge-AI detection counts by object class. */
-export function AiAnalyticsPanel() {
+/** Today's edge-AI detection counts by object class (falls back to mock bars). */
+export function AiAnalyticsPanel({ bars = analyticsBars }: { bars?: AnalyticsBar[] }) {
   return (
     <Panel
       title="AI Analytics (Today)"
@@ -34,7 +35,7 @@ export function AiAnalyticsPanel() {
             </div>
 
             <div className="absolute inset-x-0 bottom-[18px] top-[14px] flex items-end justify-around gap-3 px-1">
-              {analyticsBars.map((bar) => {
+              {bars.map((bar) => {
                 const height = `${Math.max(3, (bar.value / MAX) * 100)}%`;
                 return (
                   <div key={bar.id} className="flex h-full flex-1 flex-col justify-end">
@@ -56,7 +57,7 @@ export function AiAnalyticsPanel() {
 
             {/* x axis */}
             <div className="absolute inset-x-0 bottom-0 flex h-[18px] items-center justify-around gap-3 px-1">
-              {analyticsBars.map((bar) => (
+              {bars.map((bar) => (
                 <span key={bar.id} className="flex-1 truncate text-center text-[10.5px] text-[#8ea1c0]">
                   {bar.label}
                 </span>

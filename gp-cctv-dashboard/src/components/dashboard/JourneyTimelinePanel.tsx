@@ -32,15 +32,39 @@ function StopCard({ stop }: { stop: JourneyStop }) {
   );
 }
 
+/** "HH:MM[:SS]" clock strings → minutes between them (handles midnight rollover). */
+function spanMinutesBetween(from: string, to: string): number {
+  const parse = (t: string) => {
+    const [h, m, s] = t.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0) + (s || 0) / 60;
+  };
+  const diff = parse(to) - parse(from);
+  return Math.round(diff < 0 ? diff + 24 * 60 : diff);
+}
+
 /** Chronological camera-to-camera reconstruction of the tracked vehicle's route. */
-export function JourneyTimelinePanel() {
+export function JourneyTimelinePanel({
+  stops = journeyStops,
+  plate = trackedVehicle.plate,
+  spanLabel,
+}: {
+  stops?: JourneyStop[];
+  plate?: string | null;
+  spanLabel?: string | null;
+}) {
+  const first = stops[0];
+  const last = stops[stops.length - 1];
+  const span =
+    spanLabel ??
+    (first && last ? `${spanMinutesBetween(first.time, last.time)}m span` : '—');
+
   return (
     <Panel
       title="Vehicle Journey Timeline"
       tools={
         <span className="text-3xs text-ink-dim">
-          <span className="font-semibold tracking-wide text-[#9fb4d6]">{trackedVehicle.plate}</span> · 4 sightings ·
-          22m 48s
+          <span className="font-semibold tracking-wide text-[#9fb4d6]">{plate ?? '—'}</span> · {stops.length} sighting
+          {stops.length === 1 ? '' : 's'} · {span}
         </span>
       }
       className="h-full"
@@ -51,7 +75,7 @@ export function JourneyTimelinePanel() {
         <div className="absolute left-[12%] right-[38%] top-[9px] h-px border-t border-dashed border-[#2c4468]" />
         <div className="absolute left-[62%] right-[12%] top-[9px] h-px border-t border-dashed border-accent-red/70" />
         <div className="flex h-full items-center justify-around">
-          {journeyStops.map((stop) => (
+          {stops.map((stop) => (
             <span
               key={stop.step}
               className={`tnum relative grid h-[17px] w-[17px] place-items-center rounded-full text-[11px] font-bold text-white ${
@@ -69,7 +93,7 @@ export function JourneyTimelinePanel() {
 
       {/* sighting cards */}
       <div className="flex min-h-0 flex-1 items-stretch gap-2.5">
-        {journeyStops.map((stop) => (
+        {stops.map((stop) => (
           <StopCard key={stop.step} stop={stop} />
         ))}
       </div>

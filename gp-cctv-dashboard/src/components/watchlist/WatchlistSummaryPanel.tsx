@@ -1,22 +1,23 @@
 import { Panel } from '@/components/common/Panel';
 import { watchlistSummary } from '@/data/watchlistData';
+import type { WatchlistSummarySlice } from '@/types/watchlist';
 
 const SIZE = 92;
 const STROKE = 14;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRC = 2 * Math.PI * RADIUS;
 
-/* Precompute dash offsets once at module load (static data, no render mutation). */
-let acc = 0;
-const segments = watchlistSummary.map((slice) => {
-  const offset = acc;
-  acc += (slice.percent / 100) * CIRC;
-  return { ...slice, offset };
-});
-
 /** Right rail bottom: donut split of entries by entity type. */
-export function WatchlistSummaryPanel() {
-  const total = watchlistSummary.reduce((sum, slice) => sum + slice.count, 0);
+export function WatchlistSummaryPanel({ slices = watchlistSummary }: { slices?: WatchlistSummarySlice[] }) {
+  const total = slices.reduce((sum, slice) => sum + slice.count, 0);
+
+  /* Precompute dash offsets per render (live data arrives as new arrays). */
+  const segments = slices.reduce<Array<WatchlistSummarySlice & { offset: number }>>((acc, slice) => {
+    const previous = acc[acc.length - 1];
+    const offset = previous ? previous.offset + (previous.percent / 100) * CIRC : 0;
+    acc.push({ ...slice, offset });
+    return acc;
+  }, []);
 
   return (
     <Panel
@@ -55,7 +56,7 @@ export function WatchlistSummaryPanel() {
       </div>
 
       <ul className="min-w-0 flex-1 space-y-[8px]">
-        {watchlistSummary.map((slice) => (
+        {slices.map((slice) => (
           <li key={slice.id} className="flex items-center gap-2 text-[12px]">
             <span
               className="h-2 w-2 shrink-0 rounded-[2px]"

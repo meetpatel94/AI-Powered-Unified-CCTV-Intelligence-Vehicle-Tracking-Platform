@@ -3,18 +3,26 @@ import { TrendingUp } from 'lucide-react';
 import { Panel } from '@/components/common/Panel';
 import { alertsOverTime } from '@/data/alertsData';
 
-const MAX = 14;
-const TICKS = [14, 10, 6, 2, 0];
-
 /** Bottom row 2: hourly alert volume for the rolling 12 h ending at the reference clock. */
-export function AlertsOverTimePanel() {
-  const points = alertsOverTime.map((point, index) => ({
-    x: (index / (alertsOverTime.length - 1)) * 100,
-    y: 100 - (point.value / MAX) * 100,
+export function AlertsOverTimePanel({
+  series = alertsOverTime,
+  peakLabel,
+}: {
+  series?: Array<{ label: string; value: number }>;
+  peakLabel?: string;
+}) {
+  const data = series.length > 1 ? series : alertsOverTime;
+  const max = Math.max(14, ...data.map((p) => p.value));
+  const step = Math.max(1, Math.round(max / 4));
+  const TICKS = [max, max - step, max - 2 * step, Math.max(1, max - 3 * step), 0];
+  const points = data.map((point, index) => ({
+    x: (index / (data.length - 1)) * 100,
+    y: 100 - (point.value / max) * 100,
   }));
   const line = points.map((p) => `${p.x},${p.y}`).join(' ');
   const area = `0,100 ${line} 100,100`;
-  const last = alertsOverTime[alertsOverTime.length - 1];
+  const last = data[data.length - 1];
+  const peak = data.reduce((a, b) => (b.value > a.value ? b : a), data[0]);
 
   return (
     <Panel
@@ -22,7 +30,7 @@ export function AlertsOverTimePanel() {
       action={
         <span className="flex items-center gap-1 text-3xs text-accent-cyan">
           <TrendingUp size={10} strokeWidth={2.4} />
-          peak 10:00–11:00 · 12 events
+          {peakLabel ?? `peak ${peak.label} · ${peak.value} event${peak.value === 1 ? '' : 's'}`}
         </span>
       }
       className="h-full min-h-0"
@@ -65,8 +73,8 @@ export function AlertsOverTimePanel() {
 
             {points.map((point, index) => (
               <span
-                key={alertsOverTime[index].label}
-                title={`${alertsOverTime[index].value} alerts`}
+                key={data[index].label}
+                title={`${data[index].value} alerts`}
                 className={`absolute h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full ${
                   index === points.length - 1 ? 'bg-white shadow-[0_0_6px_rgba(34,211,238,0.9)]' : 'bg-accent-cyan'
                 }`}
@@ -83,10 +91,10 @@ export function AlertsOverTimePanel() {
           </div>
 
           <div className="absolute inset-x-0 bottom-0 flex h-[16px] items-center justify-between px-0.5">
-            {alertsOverTime.map((point, index) => (
+            {data.map((point, index) => (
               <span
                 key={point.label}
-                className={`text-[9.5px] text-[#8ea1c0] ${index % 2 === 1 && index !== alertsOverTime.length - 1 ? 'opacity-0' : ''}`}
+                className={`text-[9.5px] text-[#8ea1c0] ${index % 2 === 1 && index !== data.length - 1 ? 'opacity-0' : ''}`}
               >
                 {point.label}
               </span>

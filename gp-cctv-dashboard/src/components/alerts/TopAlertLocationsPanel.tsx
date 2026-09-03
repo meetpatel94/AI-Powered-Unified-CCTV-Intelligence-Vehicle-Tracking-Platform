@@ -2,8 +2,8 @@ import { ArrowDown, ArrowUp, Camera, Minus } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
 import { topAlertLocations } from '@/data/alertsData';
+import type { TopAlertLocation } from '@/types/alerts';
 
-const MAX = topAlertLocations[0]?.alerts ?? 1;
 
 const rankTone = [
   'bg-accent-red/15 text-[#ff8b96] ring-accent-red/40',
@@ -15,15 +15,22 @@ const trendIcon = { up: ArrowUp, down: ArrowDown, flat: Minus } as const;
 const trendTone = { up: 'text-accent-red', down: 'text-accent-green', flat: 'text-[#6d7f9e]' } as const;
 
 /** Bottom row 4: camera areas producing the most alerts this morning. */
-export function TopAlertLocationsPanel() {
+export function TopAlertLocationsPanel({
+  locations = topAlertLocations,
+  windowLabel = '06:00–10:46',
+}: {
+  locations?: TopAlertLocation[];
+  windowLabel?: string;
+}) {
+  const MAX = locations[0]?.alerts ?? 1;
   return (
     <Panel
       title="Top Alert Locations"
-      action={<span className="tnum text-3xs text-ink-dim">06:00–10:46</span>}
+      action={<span className="tnum text-3xs text-ink-dim">{windowLabel}</span>}
       className="h-full min-h-0"
       bodyClassName="flex flex-col justify-between gap-px overflow-y-auto px-2 pb-2 pt-0.5"
     >
-      {topAlertLocations.map((location) => {
+      {locations.map((location) => {
         const Trend = trendIcon[location.trend];
         return (
           <div

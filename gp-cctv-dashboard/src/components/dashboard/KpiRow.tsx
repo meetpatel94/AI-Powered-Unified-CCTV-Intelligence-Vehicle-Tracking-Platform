@@ -66,10 +66,10 @@ function KpiCard({ stat }: { stat: KpiStat }) {
   );
 }
 
-export function KpiRow() {
+export function KpiRow({ stats = kpiStats }: { stats?: KpiStat[] }) {
   return (
     <div className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-5">
-      {kpiStats.map((stat) => (
+      {stats.map((stat) => (
         <KpiCard key={stat.id} stat={stat} />
       ))}
     </div>

@@ -1,6 +1,7 @@
 import { ChevronDown, Route, Crosshair } from 'lucide-react';
 
 import { trackedRoute, watchlistVehicles } from '@/data/cameraMapData';
+import type { TrackedVehicleRoute } from '@/types/cameraMap';
 
 interface JourneyPanelProps {
   activePlate: string | null;
@@ -9,6 +10,8 @@ interface JourneyPanelProps {
   onSelectStep: (step: number) => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
+  /** Real route from `/api/gis/vehicles/{plate}/route`; defaults to the mock journey. */
+  route?: TrackedVehicleRoute;
 }
 
 /** Bottom investigation dock: pick a vehicle, replay its camera-to-camera route. */
@@ -19,8 +22,18 @@ export function JourneyPanel({
   onSelectStep,
   collapsed,
   onToggleCollapse,
+  route = trackedRoute,
 }: JourneyPanelProps) {
-  const active = activePlate === trackedRoute.plate;
+  const active = activePlate === route.plate;
+  /** "HH:MM[:SS][ AM]" clock strings → minutes since midnight. */
+  const minutesOf = (time: string) => {
+    const [h = 0, m = 0] = time.replace(/[^\d:]/g, '').split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const span =
+    route.nodes.length > 1
+      ? `${Math.max(1, minutesOf(route.nodes[route.nodes.length - 1].time) - minutesOf(route.nodes[0].time))}m`
+      : '—';
 
   return (
     <div className="pointer-events-auto absolute bottom-[56px] left-3 right-3 z-30 overflow-hidden rounded-md border border-edge bg-[#0a1220]/96 shadow-panel backdrop-blur-sm">
@@ -62,7 +75,7 @@ export function JourneyPanel({
           {active && (
             <span className="flex items-center gap-2 text-[13px] text-ink-dim">
               <span className="tnum">
-                <span className="text-[#c3cfe2]">{trackedRoute.type}</span> · 4 sightings · 22m 48s
+                <span className="text-[#c3cfe2]">{route.type}</span> · {route.nodes.length} sightings · {span}
               </span>
               <span className="flex items-center gap-1 text-[#ff8b96]">
                 <Crosshair size={11} /> watchlist
@@ -89,7 +102,7 @@ export function JourneyPanel({
             </div>
           ) : (
             <div className="flex items-stretch gap-2.5">
-              {trackedRoute.nodes.map((node, index) => {
+              {route.nodes.map((node, index) => {
                 const isActive = activeStep === node.step;
                 return (
                   <div key={node.step} className="flex min-w-0 flex-1 items-stretch gap-2.5">
@@ -138,11 +151,11 @@ export function JourneyPanel({
                       )}
                     </button>
 
-                    {index < trackedRoute.nodes.length - 1 && (
+                    {index < route.nodes.length - 1 && (
                       <span className="flex shrink-0 items-center">
                         <span
                           className={`h-px w-4 ${
-                            trackedRoute.nodes[index + 1].critical ? 'bg-accent-red/70' : 'bg-accent-cyan/50'
+                            route.nodes[index + 1].critical ? 'bg-accent-red/70' : 'bg-accent-cyan/50'
                           }`}
                         />
                       </span>

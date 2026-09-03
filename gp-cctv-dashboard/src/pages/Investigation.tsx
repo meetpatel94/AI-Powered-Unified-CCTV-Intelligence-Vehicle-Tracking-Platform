@@ -39,6 +39,7 @@ import {
   sortSightings,
 } from '@/data/investigationData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
+import { useInvestigationDossier } from '@/hooks/useIntelligence';
 import type {
   Association,
   InvestigationFilters,
@@ -62,9 +63,10 @@ const defaultFilters: InvestigationFilters = {
 /**
  * INVESTIGATION & VEHICLE INTELLIGENCE workspace: target dossier, cross-camera
  * journey reconstruction, sighting history, related events / associations,
- * evidence gallery and the case tooling. Frontend mock data only — every block
- * is fed by a pure selector in `data/investigationData.ts` so the page can be
- * swapped onto ANPR / tracking / GIS / WebSocket services without a rewrite.
+ * evidence gallery and the case tooling. The live dossier streams from
+ * `/api/investigation/{plate}/dossier` (real ANPR sightings, alerts and
+ * watchlist context); mock dossiers render when the backend is unreachable.
+ * Case filing POSTs `/api/investigation/cases` when connected.
  */
 export function Investigation() {
   const navigate = useNavigate();
@@ -108,7 +110,8 @@ export function Investigation() {
     noticeTimer.current = window.setTimeout(() => setNotice(null), 3200);
   }, []);
 
-  const dossier = investigationDossiers[targetPlate];
+  const mockDossier = investigationDossiers[targetPlate] ?? investigationDossiers[defaultTargetPlate];
+  const { dossier, live: dossierLive, createCase } = useInvestigationDossier(targetPlate, mockDossier);
 
   /* ---------------- derived intelligence ---------------- */
 
@@ -191,22 +194,24 @@ export function Investigation() {
   const selectTarget = useCallback(
     (nextPlate: string, message: string) => {
       const next = investigationDossiers[nextPlate];
-      if (!next) {
+      // Mock dossiers are always loadable; any other plate needs the live
+      // investigation service to be reachable.
+      if (!next && !dossierLive) {
         flash(`No dossier indexed for ${nextPlate.toUpperCase()} in this window`);
         return;
       }
       setTargetPlate(nextPlate);
       setPlate(nextPlate);
-      setStatus(next.status);
+      setStatus(next?.status ?? 'active');
       setCaseRef(null);
       setAcknowledged([]);
       setSightingQuery(defaultSightingQuery);
       setEvidenceFilter('all');
-      setActiveStep(primaryRoute(next.sightings).at(-1)?.journeyStep ?? null);
+      setActiveStep(next ? primaryRoute(next.sightings).at(-1)?.journeyStep ?? null : null);
       setFrameToken((token) => token + 1);
       flash(message);
     },
-    [flash],
+    [flash, dossierLive],
   );
 
   const handleSearch = () => {
@@ -219,6 +224,10 @@ export function Investigation() {
     );
     if (mode === 'vehicle' && exact) {
       selectTarget(exact, `Dossier loaded · ${exact} · ${investigationDossiers[exact].sightings.length} sightings reconstructed`);
+      return;
+    }
+    if (mode === 'vehicle' && dossierLive && value) {
+      selectTarget(value.toUpperCase(), `Dossier loaded · ${value.toUpperCase()} · live ANPR reconstruction`);
       return;
     }
     const candidate = candidates[0];
@@ -316,16 +325,29 @@ export function Investigation() {
     flash(`Evidence manifest exported · ${evidence.length} frames`);
   };
 
-  /*
-   * Mock filing. Once the case service exists this becomes
-   * `api.createInvestigationCase(plate, { investigationId: dossier.caseId, ...input })`
-   * — `NewCaseInput` is already that request body.
-   */
   const handleCreateCase = (input: NewCaseInput) => {
     const ref = nextCaseRef(caseRef);
     setCaseRef(ref);
     setStatus('escalated');
     setCaseOpen(false);
+    if (dossierLive) {
+      // Real filing: POST /api/investigation/cases (evidence ids are numeric).
+      void createCase({
+        subject_plate: dossier.target.plate,
+        title: input.title,
+        priority: input.priority,
+        notes: [input.offence, input.fir ? `FIR ${input.fir}` : null, input.notes].filter(Boolean).join(' · '),
+        officer: input.officer || null,
+        evidence_ids: input.evidenceIds.map(Number).filter((id) => Number.isFinite(id)),
+      })
+        .then((created) =>
+          flash(
+            `${created.case_number} filed · ${input.priority} priority · ${created.evidence_ids.length} evidence frames attached`,
+          ),
+        )
+        .catch(() => flash(`${ref} saved locally — case service unreachable`));
+      return;
+    }
     flash(`${ref} created · ${input.priority} priority · ${input.evidenceIds.length} evidence frames attached`);
   };
 

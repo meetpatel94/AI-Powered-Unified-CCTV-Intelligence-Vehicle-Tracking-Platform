@@ -66,7 +66,7 @@ function AlertRow({ alert }: { alert: AlertItem }) {
   );
 }
 
-export function RecentAlertsPanel() {
+export function RecentAlertsPanel({ alerts = recentAlerts }: { alerts?: AlertItem[] }) {
   return (
     <Panel
       title="Recent Alerts"
@@ -74,7 +74,7 @@ export function RecentAlertsPanel() {
       className="h-full min-h-0"
       bodyClassName="flex flex-col justify-between gap-1.5 overflow-y-auto px-2 pb-2 pt-0.5"
     >
-      {recentAlerts.map((alert) => (
+      {alerts.map((alert) => (
         <AlertRow key={alert.id} alert={alert} />
       ))}
     </Panel>

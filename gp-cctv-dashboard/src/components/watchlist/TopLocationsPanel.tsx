@@ -2,8 +2,8 @@ import { ArrowDown, ArrowUp, MapPin, Minus } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
 import { topLocations } from '@/data/watchlistData';
+import type { TopLocation } from '@/types/watchlist';
 
-const MAX = topLocations[0]?.matches ?? 1;
 
 const rankTone = [
   'bg-accent-red/15 text-[#ff8b96] ring-accent-red/40',
@@ -15,15 +15,22 @@ const trendIcon = { up: ArrowUp, down: ArrowDown, flat: Minus } as const;
 const trendTone = { up: 'text-accent-green', down: 'text-accent-red', flat: 'text-[#6d7f9e]' } as const;
 
 /** Bottom row right: ranked list of cameras/areas producing the most matches. */
-export function TopLocationsPanel() {
+export function TopLocationsPanel({
+  locations = topLocations,
+  windowLabel = 'this month',
+}: {
+  locations?: TopLocation[];
+  windowLabel?: string;
+}) {
+  const MAX = locations[0]?.matches ?? 1;
   return (
     <Panel
       title="Top Matched Locations"
-      action={<span className="tnum text-3xs text-ink-dim">this month</span>}
+      action={<span className="tnum text-3xs text-ink-dim">{windowLabel}</span>}
       className="h-full min-h-0"
       bodyClassName="flex flex-col justify-between gap-1 overflow-y-auto px-2 pb-2 pt-1"
     >
-      {topLocations.map((location) => {
+      {locations.map((location) => {
         const Trend = trendIcon[location.trend];
         return (
           <div
