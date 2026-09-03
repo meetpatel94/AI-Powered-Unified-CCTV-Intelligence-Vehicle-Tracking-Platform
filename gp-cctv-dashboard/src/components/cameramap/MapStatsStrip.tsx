@@ -2,13 +2,21 @@ import { AlertTriangle, Camera, CircleSlash, SignalHigh, TriangleAlert } from 'l
 
 import { fleetStats, legendItems } from '@/data/cameraMapData';
 
+export interface MapFleetStats {
+  total: string;
+  online: { value: string; pct: string };
+  offline: { value: string; pct: string };
+  warning: { value: string; pct: string };
+  activeAlerts: number;
+}
+
 /** Compact fleet counters that sit above the map canvas. */
-export function MapStatsStrip() {
+export function MapStatsStrip({ stats = fleetStats }: { stats?: MapFleetStats }) {
   const items = [
     {
       id: 'total',
       label: 'Total Cameras',
-      value: fleetStats.total,
+      value: stats.total,
       sub: 'statewide',
       color: '#7db4ff',
       icon: Camera,
@@ -16,31 +24,31 @@ export function MapStatsStrip() {
     {
       id: 'online',
       label: 'Online',
-      value: fleetStats.online.value,
-      sub: fleetStats.online.pct,
+      value: stats.online.value,
+      sub: stats.online.pct,
       color: '#22c55e',
       icon: SignalHigh,
     },
     {
       id: 'offline',
       label: 'Offline',
-      value: fleetStats.offline.value,
-      sub: fleetStats.offline.pct,
+      value: stats.offline.value,
+      sub: stats.offline.pct,
       color: '#ef4444',
       icon: CircleSlash,
     },
     {
       id: 'warning',
       label: 'Warning / Poor Signal',
-      value: fleetStats.warning.value,
-      sub: fleetStats.warning.pct,
+      value: stats.warning.value,
+      sub: stats.warning.pct,
       color: '#f59e0b',
       icon: TriangleAlert,
     },
     {
       id: 'alerts',
       label: 'Active Alerts',
-      value: String(fleetStats.activeAlerts),
+      value: String(stats.activeAlerts),
       sub: 'live',
       color: '#f87171',
       icon: AlertTriangle,

@@ -32,9 +32,10 @@ import {
   statusCounts,
   streamQualitySeries,
 } from '@/data/cameraHealthData';
-import { restartCameraStream } from '@/services/api';
+import { api } from '@/services/api';
 import { useTelemetryTick } from '@/hooks/useTelemetryTick';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
+import { useCameraHealthFleet } from '@/hooks/useIntelligence';
 
 import type { CriticalCamera, HealthCamera, HealthEvaluation, HealthFilters, HealthSettings, HealthSortKey, SortDir } from '@/types/cameraHealth';
 
@@ -46,13 +47,13 @@ const DEFAULT_CAMERA = 'C-001';
  * stream-quality analytics, status distribution, location ranking, critical
  * feeds and the health-event timeline.
  *
- * Frontend mock data only — every derived number comes from
- * `data/cameraHealthData.ts`. The seams for the real system are:
- *   · `liveCamera(camera, tick)`  → replace with `camera:health` WebSocket frames
- *   · `services/api.ts`           → `getCameraHealthDetail`, `restartCameraStream`
- *   · `evaluateCamera()`          → unchanged; it is pure over the thresholds
+ * Live fleet state streams from `/api/cameras/health` (WS `camera:health`
+ * refresh, 10 s poll) and is mapped onto the console's `HealthCamera`
+ * records; the mock set + telemetry drift is the offline fallback.
+ * `evaluateCamera()` is unchanged — it is pure over the thresholds.
  */
 export function CameraHealth() {
+  const fleet = useCameraHealthFleet();
   const [settings, setSettings] = useState<HealthSettings>(defaultHealthSettings);
   const [filters, setFilters] = useState<HealthFilters>(defaultHealthFilters);
   const [sortKey, setSortKey] = useState<HealthSortKey>('status');
@@ -85,16 +86,21 @@ export function CameraHealth() {
 
   /* ---------------- derived telemetry ---------------- */
 
-  const cameras: HealthCamera[] = useMemo(
-    () =>
-      healthCameras.map((camera) => {
-        const drifted = liveCamera(camera, tick);
+  const cameras: HealthCamera[] = useMemo(() => {
+    if (fleet.live && fleet.cameras) {
+      return fleet.cameras.map((camera) => {
         const override = overrides[camera.id];
-        if (!override) return drifted;
-        return { ...drifted, ...override, ai: override.ai ? { ...drifted.ai, ...override.ai } : drifted.ai };
-      }),
-    [tick, overrides],
-  );
+        if (!override) return camera;
+        return { ...camera, ...override, ai: override.ai ? { ...camera.ai, ...override.ai } : camera.ai };
+      });
+    }
+    return healthCameras.map((camera) => {
+      const drifted = liveCamera(camera, tick);
+      const override = overrides[camera.id];
+      if (!override) return drifted;
+      return { ...drifted, ...override, ai: override.ai ? { ...drifted.ai, ...override.ai } : drifted.ai };
+    });
+  }, [fleet.live, fleet.cameras, tick, overrides]);
 
   const evaluations = useMemo(
     () =>
@@ -133,6 +139,7 @@ export function CameraHealth() {
 
   const handleRefresh = () => {
     setRefreshing(true);
+    fleet.refresh();
     window.setTimeout(() => setRefreshing(false), 700);
     flash(`Health poll complete · ${readout.monitored} feeds · ${readout.attention} flagged · ${clock}`);
   };
@@ -162,8 +169,8 @@ export function CameraHealth() {
     const camera = cameras.find((item) => item.id === id);
     if (!camera || busyId) return;
     setBusyId(id);
-    // Stand-in for `POST /cameras/:id/stream/restart` (see services/api.ts).
-    void restartCameraStream(id);
+    // Real control-plane call: POST /api/cameras/:id/stream/restart.
+    void api.restartCameraStreamReal(id).catch(() => undefined);
     busyTimer.current = window.setTimeout(() => {
       setBusyId(null);
       // Offline feeds come back as "reconnecting", a retrying feed goes live,
@@ -271,7 +278,7 @@ export function CameraHealth() {
             settings={settings}
             selectedId={selectedId}
             onSelect={setSelectedId}
-            fleetTotal={fleetHealth.total}
+            fleetTotal={fleet.live ? cameras.length : fleetHealth.total}
             shown={sorted.length}
           />
         </div>
@@ -296,7 +303,29 @@ export function CameraHealth() {
         className="responsive-band min-h-[340px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[30fr_34fr_36fr]"
       >
         <div className="min-w-0">
-          <StatusDistributionPanel fleet={fleetHealth} active={filters.status} onSelect={(id) => patchFilters({ status: id as HealthFilters['status'] })} />
+          <StatusDistributionPanel
+          fleet={
+            fleet.live
+              ? {
+                  total: cameras.length,
+                  online: counts.online,
+                  offline: counts.offline,
+                  poor: counts.poor,
+                  reconnecting: counts.reconnecting,
+                  critical: counts.critical,
+                  avgLatencyMs: Math.round(
+                    cameras.filter((c) => c.latencyMs > 0).reduce((sum, c) => sum + c.latencyMs, 0) /
+                      Math.max(1, cameras.filter((c) => c.latencyMs > 0).length),
+                  ),
+                  avgFps: Number((cameras.reduce((sum, c) => sum + c.fps, 0) / Math.max(1, cameras.length)).toFixed(1)),
+                  ingestMbps: Number(cameras.reduce((sum, c) => sum + c.bitrateMbps, 0).toFixed(1)),
+                  anprReadsToday: cameras.filter((c) => c.ai.anprActive).length,
+                }
+              : fleetHealth
+          }
+          active={filters.status}
+          onSelect={(id) => patchFilters({ status: id as HealthFilters['status'] })}
+        />
         </div>
         <div className="min-w-0">
           <HealthByLocationPanel rows={locations} onDrill={(area) => patchFilters({ query: area })} />
@@ -307,7 +336,11 @@ export function CameraHealth() {
       </div>
 
       <div className="flex min-h-[320px] shrink-0 flex-col [&>*]:flex-1">
-        <RecentHealthEventsPanel events={healthEvents} onSelectCamera={setSelectedId} selectedId={selectedId} />
+        <RecentHealthEventsPanel
+          events={fleet.live && fleet.events ? fleet.events : healthEvents}
+          onSelectCamera={setSelectedId}
+          selectedId={selectedId}
+        />
       </div>
 
       {/* transient operator feedback */}

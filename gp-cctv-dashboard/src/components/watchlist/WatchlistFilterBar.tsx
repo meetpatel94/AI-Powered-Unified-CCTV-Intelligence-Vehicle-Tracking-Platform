@@ -1,6 +1,7 @@
 import { ArrowUpDown, LayoutGrid, List, Search } from 'lucide-react';
 
 import { watchlistCategories } from '@/data/watchlistData';
+import type { WatchlistCategory } from '@/types/watchlist';
 
 export type EntryViewMode = 'grid' | 'list';
 export type EntrySortMode = 'recent' | 'matches' | 'lastmatch' | 'name';
@@ -16,6 +17,7 @@ interface WatchlistFilterBarProps {
   onSort: (value: EntrySortMode) => void;
   view: EntryViewMode;
   onView: (mode: EntryViewMode) => void;
+  categories?: WatchlistCategory[];
 }
 
 const selectCls =
@@ -23,6 +25,7 @@ const selectCls =
 
 /** Filter strip: watchlist + type selects, search, sort and grid/list toggle. */
 export function WatchlistFilterBar({
+  categories = watchlistCategories,
   categoryFilter,
   onCategoryFilter,
   typeFilter,
@@ -38,7 +41,7 @@ export function WatchlistFilterBar({
     <div className="flex shrink-0 flex-wrap items-center gap-2 rounded-md border border-edge bg-panel px-2.5 py-2">
       <select value={categoryFilter} onChange={(e) => onCategoryFilter(e.target.value)} className={`${selectCls} w-[150px]`}>
         <option value="all">All Watchlists</option>
-        {watchlistCategories.map((category) => (
+        {categories.map((category) => (
           <option key={category.id} value={category.id}>
             {category.name}
           </option>

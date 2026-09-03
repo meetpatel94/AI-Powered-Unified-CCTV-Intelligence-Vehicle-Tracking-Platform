@@ -2,7 +2,7 @@ import { MoreHorizontal } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
 import { watchlistCategories } from '@/data/watchlistData';
-import type { CategoryTone } from '@/types/watchlist';
+import type { CategoryTone, WatchlistCategory } from '@/types/watchlist';
 
 const toneIcon: Record<CategoryTone, string> = {
   red: 'bg-accent-red/10 text-accent-red ring-accent-red/35',
@@ -18,19 +18,24 @@ const typeLabel: Record<string, string> = { vehicle: 'Vehicle', person: 'Person'
 interface WatchlistCategoriesPanelProps {
   activeCategory: string;
   onSelectCategory: (id: string) => void;
+  categories?: WatchlistCategory[];
+  totalEntries?: number;
 }
 
 /** Left column: dense category table; clicking a row filters the entry grid. */
 export function WatchlistCategoriesPanel({
   activeCategory,
   onSelectCategory,
+  categories = watchlistCategories,
+  totalEntries,
 }: WatchlistCategoriesPanelProps) {
+  const total = totalEntries ?? categories.reduce((sum, category) => sum + category.entries, 0);
   return (
     <Panel
       title="Watchlist Categories"
       action={
         <span className="tnum text-3xs text-ink-dim">
-          {watchlistCategories.length} lists · 248 entries
+          {categories.length} lists · {total} entries
         </span>
       }
       className="h-full min-h-0"
@@ -45,7 +50,7 @@ export function WatchlistCategoriesPanel({
       </div>
 
       <div className="flex flex-1 flex-col gap-[3px]">
-        {watchlistCategories.map((category) => {
+        {categories.map((category) => {
           const active = activeCategory === category.id;
           const Icon = category.icon;
           return (

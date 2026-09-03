@@ -16,7 +16,6 @@ handled gracefully: the worker logs and keeps polling.
 
 from __future__ import annotations
 
-import os
 import threading
 import time
 from datetime import datetime, timezone
@@ -27,6 +26,10 @@ import structlog
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
+from app.models.vehicle import AnprSighting
+from app.services import alerts as alerts_service
+from app.services import evidence as evidence_service
+from app.services import watchlist as watchlist_service
 from app.services.events import publish
 from app.services.stream_gateway import StreamState, gateway
 from app.services.vehicle_intel import record_anpr_sighting, upsert_track
@@ -270,7 +273,6 @@ class PipelineWorker:
 
                 if plate_read is not None:
                     self.anpr_reads += 1
-                    evidence_path = self._save_evidence(frame, det, plate_read.plate, seen_at)
                     try:
                         result = record_anpr_sighting(
                             db,
@@ -284,7 +286,6 @@ class PipelineWorker:
                             track_id=det.track_id,
                             bbox=(det.x, det.y, det.w, det.h),
                             pts_ms=pts_ms,
-                            evidence_path=evidence_path,
                         )
                         db.commit()
                     except Exception:
@@ -293,6 +294,10 @@ class PipelineWorker:
                         result = None
 
                     if result is not None:
+                        # Evidence Snapshot: one JPEG crop of the vehicle,
+                        # referenced to the persisted sighting. No video.
+                        evidence = self._capture_evidence(db, frame, det, result, seen_at)
+
                         publish(
                             "anpr:hit",
                             {
@@ -304,6 +309,8 @@ class PipelineWorker:
                                 "track_id": result["track_id"],
                                 "location_name": result["location_name"],
                                 "evidence_path": result["evidence_path"],
+                                "evidence_id": evidence.id if evidence else None,
+                                "evidence_url": f"/api/evidence/{evidence.id}/image" if evidence else None,
                                 "timestamp": result["seen_at"],
                             },
                         )
@@ -316,6 +323,14 @@ class PipelineWorker:
                                     **result["journey"],
                                 },
                             )
+                            journey_info = result["journey"]
+                            if journey_info.get("anomaly"):
+                                self._raise_journey_anomaly(db, result, journey_info)
+
+                        # Watchlist matching + Real-Time Alert Engine. Only
+                        # genuine (persisted) sightings reach this point.
+                        self._process_watchlist(db, result, jpeg, seen_at)
+
                         # Tag the track with the plate for cross-linking.
                         if det.track_id is not None:
                             try:
@@ -371,23 +386,105 @@ class PipelineWorker:
             return None
         return frame[y1:y2, x1:x2].copy()
 
-    def _save_evidence(self, frame, det, plate: str, seen_at: datetime) -> str | None:
-        if not self.settings.evidence_frames_enabled or not _CV2:
+    def _capture_evidence(self, db, frame, det, result: dict, seen_at: datetime):
+        """Store one JPEG crop of the detected vehicle for the ANPR hit."""
+        if not self.settings.evidence_frames_enabled:
             return None
-        crop = self._crop(frame, det)
-        if crop is None:
-            return None
+        snapshot = evidence_service.capture_crop_evidence(
+            db,
+            event_type="anpr_sighting",
+            event_id=str(result["sighting_id"]),
+            camera_id=self.camera_id,
+            frame=frame,
+            bbox=(det.x, det.y, det.w, det.h),
+            plate=result["plate"],
+            captured_at=seen_at,
+            commit=False,
+        )
+        if snapshot is not None:
+            try:
+                sighting = db.get(AnprSighting, result["sighting_id"])
+                if sighting is not None:
+                    sighting.evidence_path = snapshot.file_path
+                db.commit()
+            except Exception:
+                db.rollback()
+                logger.exception("pipeline.evidence_link_failed", camera_id=self.camera_id)
+        return snapshot
+
+    def _process_watchlist(self, db, result: dict, jpeg: bytes, seen_at: datetime) -> None:
+        """Watchlist match + alert pipeline for one genuine ANPR hit.
+
+        Creates exactly one match event (watchlist service enforces uniqueness
+        per sighting+entry), optionally captures a full live-frame evidence
+        snapshot, raises one alert (with duplicate suppression) and publishes a
+        single ``watchlist:match`` WebSocket frame.
+        """
         try:
-            base = self.settings.evidence_frames_dir
-            os.makedirs(base, exist_ok=True)
-            ts = seen_at.strftime("%Y%m%d_%H%M%S_%f")
-            fname = f"{self.camera_id}_{plate}_{ts}.jpg"
-            path = os.path.join(base, fname)
-            cv2.imwrite(path, crop, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-            return path
+            matched = watchlist_service.process_anpr_hit(db, result)
         except Exception:
-            logger.debug("pipeline.evidence_save_failed", camera_id=self.camera_id)
-            return None
+            db.rollback()
+            logger.exception("pipeline.watchlist_failed", camera_id=self.camera_id)
+            return
+        if matched is None:
+            return
+        match, entry = matched
+
+        # Full live-frame evidence snapshot from the current buffer (a single
+        # JPEG still — never video).
+        evidence_id = None
+        if self.settings.evidence_frames_enabled and self.settings.evidence_capture_on_watchlist and jpeg:
+            snapshot = evidence_service.capture_evidence(
+                db,
+                event_type="watchlist_match",
+                event_id=str(match.id),
+                camera_id=self.camera_id,
+                jpeg=jpeg,
+                plate=match.plate,
+                captured_at=seen_at,
+                note="full live frame",
+                commit=False,
+            )
+            if snapshot is not None:
+                match.evidence_id = snapshot.id
+                evidence_id = snapshot.id
+                db.commit()
+
+        # Real-Time Alert Engine: confirmed match → alert (suppressed when a
+        # recent unresolved alert for the same entry+camera exists).
+        try:
+            alerts_service.raise_watchlist_alert(db, match, entry=entry, evidence_id=evidence_id)
+        except Exception:
+            db.rollback()
+            logger.exception("pipeline.alert_failed", camera_id=self.camera_id)
+
+        publish(
+            "watchlist:match",
+            watchlist_service.match_dict(match, entry=entry),
+        )
+
+    def _raise_journey_anomaly(self, db, result: dict, journey_info: dict) -> None:
+        """Flag an impossible-travel interval computed by the journey builder."""
+        try:
+            alerts_service.create_alert(
+                db,
+                type="JOURNEY_ANOMALY",
+                severity="medium",
+                message=(
+                    f"Journey anomaly for {result['plate']}: {journey_info.get('anomaly_reason') or 'impossible travel interval'} "
+                    f"after {journey_info.get('camera_id')}"
+                ),
+                source_type="journey",
+                dedupe_key=f"journey:{result['plate']}:{journey_info.get('journey_id')}:{journey_info.get('sequence')}",
+                plate=result["plate"],
+                camera_id=journey_info.get("camera_id") or self.camera_id,
+                location_name=result.get("location_name"),
+                source_ref=f"journey:{result['plate']}:{journey_info.get('journey_id')}",
+                suppress_window_seconds=0,
+            )
+        except Exception:
+            db.rollback()
+            logger.exception("pipeline.journey_alert_failed", camera_id=self.camera_id)
 
 
 class PipelineManager:

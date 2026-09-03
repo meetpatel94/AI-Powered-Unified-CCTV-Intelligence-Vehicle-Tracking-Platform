@@ -20,6 +20,7 @@ import {
   urbanBlocks,
 } from '@/data/mapData';
 import { mapAlert } from '@/data/mockData';
+import type { MapCamera } from '@/types';
 
 const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 
@@ -49,7 +50,7 @@ function MapControlButton({
 }
 
 /** Dark GIS basemap with camera fleet, tracked vehicle route and live alert popup. */
-export function GisCameraMapPanel() {
+export function GisCameraMapPanel({ cameras = mapCameras }: { cameras?: MapCamera[] }) {
   return (
     <Panel
       title="GIS Camera Map"
@@ -176,7 +177,7 @@ export function GisCameraMapPanel() {
         ))}
 
         {/* ---------------- camera markers ---------------- */}
-        {mapCameras.map((cam) => {
+        {cameras.map((cam) => {
           const warning = cam.state === 'warning';
           return (
             <div

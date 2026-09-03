@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { BellRing, Car, CarFront, Gauge, Layers, Package, ShieldAlert, Siren, UserRound, UserSearch, UsersRound } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { AddWatchlistModal, type NewWatchlistInput } from '@/components/watchlist/AddWatchlistModal';
 import { EntryDrawer } from '@/components/watchlist/EntryDrawer';
@@ -13,14 +14,28 @@ import { WatchlistHeader } from '@/components/watchlist/WatchlistHeader';
 import { WatchlistKpiRow } from '@/components/watchlist/WatchlistKpiRow';
 import { WatchlistSummaryPanel } from '@/components/watchlist/WatchlistSummaryPanel';
 import { watchlistEntries } from '@/data/watchlistData';
+import { mapWatchlistEntry, useWatchlistAlerts, useWatchlistConsole } from '@/hooks/useIntelligence';
 import type { WatchlistEntry } from '@/types/watchlist';
 
 /**
  * WATCHLIST MANAGEMENT screen: KPI strip, filter bar, three-column body
  * (categories / entries / alerts+summary) and the analytics bottom row.
+ * Entries stream from `/api/watchlist` (WS `watchlist:match` refresh); CRUD
+ * POSTs/PATCHes the backend with local optimistic fallback offline.
  */
 export function Watchlist() {
+  const intel = useWatchlistConsole();
+  const wlAlerts = useWatchlistAlerts(200);
   const [entries, setEntries] = useState<WatchlistEntry[]>(watchlistEntries);
+  const [liveMode, setLiveMode] = useState(false);
+
+  // Adopt backend entries whenever the console pulls a fresh page.
+  useEffect(() => {
+    if (intel.live && intel.entries) {
+      setLiveMode(true);
+      setEntries(intel.entries);
+    }
+  }, [intel.entries, intel.live]);
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [query, setQuery] = useState('');
@@ -112,6 +127,22 @@ export function Watchlist() {
   };
 
   const handleCreate = (input: NewWatchlistInput) => {
+    // Persist to the backend when reachable; local-only otherwise.
+    void intel
+      .create({
+        plate: input.type === 'vehicle' ? input.label : null,
+        entry_type: input.type,
+        label: input.label,
+        alias: input.alias ?? null,
+        details: input.details,
+        category: input.categoryId,
+        priority: input.priority,
+      })
+      .then((dto) => {
+        setEntries((prev) => [mapWatchlistEntry(dto), ...prev.filter((e) => e.id !== String(dto.id))]);
+      })
+      .catch(() => undefined);
+
     const entry: WatchlistEntry = {
       id: `wl-${Date.now()}`,
       type: input.type,
@@ -135,6 +166,147 @@ export function Watchlist() {
     flash(`${entry.label} added to watchlist`);
   };
 
+  /* ---- live-derived panel data (mock fallbacks below) ---- */
+  const liveCategories = useMemo(() => {
+    if (!liveMode || !intel.stats) return undefined;
+    const barsByCategory = new Map<string, number>();
+    (wlAlerts ?? []).forEach((alert) => {
+      if (alert.category) barsByCategory.set(alert.category, (barsByCategory.get(alert.category) ?? 0) + 1);
+    });
+    const meta: Record<string, { name: string; tone: 'red' | 'orange' | 'purple' | 'blue' | 'green' | 'cyan'; icon: typeof ShieldAlert }> = {
+      stolen: { name: 'Stolen Vehicles', tone: 'orange', icon: Car },
+      wanted: { name: 'Wanted Persons', tone: 'purple', icon: UserSearch },
+      suspect: { name: 'Suspect Vehicles', tone: 'blue', icon: CarFront },
+      missing: { name: 'Missing Persons', tone: 'cyan', icon: UserRound },
+      traffic: { name: 'Traffic Violators', tone: 'green', icon: Gauge },
+      security: { name: 'Security / Sensitive', tone: 'red', icon: Siren },
+      others: { name: 'Others', tone: 'cyan', icon: Package },
+    };
+    return Object.entries(intel.stats.by_category)
+      .filter(([, count]) => count > 0)
+      .sort((a, b) => b[1] - a[1])
+      .map(([id, count]) => ({
+        id,
+        name: meta[id]?.name ?? id.replaceAll('_', ' '),
+        type: id === 'wanted' || id === 'missing' ? ('person' as const) : ('vehicle' as const),
+        entries: count,
+        activeAlerts: barsByCategory.get(id) ?? 0,
+        updated: 'live',
+        tone: meta[id]?.tone ?? ('cyan' as const),
+        icon: meta[id]?.icon ?? Package,
+      }));
+  }, [liveMode, intel.stats, wlAlerts]);
+
+  const kpis = useMemo(() => {
+    if (!liveMode || !intel.stats) return undefined;
+    const vehicles = entries.filter((entry) => entry.type === 'vehicle').length;
+    const persons = entries.filter((entry) => entry.type === 'person').length;
+    const others = Math.max(0, entries.length - vehicles - persons);
+    const activeAlerts = (wlAlerts ?? []).filter((alert) => alert.severity === 'critical' || alert.severity === 'high').length;
+    return [
+      {
+        id: 'total',
+        label: 'Total Watchlist Entries',
+        value: String(intel.stats.total_entries),
+        footnote: `${intel.stats.active_entries} active · ${intel.stats.matches} matches (7d)`,
+        tone: 'blue' as const,
+        icon: Layers,
+      },
+      {
+        id: 'alerts',
+        label: 'Watchlist Alerts',
+        value: String((wlAlerts ?? []).length),
+        footnote: `${activeAlerts} high/critical need review`,
+        tone: 'red' as const,
+        icon: BellRing,
+      },
+      {
+        id: 'vehicles',
+        label: 'Vehicles',
+        value: String(vehicles),
+        footnote: intel.stats.total_entries > 0 ? `${Math.round((vehicles / intel.stats.total_entries) * 100)}% of all entries` : '—',
+        tone: 'green' as const,
+        icon: CarFront,
+      },
+      {
+        id: 'persons',
+        label: 'Persons',
+        value: String(persons),
+        footnote: intel.stats.total_entries > 0 ? `${Math.round((persons / intel.stats.total_entries) * 100)}% of all entries` : '—',
+        tone: 'purple' as const,
+        icon: UsersRound,
+      },
+      {
+        id: 'other',
+        label: 'Other Entities',
+        value: String(others),
+        footnote: intel.stats.total_entries > 0 ? `${Math.round((others / Math.max(1, intel.stats.total_entries)) * 100)}% of all entries` : '—',
+        tone: 'orange' as const,
+        icon: Package,
+      },
+    ];
+  }, [liveMode, intel.stats, entries, wlAlerts]);
+
+  const summarySlices = useMemo(() => {
+    if (!liveMode) return undefined;
+    const vehicles = entries.filter((entry) => entry.type === 'vehicle').length;
+    const persons = entries.filter((entry) => entry.type === 'person').length;
+    const others = Math.max(0, entries.length - vehicles - persons);
+    const total = Math.max(1, vehicles + persons + others);
+    return [
+      { id: 'vehicles', label: 'Vehicles', count: vehicles, percent: Math.round((vehicles / total) * 100), color: '#2f7dff' },
+      { id: 'persons', label: 'Persons', count: persons, percent: Math.round((persons / total) * 100), color: '#a855f7' },
+      { id: 'others', label: 'Others', count: others, percent: Math.round((others / total) * 100), color: '#22d3ee' },
+    ].filter((slice) => slice.count > 0);
+  }, [liveMode, entries]);
+
+  const liveBars = useMemo(() => {
+    if (!liveMode) return undefined;
+    const counts = new Map<string, number>();
+    (wlAlerts ?? []).forEach((alert) => {
+      const key = alert.category ?? 'others';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    });
+    const palette: Record<string, string> = {
+      stolen: '#f59e0b',
+      wanted: '#a855f7',
+      suspect: '#2f7dff',
+      missing: '#22d3ee',
+      traffic: '#22c55e',
+      security: '#ef4444',
+      others: '#22d3ee',
+    };
+    const rows = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 7);
+    return rows.map(([id, value]) => ({
+      id,
+      label: id.charAt(0).toUpperCase() + id.slice(1, 7),
+      value,
+      color: palette[id] ?? '#2f7dff',
+    }));
+  }, [liveMode, wlAlerts]);
+
+  const liveMatches = useMemo(() => {
+    if (!liveMode || !intel.stats) return undefined;
+    return intel.stats.matches_timeseries.map((point) => ({ day: point.day.slice(8), value: point.matches }));
+  }, [liveMode, intel.stats]);
+
+  const liveTopLocations = useMemo(() => {
+    if (!liveMode || !intel.stats) return undefined;
+    return intel.stats.top_match_locations.slice(0, 8).map((row, index) => {
+      const [name, city = 'Gujarat'] = (row.location_name ?? row.camera_id).split(',').map((part) => part.trim());
+      return {
+        id: `top-${index}`,
+        rank: index + 1,
+        name,
+        city,
+        matches: row.matches,
+        trend: 'flat' as const,
+      };
+    });
+  }, [liveMode, intel.stats]);
+
+  const railAlerts = liveMode ? (wlAlerts ?? []).slice(0, 6) : undefined;
+
   return (
     <div className="page">
       <WatchlistHeader
@@ -145,7 +317,7 @@ export function Watchlist() {
         onImportFile={handleImportFile}
       />
 
-      <WatchlistKpiRow />
+      <WatchlistKpiRow kpis={kpis} />
 
       {filtersVisible ? (
         <WatchlistFilterBar
@@ -159,6 +331,7 @@ export function Watchlist() {
           onSort={setSort}
           view={view}
           onView={setView}
+          categories={liveCategories}
         />
       ) : null}
 
@@ -167,7 +340,11 @@ export function Watchlist() {
         className="responsive-band responsive-band-main grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(290px,26fr)_minmax(0,1fr)_minmax(310px,310px)]"
       >
         <div className="min-w-0">
-          <WatchlistCategoriesPanel activeCategory={categoryFilter} onSelectCategory={setCategoryFilter} />
+          <WatchlistCategoriesPanel
+            activeCategory={categoryFilter}
+            onSelectCategory={setCategoryFilter}
+            categories={liveCategories}
+          />
         </div>
 
         <div className="min-w-0">
@@ -176,10 +353,10 @@ export function Watchlist() {
 
         <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] sm:grid-cols-2 md:col-span-2 xl:flex xl:flex-col xl:col-span-1">
           <div className="min-h-0 min-w-0 xl:flex-1">
-            <WatchlistAlertsPanel />
+            <WatchlistAlertsPanel alerts={railAlerts} />
           </div>
           <div className="min-w-0 sm:col-span-2 xl:col-span-1">
-            <WatchlistSummaryPanel />
+            <WatchlistSummaryPanel slices={summarySlices} />
           </div>
         </div>
       </div>
@@ -189,13 +366,13 @@ export function Watchlist() {
         className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[33fr_40fr_27fr]"
       >
         <div className="min-w-0">
-          <AlertsByWatchlistPanel />
+          <AlertsByWatchlistPanel bars={liveBars} windowLabel={liveBars ? `last 24 hrs · ${liveBars.reduce((sum, bar) => sum + bar.value, 0)} total` : undefined} />
         </div>
         <div className="min-w-0">
-          <MatchesOverTimePanel />
+          <MatchesOverTimePanel series={liveMatches} />
         </div>
         <div className="min-w-0">
-          <TopLocationsPanel />
+          <TopLocationsPanel locations={liveTopLocations} windowLabel={liveTopLocations ? 'last 7 days' : undefined} />
         </div>
       </div>
 

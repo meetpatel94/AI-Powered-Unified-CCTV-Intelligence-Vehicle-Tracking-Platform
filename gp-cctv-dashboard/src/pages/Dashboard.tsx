@@ -6,17 +6,34 @@ import { KpiRow } from '@/components/dashboard/KpiRow';
 import { LiveFeedsPanel } from '@/components/dashboard/LiveFeedsPanel';
 import { RecentAlertsPanel } from '@/components/dashboard/RecentAlertsPanel';
 import { VehicleSearchPanel } from '@/components/dashboard/VehicleSearchPanel';
+import {
+  useAiActivity,
+  useCameraHealthSummary,
+  useDashboardKpis,
+  useGisMapCameras,
+  useJourneyTimeline,
+  useRecentAlerts,
+} from '@/hooks/useIntelligence';
 
 /**
  * Operational dashboard: KPI strip, live wall + GIS map + alert rail,
- * then the vehicle intelligence row. Content scrolls the page when it is
- * taller than the viewport; bands use minmax() grid columns so panels
- * reflow instead of shrinking below readable sizes.
+ * then the vehicle intelligence row. Every band pulls from the FastAPI
+ * backend when it is reachable (`hooks/useIntelligence.ts`); the panels
+ * fall back to their bundled mock fixtures otherwise. Content scrolls the
+ * page when taller than the viewport; bands use minmax() grid columns so
+ * panels reflow instead of shrinking below readable sizes.
  */
 export function Dashboard() {
+  const { stats: kpis } = useDashboardKpis();
+  const { items: alerts } = useRecentAlerts();
+  const { slices: health } = useCameraHealthSummary();
+  const { stops, plate, live: journeyLive } = useJourneyTimeline();
+  const { bars } = useAiActivity();
+  const { cameras: gisCameras } = useGisMapCameras();
+
   return (
     <div className="page">
-      <KpiRow />
+      <KpiRow stats={kpis} />
 
       {/* Situational awareness row */}
       <div
@@ -26,14 +43,14 @@ export function Dashboard() {
           <LiveFeedsPanel />
         </div>
         <div className="min-w-0">
-          <GisCameraMapPanel />
+          <GisCameraMapPanel cameras={gisCameras ?? undefined} />
         </div>
         <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] md:col-span-2 sm:grid-cols-2 xl:flex xl:col-span-1 xl:flex-col">
           <div className="min-h-0 min-w-0 xl:flex-1">
-            <RecentAlertsPanel />
+            <RecentAlertsPanel alerts={alerts} />
           </div>
           <div className="min-w-0 sm:col-span-2 xl:col-span-1">
-            <CameraHealthPanel />
+            <CameraHealthPanel slices={health} />
           </div>
         </div>
       </div>
@@ -46,10 +63,10 @@ export function Dashboard() {
           <VehicleSearchPanel />
         </div>
         <div className="min-w-0 md:col-span-2 xl:col-span-1">
-          <JourneyTimelinePanel />
+          <JourneyTimelinePanel stops={stops} plate={journeyLive ? plate : undefined} />
         </div>
         <div className="min-w-0">
-          <AiAnalyticsPanel />
+          <AiAnalyticsPanel bars={bars ?? undefined} />
         </div>
       </div>
     </div>

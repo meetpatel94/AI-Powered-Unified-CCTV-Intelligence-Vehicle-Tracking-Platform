@@ -67,7 +67,7 @@ function AlertRow({ alert }: { alert: WatchlistAlertItem }) {
 }
 
 /** Right rail top: live watchlist-triggered alerts. */
-export function WatchlistAlertsPanel() {
+export function WatchlistAlertsPanel({ alerts = watchlistAlerts }: { alerts?: WatchlistAlertItem[] }) {
   return (
     <Panel
       title="Recent Alerts"
@@ -75,7 +75,7 @@ export function WatchlistAlertsPanel() {
       className="h-full min-h-0"
       bodyClassName="flex flex-col justify-between gap-1.5 overflow-y-auto px-2 pb-2 pt-0.5"
     >
-      {watchlistAlerts.map((alert) => (
+      {alerts.map((alert) => (
         <AlertRow key={alert.id} alert={alert} />
       ))}
     </Panel>

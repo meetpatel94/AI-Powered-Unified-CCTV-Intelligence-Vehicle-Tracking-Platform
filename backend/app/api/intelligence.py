@@ -7,6 +7,13 @@ import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
+from app.api.deps import require_permission
+from app.core.permissions import (
+    DETECTIONS_READ,
+    INGEST_CONTROL,
+    PIPELINE_CONTROL,
+    PIPELINE_READ,
+)
 from app.db.session import get_db
 from app.schemas.vehicle import (
     JourneyPointOut,
@@ -16,6 +23,7 @@ from app.schemas.vehicle import (
     TrackOut,
 )
 from app.services import vehicle_intel as vi
+from app.services.auth import Principal
 from app.services.cameras import get_camera
 from app.services.events import hub
 from app.services.pipeline import manager
@@ -31,6 +39,7 @@ def recent_detections(
     limit: int = Query(50, ge=1, le=500),
     camera_id: str | None = Query(None),
     db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(DETECTIONS_READ)),
 ) -> list[SightingOut]:
     """Recent ANPR-confirmed detections (persisted sightings)."""
     return [SightingOut(**s) for s in vi.recent_sightings(db, limit, camera_id)]
@@ -41,6 +50,7 @@ def recent_anpr(
     limit: int = Query(50, ge=1, le=500),
     camera_id: str | None = Query(None),
     db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(DETECTIONS_READ)),
 ) -> list[SightingOut]:
     return [SightingOut(**s) for s in vi.recent_sightings(db, limit, camera_id)]
 
@@ -50,6 +60,7 @@ def recent_tracking(
     limit: int = Query(50, ge=1, le=500),
     camera_id: str | None = Query(None),
     db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(DETECTIONS_READ)),
 ) -> list[TrackOut]:
     return [TrackOut(**t) for t in vi.recent_tracks(db, limit, camera_id)]
 
@@ -58,6 +69,7 @@ def recent_tracking(
 def recent_journeys(
     limit: int = Query(25, ge=1, le=200),
     db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(DETECTIONS_READ)),
 ) -> list[dict]:
     return vi.recent_journeys(db, limit)
 
@@ -66,12 +78,17 @@ def recent_journeys(
 # Pipeline control
 # --------------------------------------------------------------------------- #
 @router.get("/pipeline", response_model=list[PipelineWorkerStatus])
-def pipeline_status() -> list[PipelineWorkerStatus]:
+def pipeline_status(
+    _: Principal = Depends(require_permission(PIPELINE_READ)),
+) -> list[PipelineWorkerStatus]:
     return [PipelineWorkerStatus(**s) for s in manager.list_status()]
 
 
 @router.get("/pipeline/summary")
-def pipeline_summary(db: Session = Depends(get_db)) -> dict:
+def pipeline_summary(
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(PIPELINE_READ)),
+) -> dict:
     return {
         "workers": manager.list_status(),
         "counts": vi.pipeline_counts(db),
@@ -79,7 +96,11 @@ def pipeline_summary(db: Session = Depends(get_db)) -> dict:
 
 
 @router.post("/pipeline/{camera_id}/start", response_model=PipelineActionResult)
-def pipeline_start(camera_id: str, db: Session = Depends(get_db)) -> PipelineActionResult:
+def pipeline_start(
+    camera_id: str,
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(PIPELINE_CONTROL)),
+) -> PipelineActionResult:
     if get_camera(db, camera_id) is None:
         raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
     try:
@@ -92,7 +113,10 @@ def pipeline_start(camera_id: str, db: Session = Depends(get_db)) -> PipelineAct
 
 
 @router.post("/pipeline/{camera_id}/stop", response_model=PipelineActionResult)
-def pipeline_stop(camera_id: str) -> PipelineActionResult:
+def pipeline_stop(
+    camera_id: str,
+    _: Principal = Depends(require_permission(PIPELINE_CONTROL)),
+) -> PipelineActionResult:
     status = manager.stop(camera_id)
     if status is None:
         raise HTTPException(status_code=404, detail=f"No pipeline worker for {camera_id}")
@@ -105,12 +129,36 @@ def pipeline_stop(camera_id: str) -> PipelineActionResult:
 # WebSocket realtime feed
 # --------------------------------------------------------------------------- #
 @router.websocket("/ws")
-async def ws_realtime(websocket: WebSocket) -> None:
-    """Realtime feed of detection / anpr:hit / track / journey events.
+async def ws_realtime(websocket: WebSocket, token: str | None = Query(None)) -> None:
+    """Realtime feed of pipeline / watchlist / alert / camera-health events.
 
     Frames are ``{"event": <name>, "payload": {...}}`` — matching the frontend
-    ``services/realtime.ts`` contract.
+    ``services/realtime.ts`` contract. Event topics:
+    ``detection``, ``anpr:hit``, ``track``, ``journey``, ``watchlist:match``,
+    ``alert:new``, ``alert:update``, ``camera:health``, ``camera:state``.
+
+    When ``AUTH_ENABLED=true`` a valid access token must be supplied via
+    ``?token=...`` (browsers cannot set WebSocket headers); the feed is open in
+    development open-mode.
     """
+    from app.core.config import get_settings
+    from app.db.session import SessionLocal
+    from app.services import auth as auth_service
+
+    settings = get_settings()
+    if settings.auth_enabled:
+        if not token:
+            await websocket.close(code=4401, reason="Authentication required")
+            return
+        db = SessionLocal()
+        try:
+            auth_service.resolve_principal_from_token(db, token)
+        except Exception:
+            await websocket.close(code=4401, reason="Invalid token")
+            return
+        finally:
+            db.close()
+
     await websocket.accept()
     queue = await hub.subscribe()
     # Replay a short history so a freshly-connected client isn't blank.

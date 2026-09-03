@@ -1,15 +1,23 @@
 import { Panel } from '@/components/common/Panel';
 import { alertsByWatchlist } from '@/data/watchlistData';
-
-const MAX = 6;
-const TICKS = [6, 4, 2, 0];
+import type { AlertsByWatchlistBar } from '@/types/watchlist';
 
 /** Bottom row left: active alerts raised per watchlist category. */
-export function AlertsByWatchlistPanel() {
+export function AlertsByWatchlistPanel({
+  bars = alertsByWatchlist,
+  windowLabel,
+}: {
+  bars?: AlertsByWatchlistBar[];
+  windowLabel?: string;
+}) {
+  const max = Math.max(6, ...bars.map((bar) => bar.value));
+  const step = Math.max(1, Math.round(max / 3));
+  const TICKS = [max, max - step, max - 2 * step, 0];
+  const total = bars.reduce((sum, bar) => sum + bar.value, 0);
   return (
     <Panel
       title="Alerts by Watchlist"
-      action={<span className="tnum text-3xs text-ink-dim">last 24 hrs · 18 total</span>}
+      action={<span className="tnum text-3xs text-ink-dim">{windowLabel ?? `last 24 hrs · ${total} total`}</span>}
       className="h-full min-h-0"
       bodyClassName="overflow-y-auto px-3 pb-3 pt-1"
     >
@@ -28,8 +36,8 @@ export function AlertsByWatchlistPanel() {
           </div>
 
           <div className="absolute inset-x-0 bottom-[16px] top-[12px] flex items-end justify-around gap-2 px-1">
-            {alertsByWatchlist.map((bar) => {
-              const height = `${Math.max(2, (bar.value / MAX) * 100)}%`;
+            {bars.map((bar) => {
+              const height = `${Math.max(2, (bar.value / max) * 100)}%`;
               return (
                 <div key={bar.id} className="flex h-full flex-1 flex-col justify-end">
                   <span className="tnum mb-[3px] text-center text-[11px] font-semibold leading-none text-[#e2eaf7]">

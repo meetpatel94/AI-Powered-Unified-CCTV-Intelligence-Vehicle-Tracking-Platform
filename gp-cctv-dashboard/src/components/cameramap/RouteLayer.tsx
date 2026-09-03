@@ -3,8 +3,11 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { Crosshair, X } from 'lucide-react';
 
 import { mapAlertPopup, trackedRoute } from '@/data/cameraMapData';
+import type { TrackedVehicleRoute } from '@/types/cameraMap';
 
 interface RouteLayerProps {
+  /** Real route from `/api/gis/vehicles/{plate}/route`; defaults to the mock journey. */
+  route?: TrackedVehicleRoute;
   project: (x: number, y: number) => { x: number; y: number };
   showAlert: boolean;
   onDismissAlert: () => void;
@@ -21,6 +24,7 @@ const ALERT_W = 250;
 
 /** Tracked-vehicle polyline, numbered sighting nodes and the watchlist alert callout. */
 export function RouteLayer({
+  route = trackedRoute,
   project,
   showAlert,
   onDismissAlert,
@@ -45,8 +49,15 @@ export function RouteLayer({
       })
       .join(' ');
 
-  const alertNode = trackedRoute.nodes[trackedRoute.nodes.length - 1];
+  const alertNode = route.nodes[route.nodes.length - 1];
   const alertPos = project(alertNode.x, alertNode.y);
+  const popup = {
+    ...mapAlertPopup,
+    vehicle: route.plate,
+    camera: alertNode.cameraId,
+    location: `${alertNode.road}, ${alertNode.city}`,
+    time: alertNode.time,
+  };
 
   const pad = { top: insets?.top ?? 12, right: insets?.right ?? 12, bottom: insets?.bottom ?? 12, left: insets?.left ?? 12 };
   const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
@@ -62,7 +73,7 @@ export function RouteLayer({
           </marker>
         </defs>
 
-        {trackedRoute.legs.map((leg, i) => {
+        {route.legs.map((leg, i) => {
           const d = toPath(leg.points);
           const color = leg.critical ? '#ef4444' : '#38bdf8';
           return (
@@ -93,7 +104,7 @@ export function RouteLayer({
       </svg>
 
       {/* numbered sighting nodes */}
-      {trackedRoute.nodes.map((node) => {
+      {route.nodes.map((node) => {
         const p = project(node.x, node.y);
         const active = activeStep === node.step;
         return (
@@ -136,7 +147,7 @@ export function RouteLayer({
           <div className="flex items-center justify-between gap-2 border-b border-accent-red/40 bg-accent-red/15 px-2.5 py-2">
             <span className="flex items-center gap-1.5 whitespace-nowrap text-[12px] font-bold tracking-wide text-[#ff8b96]">
               <Crosshair size={13} className="animate-pulse-dot" />
-              {mapAlertPopup.title}
+              {popup.title}
             </span>
             <button type="button" onClick={onDismissAlert} aria-label="Dismiss" className="text-[#ff8b96]/70 hover:text-white">
               <X size={13} />
@@ -146,22 +157,22 @@ export function RouteLayer({
           <dl className="space-y-1 px-2.5 py-2 text-[13px] text-[#e3c6c9]">
             <div className="flex gap-1">
               <dt className="text-[#c78d95]">Vehicle:</dt>
-              <dd className="font-semibold text-white">{mapAlertPopup.vehicle}</dd>
+              <dd className="font-semibold text-white">{popup.vehicle}</dd>
               <dd className="ml-auto rounded-[2px] bg-accent-red/25 px-1.5 py-px text-[12px] font-bold text-[#ffb3ba]">
-                {mapAlertPopup.confidence}
+                {popup.confidence}
               </dd>
             </div>
             <div className="flex gap-1">
               <dt className="text-[#c78d95]">Camera:</dt>
-              <dd className="text-white/90">{mapAlertPopup.camera}</dd>
+              <dd className="text-white/90">{popup.camera}</dd>
             </div>
             <div className="flex gap-1">
               <dt className="text-[#c78d95]">Location:</dt>
-              <dd className="text-white/90">{mapAlertPopup.location}</dd>
+              <dd className="text-white/90">{popup.location}</dd>
             </div>
             <div className="flex gap-1">
               <dt className="text-[#c78d95]">Time:</dt>
-              <dd className="tnum text-white/90">{mapAlertPopup.time}</dd>
+              <dd className="tnum text-white/90">{popup.time}</dd>
             </div>
           </dl>
 

@@ -110,6 +110,19 @@ class Settings(BaseSettings):
     # Optional: store a small JPEG crop per ANPR hit. No continuous video.
     evidence_frames_enabled: bool = True
     evidence_frames_dir: str = "shots/evidence"
+    # Evidence Snapshot service — individual JPEG frames only, never video.
+    # Capture a full frame from the live-frame buffer on watchlist matches.
+    evidence_capture_on_watchlist: bool = True
+    # Retention window for evidence snapshots (days). Expired evidence is
+    # deleted (file + row) by a background cleanup task.
+    evidence_retention_days: int = 30
+
+    # --- Real-time alerts ------------------------------------------------ #
+    # Suppress a new alert when an unresolved alert for the same watchlist
+    # entry + camera exists within this window (duplicate suppression).
+    alert_dedupe_seconds: float = 300.0
+    # Also raise alerts when a camera sustains an ERROR/OFFLINE state.
+    alert_on_camera_failure: bool = True
 
     # --- Cross-camera journey ------------------------------------------- #
     # A gap larger than this (seconds) starts a fresh journey segment.
@@ -119,6 +132,31 @@ class Settings(BaseSettings):
     journey_max_speed_kph: float = 200.0
     # Minimum seconds between two distinct cameras before speed is meaningful.
     journey_min_interval_seconds: float = 2.0
+
+    # --- Camera health monitoring ---------------------------------------- #
+    # Poll the stream gateway + registry this often (seconds) for health.
+    camera_health_poll_seconds: float = 5.0
+    # A LIVE stream whose measured FPS falls below this is DEGRADED.
+    camera_health_degraded_fps: float = 1.0
+    # Consecutive failed polls before a camera is reported OFFLINE (never from
+    # a single transient decoder warning — those stay at DEBUG in the gateway).
+    camera_health_offline_grace_polls: int = 2
+
+    # --- Authentication / RBAC ------------------------------------------- #
+    # When False (development default) the API runs in open mode: an implicit
+    # admin principal is attached to every request so the existing dashboard
+    # keeps working without a login screen. Production MUST set AUTH_ENABLED=true.
+    auth_enabled: bool = False
+    # JWT signing secret. Generate with: python -c "import secrets; print(secrets.token_urlsafe(48))"
+    jwt_secret_key: str = "CHANGE-ME-IN-PRODUCTION"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    refresh_token_expire_days: int = 7
+    # Optional first-run bootstrap admin (created only when no users exist).
+    bootstrap_admin_username: str = ""
+    bootstrap_admin_password: str = ""
+    bootstrap_admin_full_name: str = "System Administrator"
+    bootstrap_admin_email: str = ""
 
     @property
     def cors_origin_list(self) -> List[str]:
