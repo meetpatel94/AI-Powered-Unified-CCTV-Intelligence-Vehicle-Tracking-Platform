@@ -335,10 +335,8 @@ export function Watchlist() {
         />
       ) : null}
 
-      {/* three-column body */}
-      <div
-        className="responsive-band responsive-band-main grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(290px,26fr)_minmax(0,1fr)_minmax(310px,310px)]"
-      >
+      {/* row 1 — Watchlist Categories (left) + Alert History (right) */}
+      <div className="responsive-band grid shrink-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <WatchlistCategoriesPanel
             activeCategory={categoryFilter}
@@ -348,16 +346,21 @@ export function Watchlist() {
         </div>
 
         <div className="min-w-0">
+          <WatchlistAlertsPanel alerts={railAlerts} />
+        </div>
+      </div>
+
+      {/* row 2 — Recent Watchlist Entries, full width */}
+      <div className="responsive-band grid w-full min-w-0 shrink-0 grid-cols-1 gap-[var(--page-gap)]">
+        <div className="min-w-0">
           <RecentEntriesPanel entries={visibleEntries} total={entries.length} view={view} onOpen={setSelected} />
         </div>
+      </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] sm:grid-cols-2 md:col-span-2 xl:flex xl:flex-col xl:col-span-1">
-          <div className="min-h-0 min-w-0 xl:flex-1">
-            <WatchlistAlertsPanel alerts={railAlerts} />
-          </div>
-          <div className="min-w-0 sm:col-span-2 xl:col-span-1">
-            <WatchlistSummaryPanel slices={summarySlices} />
-          </div>
+      {/* row 3 — Watchlist Summary */}
+      <div className="responsive-band grid w-full min-w-0 shrink-0 grid-cols-1 gap-[var(--page-gap)]">
+        <div className="min-w-0">
+          <WatchlistSummaryPanel slices={summarySlices} />
         </div>
       </div>
 
