@@ -43,7 +43,7 @@ export function AnprPerformancePanel({ anpr }: AnprPerformancePanelProps) {
       title="ANPR Performance"
       action={<span className="tnum text-3xs text-accent-green">{anpr.confidence.toFixed(1)}% OCR</span>}
       className="h-full min-h-0"
-      bodyClassName="flex min-h-0 flex-col gap-2 px-3 pb-2 pt-1"
+      bodyClassName="flex min-h-0 flex-col justify-between gap-2 px-3 pb-2 pt-1"
     >
       <div className="grid grid-cols-2 gap-1.5">
         <Metric label="Plates processed" value={formatIn(anpr.processed)} sub="edge ANPR ingest" tone="text-white" />

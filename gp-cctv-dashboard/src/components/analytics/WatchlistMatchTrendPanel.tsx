@@ -128,11 +128,12 @@ export function WatchlistMatchTrendPanel({ series, windowNote }: WatchlistMatchT
             />
           ) : null}
 
-          <div className="absolute inset-x-0 bottom-0 flex h-[16px] items-center justify-between px-0.5">
+          {/* Equal-width centered slots keep dense hour/day labels from colliding. */}
+          <div className="absolute inset-x-0 bottom-0 flex h-[16px] items-center">
             {series.map((point, index) => (
               <span
                 key={`${point.label}-${index}`}
-                className={`tnum text-[9.5px] text-[#8ea1c0] ${index % labelEvery !== 0 ? 'opacity-0' : ''}`}
+                className={`tnum min-w-0 flex-1 text-center text-[9.5px] text-[#8ea1c0] ${index % labelEvery !== 0 ? 'opacity-0' : ''}`}
               >
                 {point.label}
               </span>

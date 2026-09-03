@@ -72,7 +72,7 @@ export function IntelligenceSummaryPanel({
       className="h-full min-h-0"
       bodyClassName="flex min-h-0 flex-col gap-2 px-3 pb-2.5 pt-1"
     >
-      <div className="flex items-center justify-between text-[10.5px] text-[#6d82a3]">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10.5px] text-[#6d82a3]">
         <span className="flex items-center gap-1.5">
           <Brain size={11} className="text-accent-purple" />
           Auto-generated · model gp-intel-v2.4 · {generatedAt}
@@ -83,7 +83,9 @@ export function IntelligenceSummaryPanel({
         </span>
       </div>
 
-      <div className="grid min-h-0 grid-cols-5 gap-2">
+      {/* Insight cards: five across on large desktops, collapsing to 3 / 2 / 1
+          on narrower widths so no card gets cramped. */}
+      <div className="grid min-h-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {insights.map((card) => {
           const tone = toneShell[card.tone];
           const Icon = insightIcon[card.id] ?? Sparkles;
@@ -114,7 +116,7 @@ export function IntelligenceSummaryPanel({
         {unusual.length === 0 ? (
           <div className="py-2 text-[12px] text-ink-dim">No unusual indicators in the current filter.</div>
         ) : (
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          <ul className="grid grid-cols-1 gap-x-4 gap-y-1.5 lg:grid-cols-2">
             {unusual.map((event) => (
               <li key={event.id} className="flex min-w-0 items-start gap-2">
                 <span className="tnum w-[34px] shrink-0 pt-[1px] text-[11px] font-semibold text-[#8ea1c0]">{event.time}</span>

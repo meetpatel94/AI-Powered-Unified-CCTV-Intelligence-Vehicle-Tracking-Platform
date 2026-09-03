@@ -119,10 +119,13 @@ export function HourlyActivityHeatmap({ grid }: HourlyActivityHeatmapProps) {
         </div>
 
         {hover ? (
+          /* Anchored at the actual hovered cell (pointer position relative to
+             the heat root) instead of a hardcoded plot size, so the tooltip
+             never lands on the wrong cells at other panel widths. */
           <ChartTip
             visible
-            x={120 + ((hover.hour + 0.5) / 24) * 360}
-            y={18 + ((hover.day + 0.5) / 7) * 110}
+            x={hover.x}
+            y={hover.y}
             title={`${grid.dayKeys[hover.day]} · ${String(hover.hour).padStart(2, '0')}:00`}
             rows={[{ label: 'Detections', value: formatIn(grid.cells[hover.day][hover.hour]), color: '#22d3ee' }]}
           />
