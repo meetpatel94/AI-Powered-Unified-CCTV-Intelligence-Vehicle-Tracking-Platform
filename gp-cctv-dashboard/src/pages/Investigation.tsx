@@ -4,17 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import { AddWatchlistModal } from '@/components/watchlist/AddWatchlistModal';
 import { CrossCameraJourneyPanel } from '@/components/investigation/CrossCameraJourneyPanel';
 import { CreateCaseModal, type NewCaseInput } from '@/components/investigation/CreateCaseModal';
-import { EvidenceGalleryPanel } from '@/components/investigation/EvidenceGalleryPanel';
 import { EvidenceViewerModal } from '@/components/investigation/EvidenceViewerModal';
 import { InvestigationActionBar } from '@/components/investigation/InvestigationActionBar';
-import {
-  CameraFrequencyPanel,
-  LocationDistributionPanel,
-  SightingsOverTimePanel,
-} from '@/components/investigation/InvestigationAnalytics';
 import { InvestigationDetailsPanel } from '@/components/investigation/InvestigationDetailsPanel';
 import { InvestigationHeader } from '@/components/investigation/InvestigationHeader';
-import { InvestigationSearchPanel } from '@/components/investigation/InvestigationSearchPanel';
 import { RelatedEventsPanel } from '@/components/investigation/RelatedEventsPanel';
 import { RelatedVehiclesPanel } from '@/components/investigation/RelatedVehiclesPanel';
 import { RouteAnalysisPanel } from '@/components/investigation/RouteAnalysisPanel';
@@ -25,7 +18,6 @@ import {
   buildRouteLegs,
   cameraOptionsOf,
   caseBundle,
-  computeInvestigationAnalytics,
   computeRouteAnalysis,
   defaultSightingQuery,
   defaultTargetPlate,
@@ -34,7 +26,6 @@ import {
   investigationDossiers,
   nextCaseRef,
   primaryRoute,
-  recentInvestigations,
   searchCandidates,
   sortSightings,
 } from '@/data/investigationData';
@@ -48,8 +39,6 @@ import type {
   SightingQuery,
   SightingSortDir,
   SightingSortKey,
-  SearchCandidate,
-  SearchMode,
   VehicleSighting,
 } from '@/types/investigation';
 
@@ -61,30 +50,29 @@ const defaultFilters: InvestigationFilters = {
 };
 
 /**
- * INVESTIGATION & VEHICLE INTELLIGENCE workspace: target dossier, cross-camera
- * journey reconstruction, sighting history, related events / associations,
- * evidence gallery and the case tooling. The live dossier streams from
- * `/api/investigation/{plate}/dossier` (real ANPR sightings, alerts and
- * watchlist context); mock dossiers render when the backend is unreachable.
- * Case filing POSTs `/api/investigation/cases` when connected.
+ * INVESTIGATION & VEHICLE INTELLIGENCE workspace. Reading order:
+ *
+ *   1. Target Vehicle + Investigation Details   (who / what state the case is in)
+ *   2. Cross-Camera Vehicle Journey             (full-width route reconstruction)
+ *   3. Sighting History                         (full-width ANPR read table)
+ *   4. Related Events · Route Analysis · Related Vehicles
+ *
+ * The live dossier streams from `/api/investigation/{plate}/dossier` (real ANPR
+ * sightings, alerts and watchlist context); mock dossiers render when the
+ * backend is unreachable. Case filing POSTs `/api/investigation/cases`.
  */
 export function Investigation() {
   const navigate = useNavigate();
   const clock = formatClock(useLiveClock());
 
-  /* ---------------- target + search state ---------------- */
+  /* ---------------- target state ---------------- */
   const [targetPlate, setTargetPlate] = useState(defaultTargetPlate);
   const [plate, setPlate] = useState(defaultTargetPlate);
-  const [query, setQuery] = useState('');
-  const [mode, setMode] = useState<SearchMode>('vehicle');
-  const [fuzzy, setFuzzy] = useState(true);
-  const [watchlistOnly, setWatchlistOnly] = useState(false);
-  const [includeReReads, setIncludeReReads] = useState(true);
-  const [scanning, setScanning] = useState(false);
 
   /* ---------------- workspace state ---------------- */
   const [filters, setFilters] = useState<InvestigationFilters>(defaultFilters);
   const [sightingQuery, setSightingQuery] = useState<SightingQuery>(defaultSightingQuery);
+  const [includeReReads, setIncludeReReads] = useState(true);
   const [sortKey, setSortKey] = useState<SightingSortKey>('time');
   const [sortDir, setSortDir] = useState<SightingSortDir>('asc');
   const [activeStep, setActiveStep] = useState<number | null>(4);
@@ -98,7 +86,6 @@ export function Investigation() {
   const [caseToken, setCaseToken] = useState(0);
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [acknowledged, setAcknowledged] = useState<string[]>([]);
-  const [evidenceFilter, setEvidenceFilter] = useState('all');
   const [evidenceId, setEvidenceId] = useState<string | null>(null);
   const [fullscreenRequest, setFullscreenRequest] = useState(false);
 
@@ -140,33 +127,25 @@ export function Investigation() {
   const nodes = useMemo(() => primaryRoute(dossierSightings), [dossierSightings]);
   const legs = useMemo(() => buildRouteLegs(dossierSightings, dossierLegs(dossier)), [dossierSightings, dossier]);
   const analysis = useMemo(() => computeRouteAnalysis(dossierSightings), [dossierSightings]);
-  const analytics = useMemo(() => computeInvestigationAnalytics(scopedSightings), [scopedSightings]);
   const cameraOptions = useMemo(() => cameraOptionsOf(dossierSightings), [dossierSightings]);
-  const cityOptions = useMemo(() => [...new Set(dossierSightings.map((s) => s.city))], [dossierSightings]);
 
   const events = useMemo<RelatedEvent[]>(
     () => dossier.events.map((event) => ({ ...event, acknowledged: event.acknowledged || acknowledged.includes(event.id) })),
     [dossier.events, acknowledged],
   );
 
-  const allEvidence = useMemo(() => buildEvidence(scopedSightings), [scopedSightings]);
-  const evidence = useMemo(() => {
-    if (evidenceFilter === 'route') return allEvidence.filter((item) => item.primary);
-    if (evidenceFilter === 'watchlist') return allEvidence.filter((item) => item.watchlistHit);
-    if (evidenceFilter.startsWith('cam:')) return allEvidence.filter((item) => item.cameraId === evidenceFilter.slice(4));
-    return allEvidence;
-  }, [allEvidence, evidenceFilter]);
+  const evidence = useMemo(() => buildEvidence(scopedSightings), [scopedSightings]);
 
+  /** Plate index used to resolve a header search that is not an exact plate. */
   const candidates = useMemo(() => {
-    const needle = (mode === 'vehicle' ? plate : query).trim().toLowerCase();
+    const needle = plate.trim().toLowerCase();
     return searchCandidates.filter((candidate) => {
-      if (candidate.kind !== mode) return false;
-      if (watchlistOnly && candidate.tone !== 'red' && candidate.tone !== 'orange') return false;
+      if (candidate.kind !== 'vehicle') return false;
       if (!needle) return true;
       const haystack = `${candidate.label} ${candidate.sub} ${candidate.meta}`.toLowerCase();
-      return fuzzy ? haystack.includes(needle) : candidate.label.toLowerCase().startsWith(needle);
+      return haystack.includes(needle);
     });
-  }, [mode, plate, query, fuzzy, watchlistOnly]);
+  }, [plate]);
 
   const selectedSighting = useMemo(
     () => (evidenceId ? scopedSightings.find((sighting) => sighting.id === evidenceId) ?? null : null),
@@ -206,7 +185,6 @@ export function Investigation() {
       setCaseRef(null);
       setAcknowledged([]);
       setSightingQuery(defaultSightingQuery);
-      setEvidenceFilter('all');
       setActiveStep(next ? primaryRoute(next.sightings).at(-1)?.journeyStep ?? null : null);
       setFrameToken((token) => token + 1);
       flash(message);
@@ -215,18 +193,15 @@ export function Investigation() {
   );
 
   const handleSearch = () => {
-    setScanning(true);
-    window.setTimeout(() => setScanning(false), 620);
-
-    const value = (mode === 'vehicle' ? plate : query).trim();
+    const value = plate.trim();
     const exact = Object.keys(investigationDossiers).find(
       (key) => key.toLowerCase() === value.toLowerCase(),
     );
-    if (mode === 'vehicle' && exact) {
+    if (exact) {
       selectTarget(exact, `Dossier loaded · ${exact} · ${investigationDossiers[exact].sightings.length} sightings reconstructed`);
       return;
     }
-    if (mode === 'vehicle' && dossierLive && value) {
+    if (dossierLive && value) {
       selectTarget(value.toUpperCase(), `Dossier loaded · ${value.toUpperCase()} · live ANPR reconstruction`);
       return;
     }
@@ -235,11 +210,8 @@ export function Investigation() {
       selectTarget(candidate.targetId, `${candidate.label} resolved to ${candidate.targetId} · ${candidate.meta}`);
       return;
     }
-    flash(`No index match for “${value}” — try a partial plate with fuzzy matching enabled`);
+    flash(`No index match for “${value}” — try a partial plate`);
   };
-
-  const handleCandidate = (candidate: SearchCandidate) =>
-    selectTarget(candidate.targetId, `${candidate.label} · ${candidate.sub} loaded into the workspace`);
 
   const handleStep = (step: number) => {
     setActiveStep(step);
@@ -256,6 +228,11 @@ export function Investigation() {
     const index = scopedSightings.findIndex((sighting) => sighting.id === evidenceId);
     const next = scopedSightings[(index + direction + scopedSightings.length) % scopedSightings.length];
     setEvidenceId(next.id);
+  };
+
+  const handleTrackLive = () => {
+    navigate('/camera-map');
+    flash(`Live tracking handed to the GIS map · ${dossier.target.plate}`);
   };
 
   const handleRefresh = () => {
@@ -359,14 +336,12 @@ export function Investigation() {
 
   const handleNewInvestigation = () => {
     setPlate('');
-    setQuery('');
     setFilters(defaultFilters);
     setSightingQuery(defaultSightingQuery);
-    setEvidenceFilter('all');
     setCaseRef(null);
     setStatus('active');
     setPlaying(false);
-    flash('New investigation opened · enter a plate, camera or person to begin the reconstruction');
+    flash('New investigation opened · enter a plate to begin the reconstruction');
   };
 
   const handleSort = (key: SightingSortKey) => {
@@ -392,6 +367,8 @@ export function Investigation() {
     sightingQuery.primaryOnly ||
     sightingQuery.query !== '';
 
+  const associations = dossier.associations;
+
   return (
     <div className="page">
       <InvestigationHeader
@@ -414,72 +391,44 @@ export function Investigation() {
         sightingCount={dossierSightings.length}
       />
 
-      <InvestigationSearchPanel
-        mode={mode}
-        onMode={setMode}
-        plate={plate}
-        onPlate={setPlate}
-        query={query}
-        onQuery={setQuery}
-        onSearch={handleSearch}
-        candidates={candidates}
-        onSelect={handleCandidate}
-        recents={recentInvestigations}
-        onRecent={(recent) => selectTarget(recent.targetId, `${recent.id} reopened · ${recent.sub}`)}
-        activePlate={targetPlate}
-        fuzzy={fuzzy}
-        onFuzzy={setFuzzy}
-        watchlistOnly={watchlistOnly}
-        onWatchlistOnly={setWatchlistOnly}
-        includeReReads={includeReReads}
-        onIncludeReReads={setIncludeReReads}
-        scanning={scanning}
-        indexMeta={{ cameras: '12,842', plates: '18,729', synced: clock }}
-      />
-
-      {/* target + journey + details rail */}
-      <div className="flex shrink-0 flex-col gap-[var(--page-gap)] lg:flex-row">
-        <div className="flex min-w-0 flex-1 flex-col gap-[var(--page-gap)]">
-          <TargetVehicleCard
-            dossier={dossier}
-            onOpenEvidence={(id) => openEvidence(id)}
-            onViewCamera={viewCamera}
-            onOpenWatchlist={() => navigate('/watchlist')}
-          />
-
-          <div className="flex min-h-[420px] shrink-0 flex-col [&>*]:flex-1">
-            <CrossCameraJourneyPanel
-              dossier={dossier}
-              legs={legs}
-              nodes={nodes}
-              activeStep={activeStep}
-              onSelectStep={handleStep}
-              onOpenEvidence={(id) => openEvidence(id)}
-              onViewCamera={viewCamera}
-              frameToken={frameToken}
-              playing={playing}
-              onToggleReplay={() => setPlaying((value) => !value)}
-            />
-          </div>
-        </div>
-
-        <aside className="w-full shrink-0 lg:w-[350px] lg:min-w-[330px]">
-          <InvestigationDetailsPanel
-            dossier={dossier}
-            status={status}
-            caseRef={caseRef}
-            lastSync={clock}
-            onOpenCamera={viewCamera}
-            onOpenEvidence={(id) => openEvidence(id)}
-            onEscalate={() => {
-              setStatus('escalated');
-              flash(`${dossier.caseId} escalated to the control-room duty officer`);
-            }}
-          />
-        </aside>
+      {/* 1 — TARGET VEHICLE + INVESTIGATION DETAILS */}
+      <div className="grid min-h-[300px] min-w-0 shrink-0 grid-cols-1 items-stretch gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_356px]">
+        <TargetVehicleCard
+          dossier={dossier}
+          onOpenEvidence={(id) => openEvidence(id)}
+          onViewCamera={viewCamera}
+          onOpenWatchlist={() => navigate('/watchlist')}
+        />
+        <InvestigationDetailsPanel
+          dossier={dossier}
+          status={status}
+          caseRef={caseRef}
+          lastSync={clock}
+          onEscalate={() => {
+            setStatus('escalated');
+            flash(`${dossier.caseId} escalated to the control-room duty officer`);
+          }}
+        />
       </div>
 
-      <div className="flex min-h-[360px] shrink-0 flex-col [&>*]:flex-1">
+      {/* 2 — CROSS-CAMERA VEHICLE JOURNEY (full width) */}
+      <CrossCameraJourneyPanel
+        dossier={dossier}
+        legs={legs}
+        nodes={nodes}
+        activeStep={activeStep}
+        onSelectStep={handleStep}
+        onOpenEvidence={(id) => openEvidence(id)}
+        onViewCamera={viewCamera}
+        onTrackLive={handleTrackLive}
+        analysis={analysis}
+        frameToken={frameToken}
+        playing={playing}
+        onToggleReplay={() => setPlaying((value) => !value)}
+      />
+
+      {/* 3 — SIGHTING HISTORY (full width) */}
+      <div className="flex min-h-[440px] min-w-0 shrink-0 flex-col [&>*]:min-h-0 [&>*]:flex-1">
         <SightingHistoryPanel
           sightings={visibleSightings}
           totalCount={dossierSightings.length}
@@ -488,7 +437,8 @@ export function Investigation() {
           onReset={() => setSightingQuery(defaultSightingQuery)}
           dirty={sightingQueryDirty}
           cameraOptions={cameraOptions}
-          cityOptions={cityOptions}
+          includeReReads={includeReReads}
+          onIncludeReReads={setIncludeReReads}
           sortKey={sortKey}
           sortDir={sortDir}
           onSort={handleSort}
@@ -497,66 +447,34 @@ export function Investigation() {
         />
       </div>
 
-      <div
-        className="responsive-band min-h-[340px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[42fr_29fr_29fr]"
-      >
-        <div className="min-w-0">
-          <RelatedEventsPanel
-            events={events}
-            plate={dossier.target.plate}
-            onOpenEvent={() => navigate('/alerts')}
-            onOpenEvidence={(id) => openEvidence(id)}
-            onAcknowledge={(eventId) => {
-              setAcknowledged((prev) => [...prev, eventId]);
-              flash(`${eventId} acknowledged · removed from the unreviewed queue`);
-            }}
-          />
-        </div>
-        <div className="min-w-0">
-          <RouteAnalysisPanel analysis={analysis} legs={legs} />
-        </div>
-        <div className="min-w-0">
-          <RelatedVehiclesPanel
-            associations={dossier.associations}
-            cameraCount={analysis.camerasCrossed}
-            onOpen={openAssociation}
-            onAddToWatchlist={(association) => {
-              setWatchlistOpen(true);
-              flash(`Watchlist form opened for ${association.label}`);
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="flex min-h-[320px] shrink-0 flex-col [&>*]:flex-1">
-        <EvidenceGalleryPanel
-          evidence={evidence}
-          totalCount={allEvidence.length}
-          filter={evidenceFilter}
-          onFilter={setEvidenceFilter}
-          onOpen={(item) => openEvidence(item.sightingId)}
-          onFullscreen={(item) => openEvidence(item.sightingId, true)}
-          cameraOptions={cameraOptions}
+      {/* 4 — RELATED EVENTS · ROUTE ANALYSIS · RELATED VEHICLES */}
+      <div className="grid min-h-[440px] min-w-0 shrink-0 grid-cols-1 items-stretch gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <RelatedEventsPanel
+          events={events}
+          onOpenEvent={() => navigate('/alerts')}
+          onOpenEvidence={(id) => openEvidence(id)}
+          onAcknowledge={(eventId) => {
+            setAcknowledged((prev) => [...prev, eventId]);
+            flash(`${eventId} acknowledged · removed from the unreviewed queue`);
+          }}
         />
-      </div>
-
-      <div
-        className="responsive-band min-h-[320px] grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[38fr_32fr_30fr]"
-      >
-        <div className="min-w-0">
-          <SightingsOverTimePanel analytics={analytics} bucketLabel="5 min" />
-        </div>
-        <div className="min-w-0">
-          <CameraFrequencyPanel
-            analytics={analytics}
-            activeCamera={sightingQuery.camera}
-            onSelectCamera={(cameraId) =>
-              setSightingQuery((prev) => ({ ...prev, camera: prev.camera === cameraId ? 'all' : cameraId }))
-            }
-          />
-        </div>
-        <div className="min-w-0">
-          <LocationDistributionPanel analytics={analytics} />
+        <div
+          className={`grid min-w-0 gap-[var(--page-gap)] ${
+            associations.length > 0 ? 'grid-rows-[minmax(0,auto)_minmax(0,1fr)]' : 'grid-rows-[minmax(0,1fr)]'
+          }`}
+        >
+          <RouteAnalysisPanel analysis={analysis} legs={legs} />
+          {associations.length > 0 ? (
+            <RelatedVehiclesPanel
+              associations={associations}
+              cameraCount={analysis.camerasCrossed}
+              onOpen={openAssociation}
+              onAddToWatchlist={(association) => {
+                setWatchlistOpen(true);
+                flash(`Watchlist form opened for ${association.label}`);
+              }}
+            />
+          ) : null}
         </div>
       </div>
 
@@ -566,10 +484,7 @@ export function Investigation() {
         caseRef={caseRef}
         evidenceCount={evidence.length}
         lastCamera={lastSighting.cameraId}
-        onTrackLive={() => {
-          navigate('/camera-map');
-          flash(`Live tracking handed to the GIS map · ${dossier.target.plate}`);
-        }}
+        onTrackLive={handleTrackLive}
         onViewCamera={() => viewCamera(lastSighting.cameraId)}
         onAddToWatchlist={() => setWatchlistOpen(true)}
         onCreateCase={() => {
