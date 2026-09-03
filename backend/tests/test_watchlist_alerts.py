@@ -175,3 +175,78 @@ def test_alert_dedupe_window_and_different_source(db):
     )
     assert created4 is True
     assert c.id != old.id
+
+
+def test_journey_anomaly_alert_dedupe_matches_pipeline_bucket_pattern(db):
+    """Regression test for a real alert-flooding bug found in live E2E testing.
+
+    ``PipelineWorker._raise_journey_anomaly`` used to call ``create_alert``
+    with a ``dedupe_key`` that embedded the ever-incrementing journey
+    ``sequence`` number and ``suppress_window_seconds=0``. Because the key
+    changed on every anomalous leg and the suppression window was disabled,
+    every single anomalous leg for the same plate/camera pair created a
+    brand-new ``ALR-...`` row — flooding the alert feed (observed: ~80
+    distinct alerts within a few seconds during live E2E testing for one
+    genuinely anomalous demo route).
+
+    The fix (mirrored here) buckets the key by plate + camera + a
+    ``time.time() // ALERT_DEDUPE_SECONDS`` window — exactly like
+    ``raise_watchlist_alert`` already did — and enables the matching
+    ``suppress_window_seconds`` so repeated anomalies within one window fold
+    into a single alert row.
+    """
+    import time as time_mod
+
+    window = 60
+    bucket = int(time_mod.time() // window)
+    dedupe_key = f"journey:{PLATE}:cam-001:{bucket}"
+
+    a, created = alerts_service.create_alert(
+        db,
+        type="JOURNEY_ANOMALY",
+        severity="medium",
+        message="Journey anomaly for GJ01AB1234: impossible travel interval after cam-001",
+        source_type="journey",
+        dedupe_key=dedupe_key,
+        plate=PLATE,
+        camera_id="cam-001",
+        source_ref=f"journey:{PLATE}:1",
+        suppress_window_seconds=window,
+    )
+    assert created is True
+
+    # A second anomalous leg for the SAME plate+camera within the same
+    # dedupe-window bucket must fold into the existing alert, not create a
+    # new one — this is the exact scenario that flooded the feed pre-fix.
+    bucket2 = int(time_mod.time() // window)
+    a2, created2 = alerts_service.create_alert(
+        db,
+        type="JOURNEY_ANOMALY",
+        severity="medium",
+        message="Journey anomaly for GJ01AB1234: impossible travel interval after cam-001",
+        source_type="journey",
+        dedupe_key=f"journey:{PLATE}:cam-001:{bucket2}",
+        plate=PLATE,
+        camera_id="cam-001",
+        source_ref=f"journey:{PLATE}:2",
+        suppress_window_seconds=window,
+    )
+    assert created2 is False
+    assert a2.id == a.id
+
+    # A different camera must NOT be folded together (plate-first identity,
+    # per-camera anomaly tracking).
+    b, created3 = alerts_service.create_alert(
+        db,
+        type="JOURNEY_ANOMALY",
+        severity="medium",
+        message="Journey anomaly for GJ01AB1234 after cam-002",
+        source_type="journey",
+        dedupe_key=f"journey:{PLATE}:cam-002:{bucket}",
+        plate=PLATE,
+        camera_id="cam-002",
+        source_ref=f"journey:{PLATE}:3",
+        suppress_window_seconds=window,
+    )
+    assert created3 is True
+    assert b.id != a.id

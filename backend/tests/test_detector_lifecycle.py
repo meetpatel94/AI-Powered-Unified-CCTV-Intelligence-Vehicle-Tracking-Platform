@@ -146,13 +146,29 @@ def test_detector_never_raises_on_inference_failure(monkeypatch):
 
 
 def test_tracker_reset_clears_predictor_state(monkeypatch):
+    """reset_tracker() must delete ``predictor.trackers`` entirely.
+
+    Regression test for a real bug found during live E2E testing: setting
+    ``predictor.trackers = []`` (instead of removing the attribute) left the
+    attribute present-but-empty. Ultralytics' own
+    ``on_predict_start(persist=True)`` hook only rebuilds trackers when the
+    attribute is *absent* (``if hasattr(predictor, "trackers") and persist:
+    return``), so every ``track()`` call after a reconnect indexed into an
+    empty list and crashed the whole camera's detection with
+    ``IndexError: list index out of range`` — silently killing vehicle
+    detection on every camera after its first RTSP reconnect.
+    """
     predictor = _FakePredictor()
     model = _FakeModel([])
     model.predictor = predictor
     obj = _stub_detector(monkeypatch, model=model)
     assert predictor.trackers == ["tracker-state"]
     obj.reset_tracker()
-    assert predictor.trackers == []
+    assert not hasattr(predictor, "trackers"), (
+        "reset_tracker() must delattr, not set to [], or Ultralytics' "
+        "persist=True guard will skip rebuilding the tracker and crash "
+        "with IndexError on the next track() call"
+    )
     # Never raises when no predictor exists.
     obj.model.predictor = None
     obj.reset_tracker()
