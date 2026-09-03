@@ -1,20 +1,18 @@
 import {
   Activity,
-  Camera as CameraIcon,
-  Crosshair,
+  Compass,
   FileText,
   Flag,
-  LocateFixed,
-  MapPin,
   Radar,
   ShieldAlert,
   ShieldCheck,
   Timer,
   TriangleAlert,
+  UserRound,
 } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
-import { agoOf, computeRouteAnalysis } from '@/data/investigationData';
+import { computeRouteAnalysis } from '@/data/investigationData';
 import type { InvestigationDossier, InvestigationStatus } from '@/types/investigation';
 
 interface InvestigationDetailsPanelProps {
@@ -22,8 +20,6 @@ interface InvestigationDetailsPanelProps {
   status: InvestigationStatus;
   caseRef: string | null;
   lastSync: string;
-  onOpenCamera: (cameraId: string) => void;
-  onOpenEvidence: (sightingId: string) => void;
   onEscalate: () => void;
 }
 
@@ -56,7 +52,7 @@ function Row({
             ? 'text-[#f7b95f]'
             : 'text-[#dbe6f5]';
   return (
-    <div className="flex items-baseline justify-between gap-2 border-b border-edge-soft py-[4px] last:border-b-0">
+    <div className="flex items-baseline justify-between gap-2 border-b border-edge-soft py-[5px] last:border-b-0">
       <span className="flex shrink-0 items-center gap-1 text-[10.5px] font-semibold uppercase tracking-[0.07em] text-[#6d7f9e]">
         {icon}
         {label}
@@ -77,26 +73,22 @@ function SectionLabel({ children, icon }: { children: React.ReactNode; icon?: Re
 }
 
 /**
- * Right-hand INVESTIGATION DETAILS rail: target / watchlist / camera state,
- * detection and confidence telemetry plus the investigation lifecycle.
+ * INVESTIGATION DETAILS: the case state an officer signs off on — live status,
+ * the assigned unit / officer, the case reference and the movement summary.
+ * Everything already carried by the target card or the journey panels is left
+ * out so the rail stays short enough to sit beside the target vehicle.
  */
 export function InvestigationDetailsPanel({
   dossier,
   status,
   caseRef,
   lastSync,
-  onOpenCamera,
-  onOpenEvidence,
   onEscalate,
 }: InvestigationDetailsPanelProps) {
-  const { target, sightings, events } = dossier;
+  const { target, sightings } = dossier;
   const sorted = [...sightings].sort((a, b) => a.seconds - b.seconds);
-  const first = sorted[0];
-  const last = sorted[sorted.length - 1];
   const analysis = computeRouteAnalysis(sorted);
-  const matching = [...new Set(sorted.map((s) => s.cameraId))];
-  const primaryCameras = sorted.filter((s) => s.journeyStep).map((s) => s.cameraId);
-  const confidenceTone = target.confidence >= 96 ? 'green' : target.confidence >= 90 ? 'cyan' : 'orange';
+  const last = sorted[sorted.length - 1];
 
   return (
     <Panel
@@ -107,13 +99,15 @@ export function InvestigationDetailsPanel({
           synced {lastSync}
         </span>
       }
-      className="min-h-0"
+      className="h-full min-h-0"
       bodyClassName="flex min-h-0 flex-col overflow-y-auto px-3 pb-2.5 pt-1"
     >
-      {/* status header */}
-      <div className="rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1.5">
+      {/* case identity + live status */}
+      <div className="shrink-0 rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1.5">
         <div className="flex items-center justify-between gap-2">
-          <span className="tnum truncate font-mono text-[13px] font-bold tracking-[0.06em] text-white">{dossier.caseId}</span>
+          <span className="tnum truncate font-mono text-[13px] font-bold tracking-[0.06em] text-white">
+            {dossier.caseId}
+          </span>
           <span
             className={`flex shrink-0 items-center gap-1 rounded-[3px] border px-1.5 py-px text-[10.5px] font-bold uppercase tracking-[0.07em] ${statusTone[status].chip}`}
           >
@@ -129,20 +123,20 @@ export function InvestigationDetailsPanel({
           <span className="tnum rounded-[3px] bg-[#16233a] px-1.5 py-px text-[10px] text-[#9fb0cc]">
             opened {dossier.openedAt}
           </span>
-          {caseRef ? (
-            <span className="tnum flex items-center gap-1 rounded-[3px] bg-accent-blue/15 px-1.5 py-px text-[10px] font-semibold text-[#9fc7ff] ring-1 ring-accent-blue/40">
-              <FileText size={8} />
-              {caseRef}
-            </span>
-          ) : null}
         </div>
       </div>
 
-      <SectionLabel icon={<Radar size={9} className="text-accent-cyan" />}>Target state</SectionLabel>
-      <div className="rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1">
+      <SectionLabel icon={<Activity size={9} className="text-accent-green" />}>Target state</SectionLabel>
+      <div className="shrink-0 rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1">
         <Row
           label="Target status"
-          value={target.status === 'on-road' ? `On road · ${last.city}` : target.status === 'parked' ? 'Parked / held' : 'Signal lost'}
+          value={
+            target.status === 'on-road'
+              ? `On road · ${last.city}`
+              : target.status === 'parked'
+                ? 'Parked / held'
+                : 'Signal lost'
+          }
           tone={target.status === 'on-road' ? 'green' : 'orange'}
           icon={<Activity size={9} className="text-accent-green" />}
         />
@@ -152,107 +146,34 @@ export function InvestigationDetailsPanel({
           tone={target.watchlist.match ? 'red' : 'green'}
           icon={<ShieldAlert size={9} className="text-accent-red" />}
         />
-        <Row label="Watchlist entry" value={`${target.watchlist.entryId} · added ${target.watchlist.addedOn}`} />
-        <Row
-          label="ANPR confidence"
-          value={`${target.confidence.toFixed(1)}% peak · ${target.meanConfidence.toFixed(1)}% mean`}
-          tone={confidenceTone as 'green' | 'cyan' | 'orange'}
-          icon={<Crosshair size={9} className="text-accent-cyan" />}
-        />
-        <div className="flex items-center gap-1.5 py-[3px]">
-          <span className="h-[3px] flex-1 overflow-hidden rounded-full bg-[#14243c]">
-            <span
-              className={`block h-full rounded-full transition-all duration-500 ${
-                confidenceTone === 'green' ? 'bg-accent-green' : confidenceTone === 'cyan' ? 'bg-accent-cyan' : 'bg-accent-orange'
-              }`}
-              style={{ width: `${target.confidence}%` }}
-            />
-          </span>
-          <span className="tnum shrink-0 text-[10px] text-[#7f93b3]">
-            {sorted.filter((s) => s.confidence >= 95).length}/{sorted.length} reads ≥ 95%
-          </span>
-        </div>
-        <Row label="Detections" value={`${sorted.length} sightings · ${analysis.camerasCrossed} cameras`} />
-        <Row label="AI events" value={`${events.length} linked · ${events.filter((e) => !e.acknowledged).length} unacknowledged`} tone="orange" />
       </div>
 
-      <SectionLabel icon={<MapPin size={9} className="text-accent-blue" />}>Position</SectionLabel>
-      <div className="rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1">
-        <Row label="First location" value={`${first.location}, ${first.city}`} icon={<MapPin size={9} className="text-[#6d82a3]" />} />
-        <div className="tnum flex justify-end pb-[4px] text-[10.5px] text-[#6d82a3]">
-          {first.cameraId} · {first.time} · {first.lat.toFixed(4)}, {first.lng.toFixed(4)}
-        </div>
-        <Row label="Last location" value={`${last.location}, ${last.city}`} icon={<LocateFixed size={9} className="text-[#6d82a3]" />} />
-        <div className="tnum flex justify-end pb-[4px] text-[10.5px] text-[#6d82a3]">
-          {last.cameraId} · {last.time} · {last.lat.toFixed(4)}, {last.lng.toFixed(4)}
-        </div>
+      <SectionLabel icon={<Flag size={9} className="text-accent-orange" />}>Case &amp; movement</SectionLabel>
+      <div className="shrink-0 rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1">
+        <Row label="Assigned unit" value={dossier.unit} icon={<Radar size={9} className="text-accent-blue" />} />
         <Row
-          label="Current location"
-          value={`${last.area}, ${last.city}`}
+          label="Investigating officer"
+          value={dossier.openedBy}
+          icon={<UserRound size={9} className="text-accent-purple" />}
+        />
+        <Row
+          label="Case reference"
+          value={caseRef ?? 'Not filed yet'}
+          tone={caseRef ? 'cyan' : 'default'}
+          icon={<FileText size={9} className="text-accent-cyan" />}
+        />
+        <Row
+          label="Direction"
+          value={`${analysis.compass} ${String(analysis.bearingDeg).padStart(3, '0')}°`}
           tone="cyan"
-          icon={<Radar size={9} className="text-accent-cyan" />}
+          icon={<Compass size={9} className="text-accent-cyan" />}
         />
-        <div className="flex items-center justify-between py-[3px]">
-          <span className="flex items-center gap-1 text-[10.5px] text-[#7f93b3]">
-            <Timer size={9} className="text-accent-cyan" />
-            last ping {agoOf(last.seconds)} · corridor {analysis.corridorLabel}
-          </span>
-          <button
-            type="button"
-            onClick={() => onOpenEvidence(last.id)}
-            className="link-action text-[10.5px]"
-            title="Open the current evidence frame"
-          >
-            view frame
-          </button>
-        </div>
-        <div className="mt-1 flex items-center gap-1.5">
-          {analysis.cities.map((city, index) => (
-            <span key={city} className="flex items-center gap-1.5">
-              {index > 0 ? <span className="h-px w-4 bg-accent-cyan/50" /> : null}
-              <span className="rounded-[3px] border border-edge bg-[#0d1626] px-1.5 py-px text-[10.5px] text-[#c3cfe2]">{city}</span>
-            </span>
-          ))}
-          <span className="tnum ml-auto text-[10px] text-[#6d82a3]">
-            {analysis.zones} zones · {analysis.departments.length} depts
-          </span>
-        </div>
-      </div>
-
-      <SectionLabel icon={<CameraIcon size={9} className="text-accent-purple" />}>
-        Matching cameras <span className="tnum ml-1 rounded-full bg-[#16233a] px-1.5 text-[10px]">{matching.length}</span>
-      </SectionLabel>
-      <div className="flex flex-wrap gap-1 py-1">
-        {matching.map((code) => {
-          const primary = primaryCameras.includes(code);
-          const sighting = sorted.find((s) => s.cameraId === code);
-          return (
-            <button
-              key={code}
-              type="button"
-              title={sighting ? `${sighting.location} · ${sighting.time}` : code}
-              onClick={() => onOpenCamera(code)}
-              className={`tnum rounded-[4px] border px-1.5 py-[3px] text-[11px] font-semibold transition-colors ${
-                primary
-                  ? 'border-accent-cyan/60 bg-[#083344]/60 text-[#67e8f9] hover:border-accent-cyan hover:text-white'
-                  : 'border-edge bg-[#0c1424] text-[#9fc7ff] hover:border-accent-blue/60 hover:text-white'
-              }`}
-            >
-              {code}
-              {primary ? <span className="ml-1 text-[9.5px] opacity-80">route</span> : null}
-            </button>
-          );
-        })}
-      </div>
-
-      <SectionLabel icon={<Flag size={9} className="text-accent-orange" />}>Investigation state</SectionLabel>
-      <div className="rounded-[5px] border border-edge bg-[#0c1424] px-2 py-1">
-        <Row label="Investigation status" value={status} tone={status === 'closed' ? 'default' : status === 'escalated' ? 'red' : 'green'} />
-        <Row label="Assigned unit" value={dossier.unit} />
-        <Row label="Investigating officer" value={dossier.openedBy} />
-        <Row label="Case reference" value={caseRef ?? 'Not filed yet'} tone={caseRef ? 'cyan' : 'default'} />
-        <Row label="Movement" value={`${analysis.compass} ${String(analysis.bearingDeg).padStart(3, '0')}° · ${analysis.avgSpeedKph} km/h avg`} />
-        <Row label="Longest gap" value={`${analysis.longestGap.label} · ${Math.floor(analysis.longestGap.seconds / 60)}m ${analysis.longestGap.seconds % 60}s`} tone="orange" />
+        <Row label="Corridor" value={analysis.corridorLabel} />
+        <Row
+          label="Average speed"
+          value={`${analysis.avgSpeedKph} km/h · ${analysis.camerasCrossed} cameras`}
+          icon={<Timer size={9} className="text-accent-orange" />}
+        />
       </div>
 
       <button

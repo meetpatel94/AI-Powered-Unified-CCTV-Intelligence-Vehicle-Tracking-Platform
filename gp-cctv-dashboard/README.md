@@ -194,12 +194,11 @@ src/
 │  │                       # StatusDistributionPanel, HealthByLocationPanel,
 │  │                       # RecentHealthEventsPanel, CriticalCamerasPanel,
 │  │                       # CameraHealthSettingsModal, HealthPrimitives, healthTones
-│  └─ investigation/       # InvestigationHeader, InvestigationSearchPanel,
-│                          # TargetVehicleCard, CrossCameraJourneyPanel, JourneyRouteMap,
-│                          # InvestigationDetailsPanel, SightingHistoryPanel,
-│                          # RelatedEventsPanel, RouteAnalysisPanel, RelatedVehiclesPanel,
-│                          # EvidenceGalleryPanel, EvidenceViewerModal, CreateCaseModal,
-│                          # InvestigationAnalytics, InvestigationActionBar
+│  └─ investigation/       # InvestigationHeader, TargetVehicleCard,
+│                          # InvestigationDetailsPanel, CrossCameraJourneyPanel,
+│                          # JourneyRouteMap, SightingHistoryPanel, RelatedEventsPanel,
+│                          # RouteAnalysisPanel, RelatedVehiclesPanel, EvidenceViewerModal,
+│                          # CreateCaseModal, InvestigationActionBar
 ├─ data/
 │  ├─ mockData.ts          # dashboard values + navigation (single source of truth)
 │  ├─ mapData.ts           # GIS geometry: roads, river, labels, markers, tracked route

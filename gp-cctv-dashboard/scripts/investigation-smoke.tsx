@@ -1,8 +1,8 @@
 /* Dev-only runtime smoke check for the Investigation screen (page + evidence
-   viewer + case form) through react-dom/server so every new component's render
-   path runs. Also re-renders the six pre-existing screens to prove the shared
-   shell (Sidebar / TopHeader / mockData nav) still works.
-   Usage: npx vite build --ssr scripts/investigation-smoke.tsx --outDir /tmp/ssr-inv --emptyOutDir && node /tmp/ssr-inv/investigation-smoke.js */
+   viewer + case form) through react-dom/server so every component's render path
+   runs. Also re-renders the pre-existing screens to prove the shared shell
+   (Sidebar / TopHeader / mockData nav) still works.
+   Usage: npx vite build --ssr scripts/investigation-smoke.tsx --outDir dist-ssr --emptyOutDir && node dist-ssr/investigation-smoke.js */
 import { renderToString } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -10,7 +10,6 @@ import { CreateCaseModal } from '@/components/investigation/CreateCaseModal';
 import { EvidenceViewerModal } from '@/components/investigation/EvidenceViewerModal';
 import {
   buildEvidence,
-  computeInvestigationAnalytics,
   computeRouteAnalysis,
   defaultTargetPlate,
   investigationDossiers,
@@ -34,7 +33,6 @@ const dossier = investigationDossiers[defaultTargetPlate];
 const sorted = [...dossier.sightings].sort((a, b) => a.seconds - b.seconds);
 const last = sorted[sorted.length - 1];
 const analysis = computeRouteAnalysis(sorted);
-const analytics = computeInvestigationAnalytics(sorted);
 const evidence = buildEvidence(sorted);
 
 const page = renderToString(
@@ -71,6 +69,9 @@ const caseForm = renderToString(
   </MemoryRouter>,
 );
 
+/* react-dom/server splits adjacent text nodes with comment markers */
+const flat = (html: string) => html.replace(/<!-- -->/g, '');
+
 /* ---------------- page chrome + top controls ---------------- */
 assert(page.includes('Investigation'), 'header title');
 assert(
@@ -84,68 +85,69 @@ assert(page.includes('All Locations') && page.includes('All Cameras'), 'location
 assert(page.includes('value="2026-09-01"'), 'date filter prefilled');
 assert(page.includes('INV-2026-0914'), 'investigation id chip');
 
-/* ---------------- search area ---------------- */
-assert(page.includes('Investigation Search'), 'search panel title');
-assert(page.includes('value="GJ01AB1234"'), 'plate input prefilled with GJ01AB1234');
-assert(page.includes('Vehicle') && page.includes('Camera') && page.includes('Person / Event'), 'quick search modes');
-assert(page.includes('Fuzzy plate match') && page.includes('Watchlist only'), 'search options');
-assert(page.includes('Recent investigations') && page.includes('INV-2026-0898'), 'recent investigation chips');
-assert(page.includes('Index candidates'), 'candidate list');
-
-/* ---------------- target vehicle card ---------------- */
+/* ---------------- 1. target vehicle card ---------------- */
 assert(page.includes('Target Vehicle'), 'target vehicle panel');
 assert(page.includes('GJ01AB1234'), 'target plate');
 assert(page.includes('White Swift Dzire'), 'target model label');
 assert(page.includes('White'), 'target colour');
+assert(flat(page).includes('Maruti Swift Dzire VXi (AMT)'), 'make / model / variant line');
+assert(page.includes('Arjun Rathod'), 'registered owner');
 assert(page.includes('Watchlist Match'), 'watchlist match status');
 assert(page.includes('98.7%'), 'peak ANPR confidence');
-assert(page.includes('First Seen') && page.includes('10:21:15 AM'), 'first seen 10:21:15 AM');
-assert(page.includes('Last Seen') && page.includes('10:44:03 AM'), 'last seen 10:44:03 AM');
-assert(page.includes('Total Sightings') && page.includes(`>${dossier.sightings.length}<`), 'total sightings');
+assert(page.includes('First seen') && page.includes('10:21:15 AM'), 'first seen 10:21:15 AM');
+assert(page.includes('Last seen') && page.includes('10:44:03 AM'), 'last seen 10:44:03 AM');
+assert(page.includes('Total sightings') && page.includes(`>${dossier.sightings.length}<`), 'total sightings');
+assert(page.includes('Current location'), 'current location tile');
 assert(page.includes('High Priority Vehicles'), 'watchlist category');
+assert(page.includes('WL-001'), 'watchlist entry id');
 
-/* ---------------- cross-camera journey ---------------- */
-assert(page.includes('Cross-Camera Journey'), 'journey panel');
+/* ---------------- 1b. investigation details rail ---------------- */
+assert(page.includes('Investigation Details'), 'details panel');
+assert(page.includes('Target state') && page.includes('Target status'), 'target state section');
+assert(page.includes('Case &amp; movement'), 'case + movement section');
+assert(page.includes('Assigned unit') && page.includes(dossier.unit), 'assigned unit');
+assert(page.includes('Investigating officer') && page.includes(dossier.openedBy), 'investigating officer');
+assert(page.includes('Case reference') && page.includes('Not filed yet'), 'case reference row');
+assert(page.includes('Corridor') && page.includes(analysis.corridorLabel), 'movement corridor');
+assert(page.includes('Direction') && page.includes(analysis.compass), 'movement direction row');
+assert(page.includes('Escalate to control room'), 'escalate action');
+
+/* ---------------- 2. cross-camera journey ---------------- */
+assert(page.includes('Cross-Camera Vehicle Journey'), 'journey panel');
 assert(page.includes('Shahibaug Road') && page.includes('Naranpura Road'), 'journey legs 1-2');
 assert(page.includes('Kudasan Road') && page.includes('Gift City Road'), 'journey legs 3-4');
 assert(page.includes('C-001') && page.includes('C-007') && page.includes('C-015') && page.includes('C-038'), 'journey cameras');
 assert(page.includes('Route reconstruction · GIS'), 'journey mini map');
 assert(page.includes('Replay route'), 'route replay control');
+assert(page.includes('Live tracking'), 'live tracking control');
+assert(page.includes('View C-'), 'view camera control for the active node');
 assert(page.includes('route nodes'), 'route node count');
+assert(page.includes('longest gap'), 'longest gap readout in the journey footer');
 
-/* ---------------- investigation details rail ---------------- */
-assert(page.includes('Investigation Details'), 'details panel');
-assert(page.includes('Target status') && page.includes('Watchlist'), 'target + watchlist fields');
-assert(page.includes('Matching cameras'), 'matching cameras');
-assert(page.includes('Detections') && page.includes('ANPR confidence'), 'detection count + confidence');
-assert(page.includes('First location') && page.includes('Last location') && page.includes('Current location'), 'locations');
-assert(page.includes('Investigation status'), 'investigation status');
-assert(page.includes('Escalate to control room'), 'escalate action');
-
-/* ---------------- sighting history ---------------- */
+/* ---------------- 3. sighting history ---------------- */
 assert(page.includes('Sighting History'), 'sighting history panel');
 assert(
-  page.includes('Timestamp') &&
-    page.includes('Camera ID') &&
-    page.includes('Plate confidence') &&
+  page.includes('Camera ID') &&
+    page.includes('Location') &&
+    page.includes('Timestamp') &&
+    page.includes('ANPR / plate confidence') &&
     page.includes('Vehicle type') &&
     page.includes('Direction') &&
-    page.includes('Evidence snapshot'),
+    page.includes('Evidence / status'),
   'sighting table columns',
 );
 assert(page.includes('Route nodes only') && page.includes('Any confidence'), 'sighting filters');
+assert(page.includes('Include re-reads'), 're-read filter');
 assert(page.includes('View evidence'), 'evidence control in table');
-/* react-dom/server splits adjacent text nodes with comment markers */
-const flat = (html: string) => html.replace(/<!-- -->/g, '');
 assert(flat(page).includes(`${dossier.sightings.length} of ${dossier.sightings.length} readings`), 'sighting count readout');
 
-/* ---------------- related events ---------------- */
+/* ---------------- 4. related events ---------------- */
 assert(page.includes('Related Events'), 'related events panel');
 assert(page.includes('Watchlist Match') && page.includes('Speed Violation'), 'watchlist + speed events');
 assert(page.includes('Wrong Direction') && page.includes('Red Light Violation'), 'wrong direction + red light events');
 assert(page.includes('ALRT-2461') && page.includes('ALRT-2458'), 'linked alert ids');
 
-/* ---------------- route analysis ---------------- */
+/* ---------------- 4b. route analysis ---------------- */
 assert(page.includes('Route Analysis'), 'route analysis panel');
 assert(page.includes(analysis.durationLabel), `journey duration ${analysis.durationLabel}`);
 assert(page.includes('Cameras crossed') && page.includes(`>${analysis.camerasCrossed}<`), 'cameras crossed');
@@ -153,28 +155,39 @@ assert(page.includes(`${analysis.distanceKm.toFixed(1)} km`), 'distance estimate
 assert(page.includes('Avg time between cams') && page.includes(analysis.avgGapLabel), 'average time between cameras');
 assert(page.includes('Movement direction') && page.includes(analysis.compass), 'movement direction');
 
-/* ---------------- related vehicles ---------------- */
-assert(page.includes('Related Vehicles / Possible Associations'), 'associations panel');
+/* ---------------- 4c. related vehicles ---------------- */
+assert(page.includes('Related Vehicles'), 'associations panel');
 assert(page.includes('GJ27RS3391') && page.includes('GJ05JK6789') && page.includes('GJ18CD4521'), 'related vehicles');
-assert(page.includes('Arjun Rathod') && page.includes('Registered owner'), 'person association');
+assert(page.includes('Registered owner'), 'person association');
 assert(page.includes('shared gantries'), 'co-detection score');
 assert(
   flat(page).includes('7/10 shared gantries'),
   'derived co-detection score (GJ27RS3391 shares 7 of 10 gantries)',
 );
 
-/* ---------------- evidence gallery ---------------- */
-assert(page.includes('Evidence Gallery'), 'evidence gallery panel');
-assert(page.includes('Route nodes') && page.includes('Watchlist hits'), 'gallery filters');
-assert(page.includes('Open fullscreen'), 'gallery fullscreen control');
-assert(flat(page).includes(`${evidence.length} of ${evidence.length} frames`), 'gallery frame count');
+/* ---------------- reading order (required hierarchy) ---------------- */
+const order = [
+  'Target Vehicle',
+  'Investigation Details',
+  'Cross-Camera Vehicle Journey',
+  'Sighting History',
+  'Related Events',
+  'Route Analysis',
+  'Related Vehicles',
+].map((title) => page.indexOf(`>${title}<`));
+assert(order.every((index) => index > -1), 'every hierarchy panel rendered');
+assert(
+  order.every((index, i) => i === 0 || index > order[i - 1]),
+  `hierarchy order target → details → journey → history → events/analysis/vehicles (${order.join(' < ')})`,
+);
 
-/* ---------------- bottom analytics ---------------- */
-assert(page.includes('Sightings Over Time'), 'sightings over time chart');
-assert(page.includes('Camera Frequency'), 'camera frequency chart');
-assert(page.includes('Location Distribution'), 'location distribution chart');
-assert(flat(page).includes(`peak ${analytics.peak.label}`), 'sightings peak bucket');
-assert(analytics.cameraRows.length === analysis.camerasCrossed, 'camera rows match cameras crossed');
+/* ---------------- removed low-value UI stays removed ---------------- */
+assert(!page.includes('Evidence Gallery'), 'evidence gallery removed (duplicated by the sighting table)');
+assert(!page.includes('Sightings Over Time'), 'sightings-over-time chart removed');
+assert(!page.includes('Camera Frequency'), 'camera-frequency chart removed');
+assert(!page.includes('Location Distribution'), 'location-distribution chart removed');
+assert(!page.includes('Investigation Search'), 'duplicate search band removed');
+assert(!page.includes('Matching cameras'), 'matching-camera chip wall removed from the details rail');
 
 /* ---------------- action bar ---------------- */
 assert(page.includes('Track Live'), 'track live action');
