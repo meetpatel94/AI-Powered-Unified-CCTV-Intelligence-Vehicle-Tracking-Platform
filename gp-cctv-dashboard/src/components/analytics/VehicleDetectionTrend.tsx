@@ -9,6 +9,11 @@ import type { AnalyticsSnapshot } from '@/types/analytics';
 
 interface VehicleDetectionTrendProps {
   snapshot: AnalyticsSnapshot;
+  /**
+   * Single-series "detections" legend chip. Redundant next to the panel title
+   * on the Analytics page (hidden there); kept on by default for other pages.
+   */
+  showLegend?: boolean;
 }
 
 function ticksFor(max: number): number[] {
@@ -24,7 +29,7 @@ function formatTick(value: number): string {
 }
 
 /** Large area chart of vehicle detections over the selected window. */
-export function VehicleDetectionTrend({ snapshot }: VehicleDetectionTrendProps) {
+export function VehicleDetectionTrend({ snapshot, showLegend = true }: VehicleDetectionTrendProps) {
   const [hover, setHover] = useState<{ index: number; x: number; y: number } | null>(null);
   const values = snapshot.vehicleTrend.map((point) => point.value);
   const max = Math.max(1, ...values, snapshot.peakValue);
@@ -56,13 +61,13 @@ export function VehicleDetectionTrend({ snapshot }: VehicleDetectionTrendProps) 
       className="h-full min-h-0"
       bodyClassName="px-3 pb-2 pt-1"
     >
-      <div className="mb-1 flex items-center justify-between text-[10.5px] text-[#6d82a3]">
-        <span>{snapshot.windowNote}</span>
-        <span className="flex items-center gap-2">
-          <span className="flex items-center gap-1">
+      <div className="mb-1 flex items-center justify-between gap-2 text-[10.5px] text-[#6d82a3]">
+        <span className="min-w-0 truncate">{snapshot.windowNote}</span>
+        {showLegend ? (
+          <span className="flex shrink-0 items-center gap-1">
             <span className="h-1.5 w-3 rounded-sm bg-accent-cyan" /> detections
           </span>
-        </span>
+        ) : null}
       </div>
 
       <div className="flex min-h-0 flex-1 gap-1.5">
@@ -137,11 +142,12 @@ export function VehicleDetectionTrend({ snapshot }: VehicleDetectionTrendProps) 
             />
           ) : null}
 
-          <div className="absolute inset-x-0 bottom-0 flex h-[16px] items-center justify-between px-0.5">
+          {/* Equal-width centered slots keep dense hour/day labels from colliding. */}
+          <div className="absolute inset-x-0 bottom-0 flex h-[16px] items-center">
             {snapshot.vehicleTrend.map((point, index) => (
               <span
                 key={`${point.label}-${index}`}
-                className={`tnum text-[9.5px] text-[#8ea1c0] ${index % labelEvery !== 0 ? 'opacity-0' : ''}`}
+                className={`tnum min-w-0 flex-1 text-center text-[9.5px] text-[#8ea1c0] ${index % labelEvery !== 0 ? 'opacity-0' : ''}`}
               >
                 {point.label}
               </span>

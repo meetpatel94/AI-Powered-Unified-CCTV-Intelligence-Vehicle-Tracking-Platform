@@ -108,15 +108,15 @@ export function Analytics() {
         clock={clock}
       />
 
+      {/* Hierarchy: header → filters → KPIs → primary distribution panels →
+          secondary trends → compact supporting metrics → remaining analytics.
+          Normal document flow, vertical scroll, minmax(0,…) grid tracks so no
+          column can collapse or force horizontal overflow. */}
       <AnalyticsKpiRow kpis={snapshot.kpis} />
 
-      {/* trend + mix + events */}
-      <div
-        className="responsive-band responsive-band-mid grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,26fr)_minmax(270px,27fr)]"
-      >
-        <div className="min-w-0 md:col-span-2 xl:col-span-1">
-          <VehicleDetectionTrend snapshot={snapshot} />
-        </div>
+      {/* 1 — Primary analytics: vehicle mix (left) + AI event distribution (right).
+          Balanced two-column row — both panels keep full chart/legend space. */}
+      <div className="responsive-band responsive-band-mid grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <VehicleTypesPanel types={snapshot.vehicleTypes} total={snapshot.kpis.vehicles} windowNote={snapshot.windowNote} />
         </div>
@@ -125,17 +125,28 @@ export function Analytics() {
         </div>
       </div>
 
-      {/* ANPR + cameras + locations */}
-      <div
-        className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(270px,28fr)_minmax(0,1fr)_minmax(280px,30fr)]"
-      >
+      {/* 2 — Secondary analytics: the two time-series charts side by side
+          (detection flow gets the wider track; watchlist trend the narrower). */}
+      <div className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <VehicleDetectionTrend snapshot={snapshot} showLegend={false} />
+        </div>
+        <div className="min-w-0">
+          <WatchlistMatchTrendPanel series={snapshot.watchlistTrend} windowNote={snapshot.windowNote} />
+        </div>
+      </div>
+
+      {/* 3 — Compact supporting metrics: ANPR performance indicators, camera
+          activity ranking and top detection locations in a three-column row.
+          Collapses to 2 columns on tablets and 1 column on phones. */}
+      <div className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-3">
         <div className="min-w-0">
           <AnprPerformancePanel anpr={snapshot.anpr} />
         </div>
-        <div className="min-w-0 md:col-span-2 xl:col-span-1">
+        <div className="min-w-0">
           <CameraActivityPanel cameras={snapshot.cameras} onSelectCamera={(camera) => patchFilters({ camera })} />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 md:col-span-2 xl:col-span-1">
           <TopDetectionLocationsPanel
             locations={snapshot.locations}
             onSelectLocation={(location) => patchFilters({ location, camera: 'all' })}
@@ -143,19 +154,15 @@ export function Analytics() {
         </div>
       </div>
 
-      {/* watchlist + heatmap */}
-      <div
-        className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-10 xl:grid-cols-[40fr_60fr]"
-      >
-        <div className="min-w-0 md:col-span-4 xl:col-span-1">
-          <WatchlistMatchTrendPanel series={snapshot.watchlistTrend} windowNote={snapshot.windowNote} />
-        </div>
-        <div className="min-w-0 md:col-span-6 xl:col-span-1">
+      {/* 4 — Remaining analytics: the 7-day × 24-hour intensity heatmap uses the
+          full width so every hour cell stays readable. */}
+      <div className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)]">
+        <div className="min-w-0">
           <HourlyActivityHeatmap grid={snapshot.heatmap} />
         </div>
       </div>
 
-      {/* briefing */}
+      {/* 5 — Operational briefing */}
       <div className="shrink-0">
         <IntelligenceSummaryPanel
           insights={snapshot.insights}

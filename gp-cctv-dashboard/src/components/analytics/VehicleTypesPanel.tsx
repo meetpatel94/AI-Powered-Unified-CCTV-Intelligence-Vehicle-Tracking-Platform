@@ -26,8 +26,10 @@ export function VehicleTypesPanel({ types, total, windowNote }: VehicleTypesPane
       className="h-full min-h-0"
       bodyClassName="flex h-full min-h-0 flex-col px-3 pb-2 pt-0.5"
     >
-      <div className="flex min-h-0 flex-1 items-center gap-3">
-        <div className="relative h-[118px] w-[118px] shrink-0">
+      {/* Donut + legend on one line while there is room; on very narrow cards
+          the legend wraps below the donut instead of overlapping it. */}
+      <div className="flex min-h-0 flex-1 flex-wrap content-center items-center justify-center gap-x-5 gap-y-3">
+        <div className="relative h-[132px] w-[132px] shrink-0 sm:h-[146px] sm:w-[146px]">
           <svg viewBox="0 0 42 42" className="h-full w-full">
             <circle cx="21" cy="21" r={radius} fill="none" stroke="#0d1626" strokeWidth="4.6" />
             {types.map((slice, index) => {
@@ -60,14 +62,14 @@ export function VehicleTypesPanel({ types, total, windowNote }: VehicleTypesPane
           <div className="pointer-events-none absolute inset-0 grid place-items-center text-center leading-none">
             <div>
               <div className="tnum text-[15px] font-bold text-white">{active ? formatIn(active.value) : formatIn(total)}</div>
-              <div className="mt-[2px] max-w-[72px] truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-[#6d82a3]">
+              <div className="mt-[2px] max-w-[86px] truncate text-[9px] font-semibold uppercase tracking-[0.12em] text-[#6d82a3]">
                 {active ? active.label : 'vehicles'}
               </div>
             </div>
           </div>
         </div>
 
-        <ul className="min-w-0 flex-1 space-y-[5px]">
+        <ul className="min-w-[168px] max-w-[400px] flex-1 space-y-[5px]">
           {types.map((slice, index) => {
             const pct = (slice.value / denom) * 100;
             return (
@@ -82,8 +84,10 @@ export function VehicleTypesPanel({ types, total, windowNote }: VehicleTypesPane
                     className="h-2 w-2 shrink-0 rounded-[2px]"
                     style={{ background: slice.color, boxShadow: `0 0 6px -1px ${slice.color}` }}
                   />
-                  <span className="min-w-0 flex-1 truncate text-[11.5px] text-[#9fb0cc]">{slice.label}</span>
-                  <span className="tnum text-[12px] font-bold text-white">{formatIn(slice.value)}</span>
+                  <span className="min-w-0 flex-1 truncate text-[11.5px] text-[#9fb0cc]" title={slice.label}>
+                    {slice.label}
+                  </span>
+                  <span className="tnum shrink-0 text-[12px] font-bold text-white">{formatIn(slice.value)}</span>
                 </div>
                 <div className="mt-[3px] ml-3.5 h-[3px] overflow-hidden rounded-full bg-[#0d1626]">
                   <div
