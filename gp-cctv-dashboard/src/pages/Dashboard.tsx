@@ -1,5 +1,4 @@
 import { AiAnalyticsPanel } from '@/components/dashboard/AiAnalyticsPanel';
-import { CameraHealthPanel } from '@/components/dashboard/CameraHealthPanel';
 import { GisCameraMapPanel } from '@/components/dashboard/GisCameraMapPanel';
 import { JourneyTimelinePanel } from '@/components/dashboard/JourneyTimelinePanel';
 import { KpiRow } from '@/components/dashboard/KpiRow';
@@ -8,7 +7,6 @@ import { RecentAlertsPanel } from '@/components/dashboard/RecentAlertsPanel';
 import { VehicleSearchPanel } from '@/components/dashboard/VehicleSearchPanel';
 import {
   useAiActivity,
-  useCameraHealthSummary,
   useDashboardKpis,
   useGisMapCameras,
   useJourneyTimeline,
@@ -16,17 +14,27 @@ import {
 } from '@/hooks/useIntelligence';
 
 /**
- * Operational dashboard: KPI strip, live wall + GIS map + alert rail,
- * then the vehicle intelligence row. Every band pulls from the FastAPI
- * backend when it is reachable (`hooks/useIntelligence.ts`); the panels
- * fall back to their bundled mock fixtures otherwise. Content scrolls the
- * page when taller than the viewport; bands use minmax() grid columns so
- * panels reflow instead of shrinking below readable sizes.
+ * Operational dashboard: KPI strip on top, then three two-column
+ * command-center bands — live wall + GIS map, recent alerts + vehicle
+ * search, vehicle journey + AI analytics. Camera Health is intentionally
+ * not part of this layout; it has its own sidebar screen (`/camera-health`).
+ *
+ * Every band pulls from the FastAPI backend when it is reachable
+ * (`hooks/useIntelligence.ts`); the panels fall back to their bundled mock
+ * fixtures otherwise. Layout rules: each band is a CSS grid that stacks to a
+ * single column below `xl` and splits into two equal `minmax(0,1fr)`-style
+ * columns on desktop, with `min-w-0` on every cell so nothing overflows
+ * horizontally. Panels are not force-stretched to one shared height — a band
+ * is only as tall as its tallest panel's own content, and the live wall uses
+ * `xl:self-start` so it hugs its 2 x 2 grid instead of stretching to match
+ * the map. The GIS map and the AI chart have no intrinsic height (their
+ * bodies are absolutely positioned layers), so those two cells are single-cell
+ * grids with a pixel minimum (`min-h-[420px]` / `min-h-[300px]`) that the
+ * panel fills by stretching; no band or cell uses viewport units.
  */
 export function Dashboard() {
   const { stats: kpis } = useDashboardKpis();
   const { items: alerts } = useRecentAlerts();
-  const { slices: health } = useCameraHealthSummary();
   const { stops, plate, live: journeyLive } = useJourneyTimeline();
   const { bars } = useAiActivity();
   const { cameras: gisCameras } = useGisMapCameras();
@@ -35,37 +43,32 @@ export function Dashboard() {
     <div className="page">
       <KpiRow stats={kpis} />
 
-      {/* Situational awareness row */}
-      <div
-        className="responsive-band responsive-band-main grid shrink-0 gap-[var(--page-gap)] grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(300px,34fr)_minmax(340px,39fr)_minmax(300px,27fr)]"
-      >
-        <div className="min-w-0">
+      {/* Row 1 — Live CCTV wall (left) + GIS camera map (right) */}
+      <div className="responsive-band grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-2">
+        <div className="min-w-0 xl:self-start">
           <LiveFeedsPanel />
         </div>
-        <div className="min-w-0">
+        <div className="grid min-h-[420px] min-w-0">
           <GisCameraMapPanel cameras={gisCameras ?? undefined} />
-        </div>
-        <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] md:col-span-2 sm:grid-cols-2 xl:flex xl:col-span-1 xl:flex-col">
-          <div className="min-h-0 min-w-0 xl:flex-1">
-            <RecentAlertsPanel alerts={alerts} />
-          </div>
-          <div className="min-w-0 sm:col-span-2 xl:col-span-1">
-            <CameraHealthPanel slices={health} />
-          </div>
         </div>
       </div>
 
-      {/* Vehicle intelligence row */}
-      <div
-        className="responsive-band responsive-band-mid grid shrink-0 gap-[var(--page-gap)] grid-cols-1 md:grid-cols-2 xl:grid-cols-[minmax(250px,20fr)_minmax(380px,47fr)_minmax(300px,33fr)]"
-      >
+      {/* Row 2 — Recent alerts (left) + vehicle search (right) */}
+      <div className="responsive-band grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-2">
+        <div className="min-w-0">
+          <RecentAlertsPanel alerts={alerts} />
+        </div>
         <div className="min-w-0">
           <VehicleSearchPanel />
         </div>
-        <div className="min-w-0 md:col-span-2 xl:col-span-1">
+      </div>
+
+      {/* Row 3 — Vehicle journey (left) + AI analytics (right) */}
+      <div className="responsive-band grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-2">
+        <div className="min-w-0">
           <JourneyTimelinePanel stops={stops} plate={journeyLive ? plate : undefined} />
         </div>
-        <div className="min-w-0">
+        <div className="grid min-h-[300px] min-w-0">
           <AiAnalyticsPanel bars={bars ?? undefined} />
         </div>
       </div>
