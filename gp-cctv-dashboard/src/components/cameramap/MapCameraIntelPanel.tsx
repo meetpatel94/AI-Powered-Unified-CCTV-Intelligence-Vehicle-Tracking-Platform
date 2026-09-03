@@ -65,7 +65,7 @@ export function MapCameraIntelPanel({
   const latency = camera.latencyMs ? drift(camera.latencyMs, 14, `${camera.id}-map-lat`, tick) : 0;
 
   return (
-    <aside className="pointer-events-auto absolute right-3 top-3 z-30 flex max-h-[calc(100%-214px)] w-[312px] flex-col overflow-hidden rounded-md border border-edge bg-[#0a1220]/96 shadow-panel backdrop-blur-sm">
+    <aside className="pointer-events-auto absolute bottom-3 left-3 right-3 top-auto z-30 flex max-h-[55%] w-auto flex-col overflow-hidden rounded-md border border-edge bg-[#0a1220]/96 shadow-panel backdrop-blur-sm md:bottom-auto md:left-auto md:right-3 md:top-3 md:max-h-[calc(100%-24px)] md:w-[360px]">
       <header className="flex shrink-0 items-center justify-between gap-2 border-b border-edge px-2.5 py-2">
         <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white">
           Selected Camera Intelligence

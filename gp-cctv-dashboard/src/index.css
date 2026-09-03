@@ -258,6 +258,15 @@ input[type='range'].s-range:focus-visible {
   box-shadow: 0 0 0 3px rgba(47, 125, 255, 0.25);
 }
 
+/* Contained GIS map workspace (Camera Map): when element-fullscreened via the
+   Fullscreen control, the workspace fills the display instead of keeping its
+   in-flow desktop height. */
+.gis-map-workspace:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+}
+
 /* Thin, near-invisible scrollbars for internal panel scroll areas */
 .scroll-thin::-webkit-scrollbar {
   width: 5px;

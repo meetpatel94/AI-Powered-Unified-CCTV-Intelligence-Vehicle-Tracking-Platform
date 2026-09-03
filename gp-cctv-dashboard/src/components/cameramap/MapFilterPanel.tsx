@@ -50,8 +50,8 @@ export function MapFilterPanel({
     });
 
   return (
-    <div className="pointer-events-auto absolute left-3 top-3 z-30 w-[264px] overflow-hidden rounded-md border border-edge bg-[#0a1220]/95 shadow-panel backdrop-blur-sm">
-      <header className="flex items-center justify-between gap-1 border-b border-edge px-2.5 py-2">
+    <div className="pointer-events-auto absolute left-3 top-3 z-30 flex max-h-[calc(100%-24px)] w-[min(300px,calc(100%-24px))] flex-col overflow-hidden rounded-md border border-edge bg-[#0a1220]/95 shadow-panel backdrop-blur-sm max-md:max-h-[40%]">
+      <header className="flex shrink-0 items-center justify-between gap-1 border-b border-edge px-2.5 py-2">
         <span className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-white">
           <SlidersHorizontal size={11} className="text-accent-blue" />
           Map Filters
@@ -74,6 +74,7 @@ export function MapFilterPanel({
 
       {!collapsed && (
         <>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-thin">
           <Section title="Location Search">
             <div className="relative">
               <Search size={11} className="absolute left-2 top-1/2 -translate-y-1/2 text-[#6d7f9e]" />
@@ -178,8 +179,9 @@ export function MapFilterPanel({
               />
             </div>
           </Section>
+          </div>
 
-          <footer className="flex items-center justify-between gap-1 border-t border-edge bg-[#0c1424] px-2.5 py-2 text-[13px]">
+          <footer className="flex shrink-0 items-center justify-between gap-1 border-t border-edge bg-[#0c1424] px-2.5 py-2 text-[13px]">
             <span className="flex items-center gap-1 text-[#7286a6]">
               <Filter size={9} /> Visible
             </span>

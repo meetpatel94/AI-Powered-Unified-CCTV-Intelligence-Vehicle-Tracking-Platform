@@ -50,7 +50,6 @@ export function RouteLayer({
       .join(' ');
 
   const alertNode = route.nodes[route.nodes.length - 1];
-  const alertPos = project(alertNode.x, alertNode.y);
   const popup = {
     ...mapAlertPopup,
     vehicle: route.plate,
@@ -60,9 +59,15 @@ export function RouteLayer({
   };
 
   const pad = { top: insets?.top ?? 12, right: insets?.right ?? 12, bottom: insets?.bottom ?? 12, left: insets?.left ?? 12 };
-  const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
-  const alertLeft = clamp(alertPos.x - ALERT_W - 18, pad.left, bounds.w - pad.right - ALERT_W);
-  const alertTop = clamp(alertPos.y + 16, pad.top, bounds.h - pad.bottom - (alertH || 150));
+  /**
+   * Compact overlay pinned to the lower part of the workspace, inside the
+   * lane that remains free between the floating decks (Map Filters / Selected
+   * Camera Intelligence + map controls / legend). The lane shrinks
+   * automatically when a deck is open, so the callout can never run under a
+   * panel, the controls or the legend, and always stays inside the map.
+   */
+  const alertLeft = Math.max(pad.left, bounds.w - pad.right - ALERT_W);
+  const alertTop = Math.max(pad.top, bounds.h - pad.bottom - (alertH || 150));
 
   return (
     <>
