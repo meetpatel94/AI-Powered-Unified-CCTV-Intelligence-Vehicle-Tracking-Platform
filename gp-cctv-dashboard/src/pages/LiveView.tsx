@@ -6,8 +6,9 @@ import { LiveCameraCard } from '@/components/liveview/LiveCameraCard';
 import { LiveViewHeader, type GridSize } from '@/components/liveview/LiveViewHeader';
 import { SelectedCameraPanel } from '@/components/liveview/SelectedCameraPanel';
 import { StreamHealthPanel } from '@/components/liveview/StreamHealthPanel';
-import { liveCameras } from '@/data/liveViewData';
+import { liveCameras as mockLiveCameras } from '@/data/liveViewData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
+import { useGatewayLiveCameras } from '@/hooks/useGatewayLiveCameras';
 import { useTelemetryTick } from '@/hooks/useTelemetryTick';
 import type { CameraFilterId } from '@/types/liveView';
 
@@ -27,14 +28,14 @@ export function LiveView() {
   const [gridSize, setGridSize] = useState<GridSize>(3);
   const [searchParams] = useSearchParams();
   const deepLinkedCamera = searchParams.get('camera');
-  const [selectedId, setSelectedId] = useState(
-    () => (deepLinkedCamera && liveCameras.some((c) => c.id === deepLinkedCamera) ? deepLinkedCamera : 'C-038'),
-  );
-  const [mutedIds, setMutedIds] = useState<string[]>(() => liveCameras.map((c) => c.id));
-
   const now = useLiveClock();
   const tick = useTelemetryTick();
   const clock = formatClock(now);
+  const { cameras: liveCameras, health } = useGatewayLiveCameras(tick);
+  const [selectedId, setSelectedId] = useState(
+    () => deepLinkedCamera || mockLiveCameras[0]?.id || '',
+  );
+  const [mutedIds, setMutedIds] = useState<string[]>([]);
 
   const counts = useMemo(
     () => ({
@@ -46,7 +47,7 @@ export function LiveView() {
       anpr: liveCameras.filter((c) => c.anprActive).length,
       ai: liveCameras.filter((c) => c.aiDetection).length,
     }),
-    [],
+    [liveCameras],
   );
 
   const visibleCameras = useMemo(() => {
@@ -77,10 +78,13 @@ export function LiveView() {
           return true;
       }
     });
-  }, [query, filter]);
+  }, [query, filter, liveCameras]);
 
   const selectedCamera =
-    liveCameras.find((camera) => camera.id === selectedId) ?? visibleCameras[0] ?? liveCameras[0];
+    liveCameras.find((camera) => camera.id === selectedId) ??
+    visibleCameras[0] ??
+    liveCameras[0] ??
+    mockLiveCameras[0];
 
   const toggleMute = (id: string) =>
     setMutedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -144,7 +148,7 @@ export function LiveView() {
           </div>
         </section>
 
-          <StreamHealthPanel tick={tick} />
+          <StreamHealthPanel tick={tick} health={health} />
         </div>
 
         {/* ---------------- intelligence rail ---------------- */}

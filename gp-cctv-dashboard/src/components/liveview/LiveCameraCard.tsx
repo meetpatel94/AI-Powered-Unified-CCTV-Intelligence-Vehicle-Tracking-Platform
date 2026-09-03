@@ -128,7 +128,7 @@ export function LiveCameraCard({
         ) : (
           <>
             <img
-              src={camera.thumbnail}
+              src={camera.liveFrameUrl ?? camera.thumbnail}
               alt={`${camera.id} ${camera.location}`}
               className={`h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04] ${
                 camera.status === 'reconnecting' ? 'opacity-35 blur-[2px] grayscale' : 'opacity-95'

@@ -85,7 +85,7 @@ export function SelectedCameraPanel({ camera, clock, tick }: SelectedCameraPanel
           </div>
         ) : (
           <>
-            <img src={camera.thumbnail} alt={camera.id} className="h-full w-full object-cover opacity-95" />
+            <img src={camera.liveFrameUrl ?? camera.thumbnail} alt={camera.id} className="h-full w-full object-cover opacity-95" />
             {camera.detections
               .filter((d) => d.kind === 'anpr')
               .map((d) => (
