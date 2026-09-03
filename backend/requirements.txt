@@ -10,3 +10,20 @@ httpx==0.28.1
 python-dotenv==1.1.0
 structlog==25.2.0
 tenacity==9.1.2
+
+# --- Vehicle Intelligence Pipeline ------------------------------------------
+# Detection + tracking (YOLO / ByteTrack / BoT-SORT via Ultralytics).
+ultralytics==8.4.138
+torch==2.14.0
+torchvision==0.29.0
+lapx>=0.5.11
+# Frame decode / crops (headless build — no libGL needed on servers).
+opencv-python-headless>=4.9,<6
+numpy>=1.26,<2
+pillow>=10.0
+# ANPR / OCR — RapidOCR ships PP-OCR ONNX models offline (no download needed).
+rapidocr-onnxruntime==1.4.4
+onnxruntime>=1.17
+# Bundled ffmpeg binary fallback when the host has no system ffmpeg.
+imageio-ffmpeg>=0.5.1
+websockets>=12.0

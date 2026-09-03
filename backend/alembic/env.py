@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from app.core.config import get_settings
 from app.db.base import Base
 from app.models import camera  # noqa: F401 — register metadata
+from app.models import vehicle  # noqa: F401 — register metadata
 
 config = context.config
 if config.config_file_name is not None:

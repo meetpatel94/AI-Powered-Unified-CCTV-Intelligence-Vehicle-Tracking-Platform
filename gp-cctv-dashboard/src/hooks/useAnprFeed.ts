@@ -1,39 +1,85 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { anprSeed, platePool, watchlistPlates } from '@/data/liveViewData';
+import { anprSeed, watchlistPlates } from '@/data/liveViewData';
 import { formatClock } from '@/hooks/useLiveClock';
+import { createRealtimeChannel } from '@/services/realtime';
+import { api, type SightingDto } from '@/services/api';
 import type { AnprHit } from '@/types/liveView';
 
-const ANPR_CAMERAS = ['C-001', 'C-007', 'C-015', 'C-038', 'C-052', 'C-115', 'C-207'];
-
 /**
- * Simulated ANPR OCR stream.
+ * Live ANPR OCR feed.
  *
- * Stands in for the `anpr:hit` WebSocket topic in services/realtime.ts — when the
- * gateway is live, replace the interval with `bus.on('anpr:hit', push)`.
+ * Primary source is the backend Vehicle Intelligence Pipeline: it seeds from
+ * `GET /api/anpr/recent` and then streams the `anpr:hit` WebSocket topic from
+ * `/api/ws`. If the backend is unreachable it falls back to the bundled
+ * `anprSeed` so the Gujarat Police dashboard still renders — no UI change.
  */
-export function useAnprFeed(maxRows = 14, intervalMs = 3200) {
+
+function timeOf(iso: string | null | undefined): string {
+  if (!iso) return formatClock(new Date()).replace(/\s?[AP]M$/i, '');
+  return formatClock(new Date(iso)).replace(/\s?[AP]M$/i, '');
+}
+
+function mapSighting(s: SightingDto): AnprHit {
+  return {
+    id: `anpr-${s.id}`,
+    plate: s.plate,
+    camera: s.camera_id,
+    time: timeOf(s.seen_at),
+    confidence: Number(((s.ocr_confidence ?? 0) * 100).toFixed(1)),
+    watchlist: watchlistPlates.has(s.plate),
+  };
+}
+
+export function useAnprFeed(maxRows = 14) {
   const [hits, setHits] = useState<AnprHit[]>(anprSeed);
-  const counter = useRef(0);
+  const liveSeen = useRef(false);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      counter.current += 1;
-      const plate = platePool[Math.floor(Math.random() * platePool.length)];
-      const camera = ANPR_CAMERAS[Math.floor(Math.random() * ANPR_CAMERAS.length)];
-      const hit: AnprHit = {
-        id: `live-${counter.current}-${Date.now()}`,
-        plate,
-        camera,
-        time: formatClock(new Date()).replace(/\s?[AP]M$/i, ''),
-        confidence: Number((86 + Math.random() * 13.5).toFixed(1)),
-        watchlist: watchlistPlates.has(plate),
-      };
-      setHits((prev) => [hit, ...prev].slice(0, maxRows));
-    }, intervalMs);
+    let cancelled = false;
 
-    return () => window.clearInterval(timer);
-  }, [maxRows, intervalMs]);
+    // Seed from recent persisted ANPR reads.
+    api
+      .getRecentAnpr(maxRows)
+      .then((rows) => {
+        if (cancelled || !rows.length) return;
+        liveSeen.current = true;
+        setHits(rows.map(mapSighting).slice(0, maxRows));
+      })
+      .catch(() => undefined);
+
+    // Stream live hits.
+    const bus = createRealtimeChannel();
+    const off = bus.on('anpr:hit', (payload) => {
+      const p = payload as {
+        plate: string;
+        camera_id: string;
+        confidence: number;
+        timestamp?: string;
+      };
+      if (!p?.plate) return;
+      const hit: AnprHit = {
+        id: `anpr-live-${p.plate}-${p.timestamp ?? Date.now()}`,
+        plate: p.plate,
+        camera: p.camera_id,
+        time: timeOf(p.timestamp),
+        confidence: Number(((p.confidence ?? 0) * 100).toFixed(1)),
+        watchlist: watchlistPlates.has(p.plate),
+      };
+      if (!liveSeen.current) {
+        liveSeen.current = true;
+        setHits([hit]);
+      } else {
+        setHits((prev) => [hit, ...prev].slice(0, maxRows));
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      off();
+      bus.close();
+    };
+  }, [maxRows]);
 
   return hits;
 }
