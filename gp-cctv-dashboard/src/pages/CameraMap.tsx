@@ -1,7 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Filter, Layers, Maximize, MapPinned, RefreshCw } from 'lucide-react';
+import { Filter, Layers, MapPinned, Maximize, RefreshCw, TrendingUp } from 'lucide-react';
 
+import { AiEventsByTypePanel } from '@/components/analytics/AiEventsByTypePanel';
+import { VehicleDetectionTrend } from '@/components/analytics/VehicleDetectionTrend';
+import { WatchlistMatchTrendPanel } from '@/components/analytics/WatchlistMatchTrendPanel';
 import { BaseMap, type BaseMapStyle } from '@/components/cameramap/BaseMap';
 import { CameraMarkerLayer, buildClusters, type Cluster } from '@/components/cameramap/CameraMarkerLayer';
 import { CameraPopup } from '@/components/cameramap/CameraPopup';
@@ -11,8 +14,9 @@ import { MapControls } from '@/components/cameramap/MapControls';
 import { MapFilterPanel } from '@/components/cameramap/MapFilterPanel';
 import { MapLegend, MapStatsStrip } from '@/components/cameramap/MapStatsStrip';
 import { RouteLayer } from '@/components/cameramap/RouteLayer';
-import { WORLD_H, WORLD_W, places, roads } from '@/data/gisGeometry';
 import { mapCameraNodes, statusColor, trackedRoute } from '@/data/cameraMapData';
+import { computeAnalytics, defaultAnalyticsFilters } from '@/data/analyticsData';
+import { WORLD_H, WORLD_W, places, roads } from '@/data/gisGeometry';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
 import { useDashboardKpis, useGisCameras, useGisRoute } from '@/hooks/useIntelligence';
 import { useMapViewport } from '@/hooks/useMapViewport';
@@ -153,6 +157,16 @@ export function CameraMap() {
     [navigate],
   );
 
+  /** Scroll the map back into view when a below-map control jumps the map. */
+  const revealMap = useCallback(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, []);
+
   const handleSelectStep = useCallback(
     (step: number) => {
       const node = route.nodes.find((n) => n.step === step);
@@ -161,8 +175,9 @@ export function CameraMap() {
       setSelectedId(node.cameraId);
       setPopupId(null);
       centerOn(node.x, node.y);
+      revealMap();
     },
-    [centerOn, route],
+    [centerOn, route, revealMap],
   );
 
   const refresh = () => {
@@ -176,6 +191,26 @@ export function CameraMap() {
     if (document.fullscreenElement) document.exitFullscreen();
     else el.requestFullscreen?.().catch(() => undefined);
   };
+
+  /**
+   * Screen-space lanes reserved inside the GIS workspace by the floating
+   * decks (Map Filters on the left, Selected Camera Intelligence + map
+   * controls on the right, legend at the bottom). Markers, the route and the
+   * alert callout are clamped to these lanes so nothing spills under a deck
+   * or outside the workspace.
+   */
+  const deckInsets = useMemo(
+    () => ({
+      top: 16,
+      right: selectedCamera ? 420 : 70,
+      bottom: 62,
+      left: filtersOpen ? 324 : 16,
+    }),
+    [selectedCamera, filtersOpen],
+  );
+
+  /** Read-only analytics snapshot (existing fixture pipeline) rendered below the map. */
+  const analytics = useMemo(() => computeAnalytics(defaultAnalyticsFilters), []);
 
   /* ---------------- render ---------------- */
 
@@ -260,10 +295,10 @@ export function CameraMap() {
         }
       />
 
-      {/* map canvas */}
+      {/* ---------- GIS map workspace (contained, fixed desktop height) ---------- */}
       <div
         ref={canvasRef}
-        className="relative min-h-[560px] flex-1 overflow-hidden rounded-md border border-edge bg-[#061224]"
+        className="gis-map-workspace relative h-[560px] w-full shrink-0 overflow-hidden rounded-md border border-edge bg-[#061224] md:h-[620px] xl:h-[660px]"
       >
         <div
           ref={containerRef}
@@ -351,12 +386,7 @@ export function CameraMap() {
               route={route}
               project={project}
               bounds={{ w: size.w, h: size.h }}
-              insets={{
-                top: 16,
-                right: selectedCamera ? 364 : 70,
-                bottom: journeyCollapsed ? 104 : 196,
-                left: filtersOpen ? 288 : 16,
-              }}
+              insets={deckInsets}
               showAlert={showAlert && layers.alerts}
               activeStep={activeStep}
               onSelectStep={handleSelectStep}
@@ -373,6 +403,7 @@ export function CameraMap() {
                 setJourneyCollapsed(false);
                 const mid = route.nodes[Math.floor(route.nodes.length / 2)];
                 if (mid) centerOn(mid.x, mid.y, Math.max(view.scale, 1.1));
+                revealMap();
               }}
             />
           )}
@@ -395,12 +426,7 @@ export function CameraMap() {
               x={popupPos.x}
               y={popupPos.y}
               bounds={{ w: size.w, h: size.h }}
-              insets={{
-                top: 16,
-                right: selectedCamera ? 364 : 70,
-                bottom: journeyCollapsed ? 104 : 196,
-                left: filtersOpen ? 288 : 16,
-              }}
+              insets={deckInsets}
               onClose={() => setPopupId(null)}
               onViewLiveFeed={handleViewLiveFeed}
             />
@@ -431,7 +457,7 @@ export function CameraMap() {
           onLocate={() => centerOn(700, 560, 1.4)}
           onFullscreen={goFullscreen}
           zoomLevel={zoomLevel}
-          rightOffset={selectedCamera ? 328 : 16}
+          rightOffset={selectedCamera ? 384 : 12}
         />
 
         {selectedCamera && (
@@ -444,21 +470,51 @@ export function CameraMap() {
           />
         )}
 
-        <JourneyPanel
-          route={route}
-          activePlate={activePlate}
-          onSelectPlate={(plate) => {
-            setActivePlate(plate);
-            if (plate) setJourneyCollapsed(false);
-          }}
-          activeStep={activeStep}
-          onSelectStep={handleSelectStep}
-          collapsed={journeyCollapsed}
-          onToggleCollapse={() => setJourneyCollapsed((c) => !c)}
-        />
-
         <MapLegend />
       </div>
+
+      {/* ---------- Vehicle Journey (normal document flow, below the map) ---------- */}
+      <JourneyPanel
+        route={route}
+        activePlate={activePlate}
+        onSelectPlate={(plate) => {
+          setActivePlate(plate);
+          if (plate) setJourneyCollapsed(false);
+          revealMap();
+        }}
+        activeStep={activeStep}
+        onSelectStep={handleSelectStep}
+        collapsed={journeyCollapsed}
+        onToggleCollapse={() => setJourneyCollapsed((c) => !c)}
+      />
+
+      {/* ---------- Analytics (normal document flow, below Vehicle Journey) ---------- */}
+      <section aria-label="Analytics" className="flex shrink-0 flex-col gap-2.5">
+        <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-[5px] bg-accent-blue/15 text-accent-cyan">
+              <TrendingUp size={14} strokeWidth={2.2} />
+            </span>
+            <h2 className="panel-title">Analytics</h2>
+            <span className="page-sub hidden sm:inline">network detections, watchlist matches &amp; AI event mix</span>
+          </div>
+          <span className="tnum rounded-[4px] border border-edge bg-panel px-2.5 py-1 text-[12px] text-[#7286a6]">
+            {analytics.windowNote}
+          </span>
+        </header>
+
+        <div className="responsive-band responsive-band-mid grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-[minmax(0,1.35fr)_minmax(260px,26fr)_minmax(270px,27fr)]">
+          <div className="min-w-0 md:col-span-2 xl:col-span-1">
+            <VehicleDetectionTrend snapshot={analytics} />
+          </div>
+          <div className="min-w-0">
+            <WatchlistMatchTrendPanel series={analytics.watchlistTrend} windowNote={analytics.windowNote} />
+          </div>
+          <div className="min-w-0">
+            <AiEventsByTypePanel events={analytics.eventTypes} total={analytics.kpis.events} windowNote={analytics.windowNote} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

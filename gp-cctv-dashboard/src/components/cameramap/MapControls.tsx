@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { Layers, Locate, Map as MapIcon, Maximize, Minus, Plus, Satellite } from 'lucide-react';
 
 import type { BaseMapStyle } from '@/components/cameramap/BaseMap';
@@ -72,8 +72,8 @@ export function MapControls({
 }: MapControlsProps) {
   return (
     <div
-      className="absolute top-3 z-30 flex flex-col items-end gap-2 transition-all"
-      style={{ right: rightOffset }}
+      className="absolute top-3 right-3 z-30 flex flex-col items-end gap-2 transition-all md:right-[var(--map-ctrl-right)]"
+      style={{ '--map-ctrl-right': `${rightOffset}px` } as CSSProperties}
     >
       <div className="flex flex-col divide-y divide-edge overflow-hidden rounded-[5px] border border-edge backdrop-blur-sm">
         <ControlButton label="Zoom in" onClick={onZoomIn}>

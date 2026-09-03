@@ -14,7 +14,7 @@ interface JourneyPanelProps {
   route?: TrackedVehicleRoute;
 }
 
-/** Bottom investigation dock: pick a vehicle, replay its camera-to-camera route. */
+/** Vehicle Journey section: pick a vehicle, replay its camera-to-camera route. */
 export function JourneyPanel({
   activePlate,
   onSelectPlate,
@@ -36,7 +36,7 @@ export function JourneyPanel({
       : '—';
 
   return (
-    <div className="pointer-events-auto absolute bottom-[56px] left-3 right-3 z-30 overflow-hidden rounded-md border border-edge bg-[#0a1220]/96 shadow-panel backdrop-blur-sm">
+    <div className="relative w-full shrink-0 overflow-hidden rounded-md border border-edge bg-[#0a1220]/96 shadow-panel backdrop-blur-sm">
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-edge px-3 py-2">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.08em] text-white">
@@ -101,11 +101,11 @@ export function JourneyPanel({
               Select a vehicle above to replay its tracked route across the camera network.
             </div>
           ) : (
-            <div className="flex items-stretch gap-2.5">
+            <div className="flex items-stretch gap-2.5 overflow-x-auto pb-1 scroll-thin">
               {route.nodes.map((node, index) => {
                 const isActive = activeStep === node.step;
                 return (
-                  <div key={node.step} className="flex min-w-0 flex-1 items-stretch gap-2.5">
+                  <div key={node.step} className="flex min-w-[180px] flex-1 items-stretch gap-2.5">
                     <button
                       type="button"
                       onClick={() => onSelectStep(node.step)}

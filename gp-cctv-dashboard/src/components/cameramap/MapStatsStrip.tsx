@@ -56,13 +56,13 @@ export function MapStatsStrip({ stats = fleetStats }: { stats?: MapFleetStats })
   ];
 
   return (
-    <div className="flex shrink-0 gap-2.5">
+    <div className="grid shrink-0 grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-5">
       {items.map((item) => {
         const Icon = item.icon;
         return (
           <div
             key={item.id}
-            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md border border-edge bg-panel px-3 py-2"
+            className="flex min-w-0 items-center gap-2.5 rounded-md border border-edge bg-panel px-3 py-2"
           >
             <span
               className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[5px]"
@@ -86,10 +86,10 @@ export function MapStatsStrip({ stats = fleetStats }: { stats?: MapFleetStats })
   );
 }
 
-/** Legend pinned to the bottom edge of the canvas. */
+/** Legend pinned to the bottom edge of the map workspace (wraps instead of clipping). */
 export function MapLegend() {
   return (
-    <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-3.5 rounded-[5px] border border-edge bg-[#0a1220]/92 px-3 py-2 backdrop-blur-sm">
+    <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex max-w-[calc(100%-24px)] flex-wrap items-center gap-x-3.5 gap-y-1.5 rounded-[5px] border border-edge bg-[#0a1220]/92 px-3 py-2 backdrop-blur-sm">
       <span className="text-[12.5px] font-semibold uppercase tracking-[0.08em] text-ink-dim">Legend</span>
       {legendItems.map((item) => (
         <span key={item.label} className="flex items-center gap-1.5 text-[13px] text-[#a9bcd8]">
