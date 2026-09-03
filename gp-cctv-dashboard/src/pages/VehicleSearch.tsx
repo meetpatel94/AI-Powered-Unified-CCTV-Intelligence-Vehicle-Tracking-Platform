@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Activity,
   AlertTriangle,
@@ -73,10 +73,11 @@ import { useVehicleSearch } from '@/hooks/useVehicleSearch';
 
 export function VehicleSearch() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const clock = formatClock(useLiveClock());
 
   /* ---------------- search state ---------------- */
-  const [plate, setPlate] = useState('GJ01AB1234');
+  const [plate, setPlate] = useState(() => searchParams.get('plate')?.toUpperCase() ?? 'GJ01AB1234');
   const [searchType, setSearchType] = useState<SearchType>('plate');
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -101,6 +102,16 @@ export function VehicleSearch() {
   /* ---------------- live backend data ---------------- */
   const [searchTrigger, setSearchTrigger] = useState(0);
   const live = useVehicleSearch(plate, searchTrigger);
+
+  /* ---------------- deep link ---------------- */
+  const paramPlate = searchParams.get('plate');
+  useEffect(() => {
+    if (paramPlate) {
+      setPlate(paramPlate.toUpperCase());
+      setSearchTrigger((n) => n + 1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramPlate]);
 
   /* ---------------- interactions ---------------- */
   const handleSearch = () => {
