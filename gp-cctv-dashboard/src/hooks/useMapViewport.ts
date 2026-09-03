@@ -7,6 +7,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
  */
 const FRAME = { cx: 852, cy: 470, spanW: 1580, spanH: 726 };
 
+export type MapFrame = typeof FRAME;
+
 export interface Viewport {
   scale: number;
   tx: number;
@@ -22,8 +24,13 @@ const MAX_ZOOM = 6;
  * Keeps a single {scale, tx, ty} transform and exposes `project()` so markers,
  * routes and popups can be laid out in screen space. When real tiles arrive,
  * only `project()` has to become a Web-Mercator transform.
+ *
+ * `frame` overrides the fitted region (defaults to the metro belt above) so
+ * secondary views — e.g. the Analytics activity map, which must keep every
+ * camera marker in view — can frame a different span without touching this
+ * file's behaviour for the Camera Map.
  */
-export function useMapViewport() {
+export function useMapViewport(frame: MapFrame = FRAME) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
   const [view, setView] = useState<Viewport>({ scale: 1, tx: 0, ty: 0 });
@@ -31,19 +38,22 @@ export function useMapViewport() {
   const fitted = useRef(false);
   const panOrigin = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null);
 
-  const computeFit = (w: number, h: number) => {
-    const scale = Math.min(w / FRAME.spanW, h / FRAME.spanH);
-    return { scale, tx: w / 2 - FRAME.cx * scale, ty: h / 2 - FRAME.cy * scale };
-  };
+  const computeFit = useCallback(
+    (w: number, h: number) => {
+      const scale = Math.min(w / frame.spanW, h / frame.spanH);
+      return { scale, tx: w / 2 - frame.cx * scale, ty: h / 2 - frame.cy * scale };
+    },
+    [frame],
+  );
 
-  const fitScale = size.w && size.h ? Math.min(size.w / FRAME.spanW, size.h / FRAME.spanH) : 1;
+  const fitScale = size.w && size.h ? Math.min(size.w / frame.spanW, size.h / frame.spanH) : 1;
 
   const fit = useCallback(
     (w = size.w, h = size.h) => {
       if (!w || !h) return;
       setView(computeFit(w, h));
     },
-    [size.w, size.h],
+    [computeFit, size.w, size.h],
   );
 
   useLayoutEffect(() => {
@@ -61,7 +71,7 @@ export function useMapViewport() {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [computeFit]);
 
   const zoomAt = useCallback((factor: number, cx?: number, cy?: number) => {
     setView((prev) => {

@@ -99,7 +99,7 @@ export function AnalyticsKpiRow({ kpis }: AnalyticsKpiRowProps) {
   ];
 
   return (
-    <div className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-5">
+    <div className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-[repeat(5,minmax(0,1fr))]">
       {cards.map((stat, index) => {
         const tone = toneStyles[stat.tone];
         const Icon = stat.icon;
@@ -110,11 +110,11 @@ export function AnalyticsKpiRow({ kpis }: AnalyticsKpiRowProps) {
         return (
           <article
             key={stat.id}
-            className={`relative flex min-h-[104px] min-w-0 flex-col items-start justify-between overflow-hidden rounded-md border bg-gradient-to-br px-4 py-3 ${tone.shell} ${span}`}
+            className={`relative flex min-h-[96px] min-w-0 flex-col items-start justify-between overflow-hidden rounded-md border bg-gradient-to-br px-4 py-3 ${tone.shell} ${span}`}
           >
             <div className="flex w-full items-start justify-between gap-3">
               <div className={`min-w-0 text-[13px] font-medium leading-snug ${tone.label}`}>{stat.label}</div>
-              <Icon size={30} strokeWidth={1.6} className={`shrink-0 opacity-90 ${tone.icon}`} />
+              <Icon size={24} strokeWidth={1.6} className={`shrink-0 opacity-90 ${tone.icon}`} />
             </div>
             <div className="tnum kpi-value w-full font-bold text-white">{stat.value}</div>
             <div className={`flex w-full items-start gap-1.5 text-[12px] leading-snug ${tone.foot}`}>
