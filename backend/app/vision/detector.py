@@ -100,6 +100,86 @@ def resolve_device(requested: str) -> str:
     return req
 
 
+# --------------------------------------------------------------------------- #
+# Startup pre-flight / global AI health
+# --------------------------------------------------------------------------- #
+# One model load at startup validates that genuine weights are available and
+# reports them via /api/ai/status + the ``ai:status`` realtime frame. Per-camera
+# workers keep their OWN detector instance so ByteTrack/BoT-SORT tracker state
+# never leaks between cameras (the shared pre-flight is discarded afterwards,
+# leaving the OS page cache warm for the per-camera loads).
+_preflight: dict[str, Any] | None = None
+_preflight_lock = threading.Lock()
+
+
+def preflight_detector(force: bool = False) -> dict[str, Any]:
+    """Load (once) and return the genuine-weights health probe.
+
+    Never raises: a missing/unloadable model simply reports MODEL_NOT_READY so
+    upstream health endpoints can surface it honestly.
+    """
+    global _preflight
+    if _preflight is not None and not force:
+        return dict(_preflight)
+    with _preflight_lock:
+        if _preflight is not None and not force:
+            return dict(_preflight)
+        settings = get_settings()
+        probe: VehicleDetector | None = None
+        try:
+            # Instantiate + load once at startup (temp id, no tracker events).
+            probe = VehicleDetector("__ai_preflight__")
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.error("ai.preflight_failed", error=str(exc))
+        status: dict[str, Any] = {
+            "ultralytics_available": _ULTRALYTICS_AVAILABLE,
+            "torch_available": torch is not None,
+            "import_error": _IMPORT_ERROR,
+            "configured_weights_path": settings.vehicle_model_path,
+            "configured_device": settings.vehicle_device,
+            "configured_conf_threshold": settings.vehicle_conf_threshold,
+            "configured_infer_fps": settings.vehicle_infer_fps,
+            "configured_infer_imgsz": settings.vehicle_infer_imgsz,
+            "configured_vehicle_classes": settings.vehicle_class_list,
+            "preflight_status": "ERROR",
+        }
+        if probe is not None:
+            status.update(probe.status())
+            status["preflight_status"] = "READY" if probe.ready else probe.status().get("status", "ERROR")
+        _preflight = status
+        logger.info(
+            "ai.preflight",
+            status=status.get("status"),
+            device=status.get("device"),
+            source=status.get("model_source"),
+            error=status.get("model_error"),
+        )
+        return dict(_preflight)
+
+
+def preflight_health() -> dict[str, Any]:
+    """Latest pre-flight health without re-loading (per-camera workers can
+    still differ: this is the startup probe)."""
+    if _preflight is None:
+        # No pre-flight performed (pipeline disabled / pre-import call): report
+        # the raw environment facts without claiming a loaded model.
+        settings = get_settings()
+        return {
+            "ultralytics_available": _ULTRALYTICS_AVAILABLE,
+            "torch_available": torch is not None,
+            "import_error": _IMPORT_ERROR,
+            "configured_weights_path": settings.vehicle_model_path,
+            "configured_device": settings.vehicle_device,
+            "ready": False,
+            "model_loaded": False,
+            "status": "NOT_PREFLIGHTED",
+            "preflight_status": "NOT_PREFLIGHTED",
+            "synthetic": False,
+            "using_fallback": False,
+        }
+    return dict(_preflight)
+
+
 class VehicleDetector:
     """Per-camera YOLO detector with integrated multi-object tracking."""
 

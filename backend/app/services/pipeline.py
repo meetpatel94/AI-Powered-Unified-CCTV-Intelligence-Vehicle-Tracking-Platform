@@ -23,6 +23,7 @@ from typing import Any
 
 import numpy as np
 import structlog
+from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
@@ -32,6 +33,7 @@ from app.services import evidence as evidence_service
 from app.services import watchlist as watchlist_service
 from app.services.events import publish
 from app.services.stream_gateway import StreamState, gateway
+from app.services import vehicle_intel as vehicle_intel_service
 from app.services.vehicle_intel import record_anpr_sighting, upsert_track
 from app.vision.anpr import get_anpr_engine
 from app.vision.detector import VehicleDetector
@@ -137,6 +139,14 @@ class PipelineWorker:
             if self._detector
             else {"ready": False, "status": "MODEL_NOT_READY", "synthetic": False}
         )
+        now = time.time()
+        uptime = (now - self.started_at) if self.started_at else 0.0
+        effective_fps = round(self.frames_processed / uptime, 2) if uptime > 0 else 0.0
+        anpr = None
+        try:
+            anpr = get_anpr_engine().status()
+        except Exception:
+            anpr = None
         return {
             "camera_id": self.camera_id,
             "alive": self.is_alive(),
@@ -152,6 +162,10 @@ class PipelineWorker:
             "anpr_reads": self.anpr_reads,
             "avg_inference_ms": round(self.avg_inference_ms, 1) if self.avg_inference_ms else None,
             "avg_anpr_ms": round(self.avg_anpr_ms, 1) if self.avg_anpr_ms else None,
+            # Trustworthy effective rate (frames processed / process uptime) —
+            # never derived from the camera's reported FPS.
+            "effective_infer_fps": effective_fps,
+            "anpr_ready": bool(anpr and anpr.get("ready")),
             "queue_depth": self.queue_depth,
             "last_error": self.last_error,
             "last_infer_at": (
@@ -160,6 +174,7 @@ class PipelineWorker:
                 else None
             ),
             "detector": det,
+            "anpr": anpr,
         }
 
     # -------------------------------------------------------------- #
@@ -292,17 +307,30 @@ class PipelineWorker:
         # as a genuine government-feed result.
         is_synthetic = bool(self._detector and self._detector.synthetic)
 
-        # Broadcast raw detections for live overlays.
-        publish(
-            "detection",
-            {
-                "camera_id": self.camera_id,
-                "pts_ms": pts_ms,
-                "timestamp": seen_at.isoformat(),
-                "synthetic": is_synthetic,
-                "detections": [d.to_dict() for d in detections],
-            },
-        )
+        # Broadcast raw detections for live overlays. Kept at the configured
+        # inference FPS (frame sampling), so this is inherently bounded — never
+        # raw-frame-rate. ``detection`` is the legacy topic; ``vehicle:detected``
+        # is the canonical structured topic (same payload, so both clients keep
+        # working).
+        h, w = frame.shape[:2]
+        frame_meta = {
+            "width": int(w),
+            "height": int(h),
+            "inference_ms": round(infer_ms, 1),
+        }
+        detected_payload: dict[str, Any] = {
+            "camera_id": self.camera_id,
+            "pts_ms": pts_ms,
+            "timestamp": seen_at.isoformat(),
+            "synthetic": is_synthetic,
+            "frame": frame_meta,
+            "detections": [
+                {**d.to_dict(), "frame": frame_meta, "seen_at": seen_at.isoformat()}
+                for d in detections
+            ],
+        }
+        publish("detection", detected_payload)
+        publish("vehicle:detected", detected_payload)
 
         if is_synthetic:
             # Do not persist or ANPR-process untrusted synthetic detections.
@@ -360,6 +388,9 @@ class PipelineWorker:
                             track_id=det.track_id,
                             bbox=(det.x, det.y, det.w, det.h),
                             pts_ms=pts_ms,
+                            plate_valid=plate_read.valid,
+                            plate_uncertain=plate_read.uncertain,
+                            source=plate_read.source,
                         )
                         db.commit()
                     except Exception:
@@ -379,6 +410,11 @@ class PipelineWorker:
                                 "plate": result["plate"],
                                 "plate_raw": result["plate_raw"],
                                 "confidence": result["ocr_confidence"],
+                                "valid": result.get("plate_valid", False),
+                                "uncertain": result.get("plate_uncertain", True),
+                                "reliable": result.get("reliable", False),
+                                "source": result.get("source", "live_rtsp"),
+                                "pts_ms": pts_ms,
                                 "vehicle_class": result["vehicle_class"],
                                 "track_id": result["track_id"],
                                 "location_name": result["location_name"],
@@ -423,26 +459,42 @@ class PipelineWorker:
                             except Exception:
                                 db.rollback()
 
-            # Broadcast track summary for this frame.
+            # Broadcast track summary for this frame (``track`` legacy +
+            # canonical ``vehicle:tracked``).
             tracked = [d for d in detections if d.track_id is not None]
             if tracked:
-                publish(
-                    "track",
-                    {
-                        "camera_id": self.camera_id,
-                        "timestamp": seen_at.isoformat(),
-                        "tracks": [
-                            {
-                                "track_id": d.track_id,
-                                "class": d.cls_name,
-                                "confidence": round(d.confidence, 4),
-                                "bbox": {"x": d.x, "y": d.y, "w": d.w, "h": d.h},
-                                "pts_ms": d.pts_ms,
-                            }
-                            for d in tracked
-                        ],
-                    },
-                )
+                track_payload = {
+                    "camera_id": self.camera_id,
+                    "timestamp": seen_at.isoformat(),
+                    "pts_ms": pts_ms,
+                    "frame": frame_meta,
+                    "tracks": [
+                        {
+                            "track_id": d.track_id,
+                            "class": d.cls_name,
+                            "confidence": round(d.confidence, 4),
+                            "bbox": {"x": d.x, "y": d.y, "w": d.w, "h": d.h},
+                            "pts_ms": d.pts_ms,
+                        }
+                        for d in tracked
+                    ],
+                }
+                publish("track", track_payload)
+                publish("vehicle:tracked", track_payload)
+
+            # Structured per-frame stats (DEBUG to avoid log flood): latency,
+            # counts and trustworthy effective rate — all keyed by camera.
+            uptime_s = time.time() - self.started_at if self.started_at else 0.0
+            logger.debug(
+                "pipeline.frame.stats",
+                camera_id=self.camera_id,
+                inference_ms=round(infer_ms, 1),
+                anpr_ms=round(self.avg_anpr_ms, 1) if self.avg_anpr_ms is not None else None,
+                detections=len(detections),
+                tracked=len(tracked),
+                queue_depth=self.queue_depth,
+                effective_infer_fps=round(self.frames_processed / uptime_s, 2) if uptime_s > 0 else 0.0,
+            )
             db.commit()
         finally:
             db.close()
@@ -584,6 +636,7 @@ class PipelineManager:
                 worker = PipelineWorker(camera_id)
                 self._workers[camera_id] = worker
         worker.start()
+        _safe_publish_ai_status()
         return worker.status()
 
     def stop(self, camera_id: str) -> dict[str, Any] | None:
@@ -592,6 +645,7 @@ class PipelineManager:
         if not worker:
             return None
         worker.stop()
+        _safe_publish_ai_status()
         return worker.status()
 
     def stop_all(self) -> None:
@@ -632,9 +686,15 @@ class PipelineManager:
         # backoff instead so logs/stats aren't flooded.
         retry_backoff = 300.0
         last_attempt: dict[str, float] = {}
+        # Periodic low-frequency ``ai:status`` realtime frame (bounded — never
+        # per frame). Also published at startup + every worker start/stop.
+        status_tick = 0.0
         while not self._stop.wait(3.0):
+            now_mono = time.monotonic()
+            if now_mono - status_tick >= settings.ai_status_publish_seconds:
+                status_tick = now_mono
+                _safe_publish_ai_status()
             try:
-                now_mono = time.monotonic()
                 for snap in gateway.list_snapshots():
                     if snap.state != StreamState.LIVE.value:
                         continue
@@ -661,3 +721,117 @@ class PipelineManager:
 
 
 manager = PipelineManager()
+
+
+# --------------------------------------------------------------------------- #
+# AI health / status (global snapshot + bounded realtime ``ai:status`` frame)
+# --------------------------------------------------------------------------- #
+def ai_status_snapshot(db: Session | None = None) -> dict[str, Any]:
+    """Aggregate global AI health: model pre-flight, per-camera workers, ANPR.
+
+    ``db`` is optional so the pipeline monitor can publish without opening a
+    database session in the hot path.
+    """
+    from app.vision.anpr import get_anpr_engine
+    from app.vision.detector import preflight_health
+
+    settings = get_settings()
+    workers = manager.list_status()
+    ready_workers = [w for w in workers if w.get("detector_ready")]
+    synthetic_workers = [w for w in workers if w.get("synthetic")]
+    unhealthy = [w for w in workers if w.get("alive") and not w.get("detector_ready")]
+
+    anpr_status: dict[str, Any] = {"enabled": settings.anpr_enabled, "ready": False}
+    try:
+        anpr_status = get_anpr_engine().status()
+    except Exception as exc:
+        anpr_status = {
+            "enabled": settings.anpr_enabled,
+            "provider": settings.anpr_ocr_provider,
+            "ready": False,
+            "error": f"ANPR engine unavailable: {exc}",
+        }
+
+    pre = preflight_health()
+    counts: dict[str, int] | None = None
+    if db is not None:
+        try:
+            counts = vehicle_intel_service.pipeline_counts(db)
+        except Exception as exc:
+            logger.debug("ai.status_counts_unavailable", error=str(exc))
+
+    global_status = "READY"
+    if not pre.get("ready", False) and not ready_workers:
+        global_status = pre.get("status") or "MODEL_NOT_READY"
+    elif synthetic_workers and not ready_workers:
+        global_status = "SYNTHETIC_FALLBACK"
+    elif unhealthy:
+        global_status = "DEGRADED"
+
+    return {
+        "status": global_status,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "device": _resolved_device(pre, workers),
+        "model": {
+            "ready": bool(pre.get("ready")) or bool(ready_workers),
+            "model_loaded": bool(pre.get("model_loaded")) or bool(ready_workers),
+            "status": pre.get("status") or ("READY" if ready_workers else "MODEL_NOT_READY"),
+            "source": pre.get("model_source"),
+            "weights_path": settings.vehicle_model_path,
+            "synthetic": bool(pre.get("synthetic")),
+            "using_fallback": bool(pre.get("using_fallback")),
+            "error": pre.get("model_error"),
+            "vehicle_class_ids": pre.get("vehicle_class_ids", []),
+        },
+        "runtime": {
+            "ultralytics_available": bool(pre.get("ultralytics_available")),
+            "torch_available": bool(pre.get("torch_available")),
+            "import_error": pre.get("import_error"),
+            "config": {
+                "conf_threshold": settings.vehicle_conf_threshold,
+                "iou_threshold": settings.vehicle_iou_threshold,
+                "infer_fps": settings.vehicle_infer_fps,
+                "infer_imgsz": settings.vehicle_infer_imgsz,
+                "classes": settings.vehicle_class_list,
+                "allow_synthetic_fallback": settings.vehicle_allow_synthetic_fallback,
+            },
+        },
+        "anpr": anpr_status,
+        "workers": {
+            "total": len(workers),
+            "ready": len(ready_workers),
+            "synthetic": len(synthetic_workers),
+            "not_ready": len(unhealthy),
+            "alive": sum(1 for w in workers if w.get("alive")),
+        },
+        "counts": counts,
+    }
+
+
+def _resolved_device(pre: dict[str, Any], workers: list[dict[str, Any]]) -> str | None:
+    for w in workers:
+        det = w.get("detector") or {}
+        if det.get("device"):
+            return det["device"]
+    return pre.get("device")
+
+
+def publish_ai_status() -> None:
+    """Publish one ``ai:status`` realtime frame (low-frequency, bounded)."""
+    snapshot = ai_status_snapshot(db=None)
+    publish("ai:status", snapshot)
+    logger.info(
+        "ai.status",
+        status=snapshot["status"],
+        device=snapshot["device"],
+        workers_ready=snapshot["workers"]["ready"],
+        workers_total=snapshot["workers"]["total"],
+        anpr_ready=bool(snapshot["anpr"].get("ready")),
+    )
+
+
+def _safe_publish_ai_status() -> None:
+    try:
+        publish_ai_status()
+    except Exception:
+        logger.exception("ai.status_publish_failed")

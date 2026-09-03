@@ -99,6 +99,11 @@ export interface SightingDto {
   vehicle_class: string | null;
   ocr_confidence: number | null;
   detection_confidence: number | null;
+  /** Reliability contract: false when the read is an uncertain OCR candidate. */
+  plate_valid?: boolean;
+  plate_uncertain?: boolean;
+  /** Observation provenance (always live_rtsp for the pipeline). */
+  source?: string | null;
   bbox: BBoxDto | null;
   pts_ms: number | null;
   latitude: number | null;
@@ -833,6 +838,30 @@ export const api = {
     ),
   getRecentJourneys: (limit = 25) => apiRoot<VehicleDto[]>(`/journeys/recent?limit=${limit}`),
   getPipelineStatus: () => apiRoot<unknown[]>('/pipeline'),
+  /** Global AI health (model readiness/device, ANPR state, worker trust). */
+  getAiStatus: () =>
+    apiRoot<{
+      status: string;
+      device: string | null;
+      model: Record<string, unknown>;
+      anpr: Record<string, unknown>;
+      workers: Record<string, number>;
+      runtime: Record<string, unknown>;
+    }>('/ai/status'),
+  /** Deterministic plate-identity cross-camera match (temporal/spatial checks). */
+  getVehicleCrossCamera: (
+    plate: string,
+    params?: { max_gap_seconds?: number; max_speed_kph?: number; include_visual?: boolean },
+  ) => {
+    const search = new URLSearchParams();
+    if (params?.max_gap_seconds !== undefined) search.set('max_gap_seconds', String(params.max_gap_seconds));
+    if (params?.max_speed_kph !== undefined) search.set('max_speed_kph', String(params.max_speed_kph));
+    if (params?.include_visual) search.set('include_visual', 'true');
+    const qs = search.toString();
+    return apiRoot<Record<string, unknown>>(
+      `/vehicles/${encodeURIComponent(plate)}/cross-camera${qs ? `?${qs}` : ''}`,
+    );
+  },
 
   /* ------------------------------------------------------------------ *
    * Phase-3 operational layer: Watchlist, Alerts, GIS, Camera Health,

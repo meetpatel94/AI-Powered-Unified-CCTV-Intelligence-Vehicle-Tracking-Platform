@@ -19,7 +19,6 @@ from typing import Any
 
 import structlog
 from sqlalchemy import desc, func, select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -55,6 +54,21 @@ def _iso(dt: datetime | None) -> str | None:
     if dt is None:
         return None
     return (dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)).isoformat()
+
+
+def _parse_time(value: Any) -> datetime | None:
+    """Accept datetime or ISO-8601 string (SQLite/Postgres-safe insert value)."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
+    return None
 
 
 class WatchlistError(Exception):
@@ -361,6 +375,21 @@ def process_anpr_hit(
     plate = clean_ocr_text(str(sighting.get("plate") or "")) if sighting else ""
     if not plate:
         return None
+
+    # Reliability contract: only grammar-valid, above-threshold reads are
+    # matched. Uncertain reads are persisted (for review) but must never raise
+    # a watchlist alert — characters are not invented for them.
+    if bool(sighting.get("plate_uncertain")) or not bool(
+        sighting.get("plate_valid", True)
+    ):
+        logger.debug(
+            "watchlist.match_skipped_unreliable",
+            plate=plate,
+            sighting=sighting.get("sighting_id") or sighting.get("id"),
+            reason="ANPR read is uncertain / not grammar-valid",
+        )
+        return None
+
     entry = find_active_entry(db, plate)
     if entry is None:
         return None
@@ -370,24 +399,36 @@ def process_anpr_hit(
         logger.warning("watchlist.match_skipped", reason="sighting has no id", plate=plate)
         return None
 
-    # Exactly-once insert: unique (sighting_id, entry_id).
-    stmt = (
-        pg_insert(WatchlistMatch)
-        .values(
-            entry_id=entry.id,
-            plate=plate,
-            camera_id=sighting["camera_id"],
-            sighting_id=sighting_id,
-            confidence=float(sighting.get("ocr_confidence") or 0.0),
-            latitude=sighting.get("latitude"),
-            longitude=sighting.get("longitude"),
-            location_name=sighting.get("location_name"),
-            matched_at=sighting.get("seen_at") or _utcnow(),
+    # Exactly-once insert: unique (sighting_id, entry_id). PostgreSQL uses the
+    # named unique constraint; SQLite (dev/tests) uses the column list.
+    values = {
+        "entry_id": entry.id,
+        "plate": plate,
+        "camera_id": sighting["camera_id"],
+        "sighting_id": sighting_id,
+        "confidence": float(sighting.get("ocr_confidence") or 0.0),
+        "latitude": sighting.get("latitude"),
+        "longitude": sighting.get("longitude"),
+        "location_name": sighting.get("location_name"),
+        "matched_at": _parse_time(sighting.get("seen_at")) or _utcnow(),
+    }
+    dialect = db.get_bind().dialect.name if db.get_bind() is not None else "postgresql"
+    if dialect == "sqlite":
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+        stmt = (
+            sqlite_insert(WatchlistMatch)
+            .values(**values)
+            .on_conflict_do_nothing(index_elements=["sighting_id", "entry_id"])
         )
-        .on_conflict_do_nothing(
-            constraint="uq_watchlist_match_sighting_entry"
+    else:
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+        stmt = (
+            pg_insert(WatchlistMatch)
+            .values(**values)
+            .on_conflict_do_nothing(constraint="uq_watchlist_match_sighting_entry")
         )
-    )
     result = db.execute(stmt)
     if result.rowcount == 0:
         db.rollback()

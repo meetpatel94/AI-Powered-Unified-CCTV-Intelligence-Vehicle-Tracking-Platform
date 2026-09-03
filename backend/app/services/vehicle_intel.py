@@ -100,6 +100,11 @@ def upsert_track(
             trajectory=[point],
         )
         db.add(track)
+        # Flush immediately: the pipeline may call upsert_track again inside the
+        # SAME session/transaction (e.g. tagging a fresh ANPR plate onto the
+        # track) and the (camera_id, track_id) unique constraint would
+        # otherwise be violated by the second unflushed INSERT.
+        db.flush()
     else:
         track.last_seen = seen_at
         track.last_pts_ms = pts_ms
@@ -142,18 +147,28 @@ def record_anpr_sighting(
     bbox: tuple[float, float, float, float] | None,
     pts_ms: float | None,
     evidence_path: str | None = None,
+    plate_valid: bool = False,
+    plate_uncertain: bool = True,
+    source: str = "live_rtsp",
 ) -> dict[str, Any] | None:
-    """Persist one ANPR sighting, update Vehicle Identity and extend the journey.
+    """Persist one ANPR sighting; update Vehicle Identity + journey only when
+    the read is RELIABLE (grammar-valid and above ANPR_RELIABLE_CONFIDENCE).
 
-    Returns a dict describing what was persisted (for WebSocket broadcast), or
-    ``None`` if it was de-duplicated / failed.
+    Uncertain reads are still persisted (evidence / operator review) with
+    ``plate_uncertain=True`` and ``vehicle_id=NULL`` — they never create a
+    Vehicle Identity, extend a journey or trigger watchlist matching. Returns a
+    dict describing what was persisted (for WebSocket broadcast), or ``None``
+    if it was de-duplicated / failed.
     """
     settings = get_settings()
     seen_at = _aware(seen_at)
+    reliable = bool(plate_valid and not plate_uncertain)
 
     lat, lon, loc_name = camera_location(db, camera_id)
 
     # De-dupe: skip if we already logged this plate on this camera very recently.
+    # Applies to reliable AND uncertain reads (a stationary garbage read must
+    # not flood the DB either).
     if settings.anpr_dedupe_seconds > 0:
         cutoff = seen_at - timedelta(seconds=settings.anpr_dedupe_seconds)
         recent = db.scalar(
@@ -168,14 +183,16 @@ def record_anpr_sighting(
         if recent is not None:
             return None
 
-    vehicle = _get_or_create_vehicle(db, plate, vehicle_class)
+    vehicle: Vehicle | None = None
+    if reliable:
+        vehicle = _get_or_create_vehicle(db, plate, vehicle_class)
 
     bx = by = bw = bh = None
     if bbox is not None:
         bx, by, bw, bh = bbox
 
     sighting = AnprSighting(
-        vehicle_id=vehicle.id,
+        vehicle_id=vehicle.id if vehicle else None,
         plate=plate,
         plate_raw=plate_raw,
         camera_id=camera_id,
@@ -183,6 +200,9 @@ def record_anpr_sighting(
         vehicle_class=vehicle_class,
         ocr_confidence=ocr_confidence,
         detection_confidence=detection_confidence,
+        plate_valid=plate_valid,
+        plate_uncertain=plate_uncertain,
+        source=source,
         bbox_x=bx,
         bbox_y=by,
         bbox_w=bw,
@@ -195,47 +215,52 @@ def record_anpr_sighting(
         seen_at=seen_at,
     )
     db.add(sighting)
-
-    # Update Vehicle Identity aggregate.
-    if vehicle.first_seen is None or seen_at < _aware(vehicle.first_seen):
-        vehicle.first_seen = seen_at
-    if vehicle.last_seen is None or seen_at >= _aware(vehicle.last_seen):
-        vehicle.last_seen = seen_at
-        vehicle.last_camera_id = camera_id
-    if vehicle_class:
-        vehicle.vehicle_class = vehicle_class
-    vehicle.total_sightings = (vehicle.total_sightings or 0) + 1
-    if vehicle.best_confidence is None or ocr_confidence > vehicle.best_confidence:
-        vehicle.best_confidence = ocr_confidence
-
+    # Flush immediately so sighting.id exists and the row is visible to later
+    # queries in the SAME session (autoflush is off in the pipeline worker).
     db.flush()
 
-    # Extend the cross-camera journey.
-    journey_info = _extend_journey(
-        db,
-        vehicle=vehicle,
-        plate=plate,
-        camera_id=camera_id,
-        seen_at=seen_at,
-        lat=lat,
-        lon=lon,
-        loc_name=loc_name,
-        confidence=ocr_confidence,
-    )
+    journey_info: dict[str, Any] | None = None
+    if vehicle is not None:
+        # Update Vehicle Identity aggregate.
+        if vehicle.first_seen is None or seen_at < _aware(vehicle.first_seen):
+            vehicle.first_seen = seen_at
+        if vehicle.last_seen is None or seen_at >= _aware(vehicle.last_seen):
+            vehicle.last_seen = seen_at
+            vehicle.last_camera_id = camera_id
+        if vehicle_class:
+            vehicle.vehicle_class = vehicle_class
+        vehicle.total_sightings = (vehicle.total_sightings or 0) + 1
+        if vehicle.best_confidence is None or ocr_confidence > vehicle.best_confidence:
+            vehicle.best_confidence = ocr_confidence
 
-    # Distinct camera count for the identity.
-    vehicle.camera_count = int(
-        db.scalar(
-            select(func.count(func.distinct(AnprSighting.camera_id))).where(
-                AnprSighting.vehicle_id == vehicle.id
-            )
+        db.flush()
+
+        # Extend the cross-camera journey.
+        journey_info = _extend_journey(
+            db,
+            vehicle=vehicle,
+            plate=plate,
+            camera_id=camera_id,
+            seen_at=seen_at,
+            lat=lat,
+            lon=lon,
+            loc_name=loc_name,
+            confidence=ocr_confidence,
         )
-        or 0
-    )
+
+        # Distinct camera count for the identity.
+        vehicle.camera_count = int(
+            db.scalar(
+                select(func.count(func.distinct(AnprSighting.camera_id))).where(
+                    AnprSighting.vehicle_id == vehicle.id
+                )
+            )
+            or 0
+        )
 
     return {
         "sighting_id": sighting.id,
-        "vehicle_id": vehicle.id,
+        "vehicle_id": vehicle.id if vehicle else None,
         "plate": plate,
         "plate_raw": plate_raw,
         "camera_id": camera_id,
@@ -245,6 +270,10 @@ def record_anpr_sighting(
             round(detection_confidence, 4) if detection_confidence is not None else None
         ),
         "track_id": track_id,
+        "plate_valid": plate_valid,
+        "plate_uncertain": plate_uncertain,
+        "reliable": reliable,
+        "source": source,
         "latitude": lat,
         "longitude": lon,
         "location_name": loc_name,
@@ -374,6 +403,9 @@ def _sighting_dict(s: AnprSighting) -> dict[str, Any]:
         "vehicle_class": s.vehicle_class,
         "ocr_confidence": s.ocr_confidence,
         "detection_confidence": s.detection_confidence,
+        "plate_valid": bool(getattr(s, "plate_valid", False)),
+        "plate_uncertain": bool(getattr(s, "plate_uncertain", True)),
+        "source": getattr(s, "source", "live_rtsp") or "live_rtsp",
         "bbox": (
             {"x": s.bbox_x, "y": s.bbox_y, "w": s.bbox_w, "h": s.bbox_h}
             if s.bbox_x is not None
@@ -418,14 +450,24 @@ def get_vehicle(db: Session, plate: str) -> dict[str, Any] | None:
     return data
 
 
-def get_vehicle_sightings(db: Session, plate: str, limit: int = 200) -> list[dict[str, Any]]:
+def get_vehicle_sightings(
+    db: Session,
+    plate: str,
+    limit: int = 200,
+    *,
+    since: datetime | None = None,
+    until: datetime | None = None,
+    camera_id: str | None = None,
+) -> list[dict[str, Any]]:
     plate = plate.upper().strip()
-    rows = db.scalars(
-        select(AnprSighting)
-        .where(AnprSighting.plate == plate)
-        .order_by(desc(AnprSighting.seen_at))
-        .limit(limit)
-    ).all()
+    stmt = select(AnprSighting).where(AnprSighting.plate == plate)
+    if since is not None:
+        stmt = stmt.where(AnprSighting.seen_at >= _aware(since))
+    if until is not None:
+        stmt = stmt.where(AnprSighting.seen_at <= _aware(until))
+    if camera_id:
+        stmt = stmt.where(AnprSighting.camera_id == camera_id)
+    rows = db.scalars(stmt.order_by(desc(AnprSighting.seen_at)).limit(limit)).all()
     return [_sighting_dict(s) for s in rows]
 
 
@@ -463,6 +505,193 @@ def get_vehicle_journey(db: Session, plate: str) -> dict[str, Any]:
         "anomaly_count": len(anomalies),
         "points": points,
     }
+
+
+def match_cross_camera(
+    db: Session,
+    plate: str,
+    *,
+    limit: int = 200,
+    max_gap_seconds: float | None = None,
+    max_speed_kph: float | None = None,
+) -> dict[str, Any]:
+    """Cross-camera vehicle matching using plate identity (deterministic).
+
+    Every reliable ANPR sighting for the plate is ordered chronologically and
+    grouped into journey segments by a maximum inter-camera gap; each leg
+    between distinct cameras gets distance / implied-speed validation against
+    the configured journey ceilings. Plate identity is the strongest (and, in
+    this build, only certain) match — no visual-embedding model exists, so
+    results never claim certainty beyond the plate itself.
+    """
+    settings = get_settings()
+    gap_limit = max_gap_seconds if max_gap_seconds is not None else settings.journey_max_gap_seconds
+    speed_limit = max_speed_kph if max_speed_kph is not None else settings.journey_max_speed_kph
+    plate_norm = plate.upper().strip()
+
+    rows = db.scalars(
+        select(AnprSighting)
+        .where(
+            AnprSighting.plate == plate_norm,
+            AnprSighting.plate_uncertain.is_(False),
+        )
+        .order_by(AnprSighting.seen_at)
+        .limit(limit)
+    ).all()
+
+    stops: list[dict[str, Any]] = []
+    journey_id = 1
+    sequence = 1
+    implausible = 0
+    cross_camera_legs = 0
+    prev: dict[str, Any] | None = None
+    prev_seen: datetime | None = None
+
+    for s in rows:
+        seen = _aware(s.seen_at)
+        distance_km: float | None = None
+        interval_seconds: float | None = None
+        speed_kph: float | None = None
+        plausible: bool = True
+        constraint_note: str | None = None
+
+        if prev is not None and prev_seen is not None:
+            gap = max(0.0, (seen - prev_seen).total_seconds())
+            interval_seconds = round(gap, 1)
+            if gap > gap_limit:
+                journey_id += 1
+                sequence = 1
+                constraint_note = f"new segment: gap {gap:.0f}s > {gap_limit:.0f}s"
+            else:
+                sequence += 1
+                if prev["camera_id"] != s.camera_id:
+                    cross_camera_legs += 1
+                    distance_km = _haversine_km(prev["latitude"], prev["longitude"], s.latitude, s.longitude)
+                    if distance_km is not None and gap >= settings.journey_min_interval_seconds:
+                        speed_kph = distance_km / (gap / 3600.0)
+                        if speed_kph > speed_limit:
+                            implausible += 1
+                            plausible = False
+                            constraint_note = (
+                                f"implausible: {speed_kph:.0f} km/h > {speed_limit:.0f} km/h"
+                            )
+                    elif distance_km is not None and distance_km > 0.5:
+                        # Far-apart cameras inside the minimum interval.
+                        implausible += 1
+                        plausible = False
+                        constraint_note = f"implausible: {distance_km:.1f} km in {gap:.1f}s"
+
+        stop = {
+            "sequence": sequence,
+            "journey_id": journey_id,
+            "camera_id": s.camera_id,
+            "location_name": s.location_name,
+            "timestamp": seen.isoformat() if seen else None,
+            "latitude": s.latitude,
+            "longitude": s.longitude,
+            "track_id": s.track_id,
+            "vehicle_class": s.vehicle_class,
+            "confidence": round(float(s.ocr_confidence), 4),
+            "distance_km": round(distance_km, 3) if distance_km is not None else None,
+            "interval_seconds": interval_seconds,
+            "speed_kph": round(speed_kph, 1) if speed_kph is not None else None,
+            "plausible": plausible,
+            "constraint_note": constraint_note,
+            "cross_camera": bool(prev is not None and prev["camera_id"] != s.camera_id),
+        }
+        stops.append(stop)
+        prev = stop
+        prev_seen = seen
+
+    return {
+        "plate": plate_norm,
+        "method": "plate_identity",
+        "certain": bool(stops),  # exact matched plate string; never a guess
+        "certainty_explanation": (
+            "Exact normalized plate identity from reliable ANPR observations."
+            if stops else "No reliable ANPR observations for this plate."
+        ),
+        "visual_metadata_fallback_enabled": settings.cross_camera_visual_match_enabled,
+        "plate_identity_matched": bool(stops),
+        "observation_count": len(stops),
+        "segment_count": len({p["journey_id"] for p in stops}) if stops else 0,
+        "cross_camera_legs": cross_camera_legs,
+        "implausible_count": implausible,
+        "constraints": {
+            "max_gap_seconds": gap_limit,
+            "max_speed_kph": speed_limit,
+            "min_interval_seconds": settings.journey_min_interval_seconds,
+        },
+        "stops": stops,
+    }
+
+
+def cross_camera_metadata_candidates(
+    db: Session,
+    *,
+    vehicle_class: str | None,
+    camera_id: str,
+    seen_at: datetime,
+    exclude_plate: str | None = None,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    """Device-only, LOW-confidence metadata association candidates.
+
+    Only meaningful when ``CROSS_CAMERA_VISUAL_MATCH_ENABLED=true`` (off by
+    default — no visual-embedding model exists in this build). Matches other
+    cameras' sightings of the same vehicle class within the max journey gap,
+    labelled ``certain=false`` / ``method=visual_metadata`` so a candidate can
+    never be mistaken for a plate-confirmed match.
+    """
+    settings = get_settings()
+    if not settings.cross_camera_visual_match_enabled:
+        return []
+    if not vehicle_class or not camera_id:
+        return []
+
+    seen = _aware(seen_at)
+    rows = db.scalars(
+        select(AnprSighting)
+        .where(
+            AnprSighting.camera_id != camera_id,
+            AnprSighting.vehicle_class == vehicle_class,
+            AnprSighting.plate_uncertain.is_(False),
+            AnprSighting.seen_at >= seen - timedelta(seconds=settings.journey_max_gap_seconds),
+            AnprSighting.seen_at <= seen + timedelta(seconds=settings.journey_max_gap_seconds),
+        )
+        .order_by(AnprSighting.seen_at)
+        .limit(limit)
+    ).all()
+
+    out: list[dict[str, Any]] = []
+    for s in rows:
+        if exclude_plate and s.plate == exclude_plate.upper().strip():
+            continue
+        other_seen = _aware(s.seen_at)
+        gap = abs((other_seen - seen).total_seconds()) if other_seen else None
+        # Distance to the originating camera is resolved from the Camera
+        # Registry when both lat/lon exist; keep this conservative — the
+        # candidate is only ever a temporal/metadata suggestion.
+        out.append(
+            {
+                "sighting_id": s.id,
+                "camera_id": s.camera_id,
+                "location_name": s.location_name,
+                "timestamp": other_seen.isoformat() if other_seen else None,
+                "vehicle_class": s.vehicle_class,
+                "track_id": s.track_id,
+                "observed_plate": s.plate,
+                "time_gap_seconds": round(gap, 1) if gap is not None else None,
+                "method": "visual_metadata",
+                "certain": False,
+                "confidence": 0.30,  # intentionally low
+                "reasoning": (
+                    "same vehicle class on a different camera within the configured "
+                    "temporal window — NO plate identity; metadata association only"
+                ),
+            }
+        )
+    return out
 
 
 def search_vehicles(db: Session, q: str, limit: int = 25) -> list[dict[str, Any]]:

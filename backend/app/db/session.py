@@ -16,15 +16,19 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    pool_size=settings.db_pool_size,
-    max_overflow=settings.db_max_overflow,
-    pool_timeout=settings.db_pool_timeout_seconds,
-    pool_recycle=settings.db_pool_recycle_seconds,
-    future=True,
-)
+# QueuePool sizing is PostgreSQL-only; SQLite (dev fallback / tests) must not
+# receive those arguments.
+_engine_kwargs: dict = {"pool_pre_ping": True, "future": True}
+if not settings.database_url.startswith("sqlite"):
+    _engine_kwargs.update(
+        {
+            "pool_size": settings.db_pool_size,
+            "max_overflow": settings.db_max_overflow,
+            "pool_timeout": settings.db_pool_timeout_seconds,
+            "pool_recycle": settings.db_pool_recycle_seconds,
+        }
+    )
+engine = create_engine(settings.database_url, **_engine_kwargs)
 
 # Enforce a server-side statement timeout (PostgreSQL only) to protect the API
 # from long-running queries. Silently skipped on other backends (dev SQLite).

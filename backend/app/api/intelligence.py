@@ -97,6 +97,23 @@ def pipeline_summary(
     }
 
 
+@router.get("/ai/status")
+def ai_status(
+    db: Session = Depends(get_db),
+    _: Principal = Depends(require_permission(PIPELINE_READ)),
+) -> dict:
+    """Global AI health: model readiness/device/weights, ANPR provider state,
+    per-camera worker trust flags, effective inference rates and DB counts.
+
+    Never fabricates readiness: with a missing/unloadable model this returns
+    ``status=MODEL_NOT_READY`` / ``model.ready=false`` while the rest of the
+    platform keeps running.
+    """
+    from app.services.pipeline import ai_status_snapshot
+
+    return ai_status_snapshot(db=db)
+
+
 @router.post("/pipeline/{camera_id}/start", response_model=PipelineActionResult)
 def pipeline_start(
     camera_id: str,
@@ -159,8 +176,10 @@ async def ws_realtime(websocket: WebSocket, token: str | None = Query(None)) -> 
 
     Frames are ``{"event": <name>, "payload": {...}}`` — matching the frontend
     ``services/realtime.ts`` contract. Event topics:
-    ``detection``, ``anpr:hit``, ``track``, ``journey``, ``watchlist:match``,
-    ``alert:new``, ``alert:update``, ``camera:health``, ``camera:state``.
+    ``detection`` / ``vehicle:detected``, ``anpr:hit``, ``track`` /
+    ``vehicle:tracked``, ``journey``, ``watchlist:match``, ``alert:new``,
+    ``alert:update``, ``camera:state``, ``camera:health`` and the low-frequency
+    global ``ai:status`` frame.
 
     When ``AUTH_ENABLED=true`` a valid access token must be supplied via
     ``?token=...`` (browsers cannot set WebSocket headers); the feed is open in

@@ -29,6 +29,8 @@ interface RealtimeAnprFrame {
   confidence?: number;
   timestamp?: string;
   synthetic?: boolean;
+  /** True when the OCR read is not grammar-valid / below reliability threshold. */
+  uncertain?: boolean;
 }
 
 export interface AnprFeedState {
@@ -83,9 +85,9 @@ export function useAnprFeed(maxRows = 14): AnprFeedState {
     const off = bus.on('anpr:hit', (payload) => {
       const p = payload as RealtimeAnprFrame;
       if (!p?.plate) return;
-      // Synthetic (dev-only random-weight) detections must not appear as real
-      // plate reads in production.
-      if (p.synthetic && !DEMO_MODE) return;
+      // Synthetic (dev-only random-weight) detections and uncertain OCR reads
+      // must not appear as confirmed plate reads in production.
+      if ((p.synthetic || p.uncertain) && !DEMO_MODE) return;
       const hit: AnprHit = {
         id: `anpr-live-${p.plate}-${p.timestamp ?? Date.now()}`,
         plate: p.plate,

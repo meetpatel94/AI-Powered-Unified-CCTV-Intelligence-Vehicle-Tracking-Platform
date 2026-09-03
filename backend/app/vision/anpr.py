@@ -27,6 +27,20 @@ class PlateRead:
     plate_raw: str  # original OCR text (best line)
     confidence: float
     valid: bool
+    # Provenance of the read: always the live RTSP pipeline today.
+    source: str = "live_rtsp"
+    # True when the OCR text cannot be trusted as an exact plate string: either
+    # it failed the Indian plate grammar OR its confidence is below
+    # ANPR_RELIABLE_CONFIDENCE. Such reads are persisted with a marker but are
+    # NEVER used to create a Vehicle Identity, extend a journey or trigger a
+    # watchlist alert (no characters are invented for them).
+    @property
+    def uncertain(self) -> bool:
+        return not self.valid or not self.reliable
+
+    @property
+    def reliable(self) -> bool:
+        return self.valid and self.confidence >= get_settings().anpr_reliable_confidence
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -34,6 +48,9 @@ class PlateRead:
             "plate_raw": self.plate_raw,
             "confidence": round(self.confidence, 4),
             "valid": self.valid,
+            "uncertain": self.uncertain,
+            "reliable": self.reliable,
+            "source": self.source,
         }
 
 
@@ -120,7 +137,14 @@ class AnprEngine:
         }
 
     def read_plate(self, vehicle_crop_bgr: "np.ndarray") -> PlateRead | None:
-        """Read a plate from a vehicle crop. Returns ``None`` on no/failed read."""
+        """Read a plate from a vehicle crop. Returns ``None`` on no/failed read.
+
+        The normalized text is reported even when it fails the Indian plate
+        grammar (best-effort, positional-repaired): the read is then marked
+        ``uncertain`` so downstream never treats it as a confirmed plate.
+        Characters are never invented; invalid candidates are only ever
+        persisted with the uncertainty flag.
+        """
         if not self.ready or vehicle_crop_bgr is None:
             return None
         if vehicle_crop_bgr.size == 0:
@@ -137,8 +161,15 @@ class AnprEngine:
         if plate is None:
             return None
         if ocr_conf < self.settings.anpr_min_ocr_confidence:
+            # Below the minimum OCR confidence there is no usable read at all.
             return None
-        return PlateRead(plate=plate, plate_raw=text, confidence=ocr_conf, valid=valid)
+        return PlateRead(
+            plate=plate,
+            plate_raw=text,
+            confidence=ocr_conf,
+            valid=valid,
+            source="live_rtsp",
+        )
 
 
 _engine: AnprEngine | None = None
