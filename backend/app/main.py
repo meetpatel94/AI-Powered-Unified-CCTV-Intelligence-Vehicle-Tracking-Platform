@@ -78,7 +78,23 @@ async def lifespan(_app: FastAPI):
     # LIVE. Camera list is dynamic (from the Sentinel registry) — nothing here
     # hard-codes an RTSP/camera URL.
     if settings.vehicle_pipeline_enabled:
+        # Load the model once at startup (health probe + page-cache warm); a
+        # missing/unloadable model reports MODEL_NOT_READY and produces no
+        # detections — the API and streams stay up regardless.
+        try:
+            from app.vision.detector import preflight_detector
+
+            preflight_detector()
+        except Exception:
+            structlog.get_logger(__name__).exception("ai.preflight.failed")
         manager.start_auto_monitor()
+        # One bounded ``ai:status`` frame immediately after startup.
+        try:
+            from app.services.pipeline import publish_ai_status
+
+            publish_ai_status()
+        except Exception:
+            structlog.get_logger(__name__).exception("ai.status.initial_publish_failed")
 
     # Camera health monitor (state machine + camera:health / camera:state WS).
     health_monitor.start()
@@ -170,6 +186,7 @@ def root() -> dict[str, str]:
         "tracking": "/api/tracking/recent",
         "journeys": "/api/journeys/recent",
         "pipeline": "/api/pipeline",
+        "ai_status": "/api/ai/status",
         "watchlist": "/api/watchlist",
         "alerts": "/api/alerts/recent",
         "gis_cameras": "/api/gis/cameras",

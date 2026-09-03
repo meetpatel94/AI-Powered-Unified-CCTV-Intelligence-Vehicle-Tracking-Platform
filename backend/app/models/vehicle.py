@@ -87,6 +87,18 @@ class AnprSighting(Base):
     ocr_confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     detection_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # Reliability contract: a sighting is only "reliable" when the normalized
+    # text matches the Indian plate grammar AND ocr_confidence >=
+    # ANPR_RELIABLE_CONFIDENCE. Uncertain reads are persisted (for evidence /
+    # operator review) with plate_uncertain=True and are NEVER used for Vehicle
+    # Identity, journey extension or watchlist matching.
+    plate_valid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    plate_uncertain: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    # Provenance / observation metadata (always "live_rtsp" for the pipeline;
+    # kept as a column so other future feeds can be distinguished).
+    source: Mapped[str] = mapped_column(String(32), nullable=False, default="live_rtsp")
+
     # Vehicle bbox in the normalized (AI) frame, pixels.
     bbox_x: Mapped[float | None] = mapped_column(Float, nullable=True)
     bbox_y: Mapped[float | None] = mapped_column(Float, nullable=True)

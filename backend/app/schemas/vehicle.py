@@ -27,6 +27,10 @@ class SightingOut(BaseModel):
     vehicle_class: str | None = None
     ocr_confidence: float | None = None
     detection_confidence: float | None = None
+    # Reliability / observation metadata (see services/vehicle_intel.py).
+    plate_valid: bool = False
+    plate_uncertain: bool = True
+    source: str = "live_rtsp"
     bbox: BBox | None = None
     pts_ms: float | None = None
     latitude: float | None = None
@@ -98,11 +102,21 @@ class PipelineWorkerStatus(BaseModel):
     synthetic: bool = False
     frames_processed: int = 0
     frames_skipped: int = 0
+    frames_dropped: int = 0
+    inference_throttled: int = 0
     detections_total: int = 0
     anpr_reads: int = 0
+    avg_inference_ms: float | None = None
+    avg_anpr_ms: float | None = None
+    # Trustworthy measured rate (processed frames / worker uptime), never the
+    # camera's reported FPS.
+    effective_infer_fps: float = 0.0
+    anpr_ready: bool = False
+    queue_depth: int = 0
     last_error: str | None = None
     last_infer_at: str | None = None
     detector: dict[str, Any] | None = None
+    anpr: dict[str, Any] | None = None
 
 
 class PipelineActionResult(BaseModel):

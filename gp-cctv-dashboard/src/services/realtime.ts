@@ -40,7 +40,12 @@ export type RealtimeEvent =
   /* Vehicle Intelligence Pipeline topics (served by backend `/api/ws`). */
   | 'detection'
   | 'track'
-  | 'journey';
+  | 'journey'
+  /** Canonical structured pipeline topics (same payloads as detection/track). */
+  | 'vehicle:detected'
+  | 'vehicle:tracked'
+  /** Low-frequency global AI health frame (model/device/ANPR readiness). */
+  | 'ai:status';
 
 type Handler = (payload: unknown) => void;
 
@@ -66,6 +71,9 @@ const KNOWN_EVENTS = new Set<RealtimeEvent>([
   'detection',
   'track',
   'journey',
+  'vehicle:detected',
+  'vehicle:tracked',
+  'ai:status',
 ]);
 
 /** Access-token persistence shared with the API layer (auth deployments). */

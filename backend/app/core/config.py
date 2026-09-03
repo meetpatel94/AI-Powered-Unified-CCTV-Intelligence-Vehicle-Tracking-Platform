@@ -161,6 +161,10 @@ class Settings(BaseSettings):
     # a plate-detection weights file switches to a dedicated plate detector.
     anpr_plate_detector: str = "region"
     anpr_min_ocr_confidence: float = 0.40
+    # A read is only "reliable" (drives Vehicle Identity + watchlist matching)
+    # when it is grammar-valid AND at least this OCR confidence. Lower-reads are
+    # persisted but flagged uncertain — characters are never invented.
+    anpr_reliable_confidence: float = 0.75
     # Persist at most one ANPR sighting per (plate, camera) within this window
     # to avoid flooding the DB with duplicate reads of a stationary vehicle.
     anpr_dedupe_seconds: float = 20.0
@@ -191,6 +195,22 @@ class Settings(BaseSettings):
     journey_max_speed_kph: float = 200.0
     # Minimum seconds between two distinct cameras before speed is meaningful.
     journey_min_interval_seconds: float = 2.0
+
+    # --- AI status / health --------------------------------------------- #
+    # How often (seconds) the pipeline publishes a global ``ai:status`` frame
+    # on the realtime hub (bounded/low-frequency; also published on every
+    # worker start/stop and at startup).
+    ai_status_publish_seconds: float = 15.0
+
+    # --- Cross-camera matching ------------------------------------------ #
+    # Plate identity is ALWAYS the primary (deterministic) match. This flag
+    # additionally allows a clearly-labelled, LOW-CONFIDENCE metadata-only
+    # association (same vehicle class + plausible travel time between nearby
+    # cameras) when no plate is available. It is OFF by default because no
+    # visual-embedding architecture exists yet; when enabled results are
+    # marked ``certain=false`` / ``method=visual_metadata`` and are never
+    # persisted as a vehicle identity.
+    cross_camera_visual_match_enabled: bool = False
 
     # --- Camera health monitoring ---------------------------------------- #
     # Poll the stream gateway + registry this often (seconds) for health.
@@ -309,6 +329,12 @@ class Settings(BaseSettings):
             errors.append("STREAM_MAX_WORKERS must be >= 1")
         if self.ai_max_concurrent_inference < 1:
             errors.append("AI_MAX_CONCURRENT_INFERENCE must be >= 1")
+        if not (0.0 <= self.anpr_min_ocr_confidence <= 1.0):
+            errors.append("ANPR_MIN_OCR_CONFIDENCE must be between 0 and 1")
+        if not (0.0 < self.anpr_reliable_confidence <= 1.0):
+            errors.append("ANPR_RELIABLE_CONFIDENCE must be in (0, 1]")
+        if self.ai_status_publish_seconds <= 0:
+            errors.append("AI_STATUS_PUBLISH_SECONDS must be > 0")
 
         for msg in warnings:
             logger.warning("config.startup_warning", warning=msg)

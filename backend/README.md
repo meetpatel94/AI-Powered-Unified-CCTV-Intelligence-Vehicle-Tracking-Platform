@@ -39,7 +39,7 @@ backend/
 │  │  ├─ dashboard.py      # KPI + activity series + journeys + analytics
 │  │  └─ auth.py           # JWT access/refresh rotation, bcrypt, bootstrap admin
 │  └─ api/                 # 14 routers + permission dependencies (deps.py)
-├─ alembic/                # migrations 0001-0003 (0003 = intelligence ops)
+├─ alembic/                # migrations 0001-0005 (0005 = ANPR reliability)
 ├─ devtools/
 │  ├─ verify_phase3.py     # 67-check end-to-end integration verification
 │  ├─ mock_sentinel.py     # local stand-in for the Sentinel catalogue
@@ -60,6 +60,9 @@ Copy `.env.example` to `.env` and fill Sentinel credentials. Secrets stay in
 | `SENTINEL_BASE_URL` / `SENTINEL_API_KEY` / `SENTINEL_API_SECRET` | Official Sentinel catalogue auth |
 | `CORS_ORIGINS` | Comma-separated frontend origins |
 | `VEHICLE_MODEL_PATH` | Genuine YOLO weights (fail-safe if missing) |
+| `ANPR_MIN_OCR_CONFIDENCE`, `ANPR_RELIABLE_CONFIDENCE` | OCR read minimum + reliability threshold (uncertain reads are marked, never invented) |
+| `AI_STATUS_PUBLISH_SECONDS` | Frequency of the bounded `ai:status` realtime frame |
+| `CROSS_CAMERA_VISUAL_MATCH_ENABLED` | OFF: only deterministic plate-identity cross-camera matching (no visual-embedding model) |
 | `EVIDENCE_FRAMES_DIR`, `EVIDENCE_RETENTION_DAYS` | Evidence snapshot store + retention |
 | `ALERT_DEDUPE_SECONDS`, `ALERT_ON_CAMERA_FAILURE` | Real-time alert engine |
 | `CAMERA_HEALTH_POLL_SECONDS` | Health monitor cadence |
@@ -90,8 +93,8 @@ python devtools/run_demo.py
 | Platform | `GET /health`, `GET /api/status` | Liveness, DB + Sentinel connectivity |
 | Registry | `GET/POST /api/ingest`, `GET /api/cameras`, `GET /api/cameras/{id}` | Sentinel catalogue → camera registry |
 | Streams | `GET /api/streams`, `POST /api/streams/{id}/start|stop`, `POST /api/cameras/{id}/stream/restart`, `GET /api/streams/{id}/frame.jpg`, `GET /api/streams/{id}/live` | FFmpeg gateway + MJPEG preview |
-| Vehicles | `GET /api/vehicles/search`, `GET /api/vehicles/{plate}/journey` | Genuine ANPR sightings + cross-camera journeys |
-| Pipeline | `GET /api/pipeline/status` | Per-camera YOLO/ANPR worker state |
+| Vehicles | `GET /api/vehicles/search`, `GET /api/vehicles/{plate}`, `GET /api/vehicles/{plate}/sightings?since&until&camera_id`, `GET /api/vehicles/{plate}/journey`, `GET /api/vehicles/{plate}/cross-camera` | Real DB observations + deterministic plate-identity cross-camera matching |
+| Pipeline | `GET /api/pipeline`, `GET /api/pipeline/summary`, `GET /api/ai/status` | Per-camera YOLO/ANPR worker state + global model/device/ANPR health |
 | Watchlist | `GET/POST /api/watchlist`, `PATCH/DELETE /api/watchlist/{id}`, `GET /api/watchlist/matches`, `GET /api/watchlist/stats` | Entries CRUD + match log |
 | Alerts | `GET /api/alerts/recent`, `GET /api/alerts/stats`, `POST /api/alerts/{id}/acknowledge|resolve|status` | Real-time alert engine + lifecycle |
 | Evidence | `GET /api/evidence`, `GET /api/evidence/{id}/image`, `GET /api/evidence/{id}/verify` | SHA-256-verified JPEG snapshots |
@@ -100,7 +103,7 @@ python devtools/run_demo.py
 | Investigation | `GET /api/investigation/{plate}/dossier|timeline`, `GET/POST /api/investigation/cases`, `GET /api/investigation/search` | Dossiers + case files |
 | Dashboard | `GET /api/dashboard/kpis|activity|journeys`, `GET /api/analytics/summary` | Command-centre feeds |
 | Auth | `POST /api/auth/login|refresh|logout|change-password`, `GET /api/auth/me`, `GET /api/auth/config`, `GET/POST /api/users`, `GET /api/roles` | JWT + RBAC |
-| Realtime | `WS /api/ws` | `anpr:hit`, `watchlist:match`, `alert:new`, `alert:update`, `camera:health`, `stream:*` |
+| Realtime | `WS /api/ws` | `anpr:hit`, `vehicle:detected`/`detection`, `vehicle:tracked`/`track`, `journey`, `watchlist:match`, `alert:new`, `alert:update`, `camera:state`, `camera:health`, `ai:status` |
 
 `POST /api/ingest` (and GET) calls the official Sentinel `/api/ingest`
 endpoint, normalizes metadata, and upserts by `camera_id`. Stream URLs
@@ -119,6 +122,22 @@ hard-coded.
   when the users table is empty.
 
 ## Verification
+
+The deterministic unit/integration suite (no model inference needed) lives in
+`tests/`:
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest            # SQLite, deterministic fixtures
+```
+
+Covers: plate normalization/repair, ANPR reliability thresholds (uncertain
+reads never become vehicle identity), YOLO model lifecycle/MODEL_NOT_READY,
+detection output schema, tracker reset isolation, watchlist exactly-once
+matching, alert cooldown/duplicate suppression, vehicle search + time/camera
+filters, journey generation + impossible-travel anomaly, cross-camera plate
+identity matching, and API health/`ai:status` endpoints. Production runtime
+never uses these fixtures.
 
 `devtools/verify_phase3.py` runs 67 end-to-end checks against a running API
 (mock Sentinel fixtures): registry ingest, RBAC/user CRUD, watchlist CRUD, the

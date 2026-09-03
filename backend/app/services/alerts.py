@@ -22,12 +22,12 @@ New/updated alerts are published on the WebSocket hub as ``alert:new`` and
 
 from __future__ import annotations
 
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import structlog
 from sqlalchemy import func, select
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -108,9 +108,25 @@ def alert_dict(a: Alert, *, entry: dict[str, Any] | None = None) -> dict[str, An
 # Creation (called from pipeline threads / health monitor)
 # --------------------------------------------------------------------------- #
 def _insert_alert(db: Session, values: dict[str, Any]) -> Alert | None:
-    """Insert with dedupe-key conflict handling. Returns the row or None."""
-    stmt = pg_insert(Alert).values(**values)
-    stmt = stmt.on_conflict_do_nothing(index_elements=[Alert.dedupe_key])
+    """Insert with dedupe-key conflict handling. Returns the row or None.
+
+    PostgreSQL and SQLite both support ``ON CONFLICT DO NOTHING``; the dialect
+    is chosen so development/tests can run the same code on SQLite without
+    changing production behaviour.
+    """
+    dialect = db.get_bind().dialect.name if db.get_bind() is not None else "postgresql"
+    if dialect == "sqlite":
+        from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+
+        stmt = sqlite_insert(Alert).values(**values).on_conflict_do_nothing(
+            index_elements=["dedupe_key"]
+        )
+    else:
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+        stmt = pg_insert(Alert).values(**values).on_conflict_do_nothing(
+            index_elements=[Alert.dedupe_key]
+        )
     result = db.execute(stmt)
     if result.rowcount == 0:
         db.rollback()
@@ -152,15 +168,17 @@ def create_alert(
     settings = get_settings()
     now = _utcnow()
 
-    # Layer 2: fold into an unresolved alert for the same source within the
-    # suppression window (e.g. stationary watchlist vehicle re-read at a camera).
+    # Layer 2: fold into an unresolved alert with the SAME dedupe key (the
+    # cooldown window is encoded in the key itself by callers, e.g.
+    # ``watchlist_match:{entry}:{camera}:{bucket}``) within the suppression
+    # window. Scoped to the exact source (vehicle+camera) — never across
+    # unrelated cameras.
     window = suppress_window_seconds if suppress_window_seconds is not None else settings.alert_dedupe_seconds
     if window and window > 0:
         cutoff = now - timedelta(seconds=window)
-        prefix = dedupe_key.rsplit(":", 1)[0]
         existing = db.scalar(
             select(Alert).where(
-                Alert.dedupe_key.like(f"{prefix}:%"),
+                Alert.dedupe_key == dedupe_key,
                 Alert.status.in_(OPEN_STATUSES),
                 Alert.created_at >= cutoff,
             )
@@ -210,7 +228,15 @@ def create_alert(
 def raise_watchlist_alert(
     db: Session, match: WatchlistMatch, *, entry: Any, evidence_id: int | None = None
 ) -> tuple[Alert | None, bool]:
-    """Convert a confirmed watchlist match into an alert (with suppression)."""
+    """Convert a confirmed watchlist match into an alert (with suppression).
+
+    The dedupe key encodes the cooldown bucket
+    (``watchlist_match:{entry}:{camera}:{bucket}``) so that:
+    * duplicate spam for the SAME vehicle + camera inside the window folds into
+      one alert, and
+    * after the window expires a genuinely new sighting CAN raise a fresh alert
+      (rather than being blocked forever by the unique key).
+    """
     settings = get_settings()
     severity = _PRIORITY_SEVERITY.get(getattr(entry, "priority", "medium"), "medium")
     message = (
@@ -221,13 +247,15 @@ def raise_watchlist_alert(
     if getattr(entry, "description", None):
         message += f" — {str(entry.description)[:180]}"
 
+    window = max(1.0, float(settings.alert_dedupe_seconds))
+    bucket = int(time.time() // window)
     alert, created = create_alert(
         db,
         type="WATCHLIST_MATCH",
         severity=severity,
         message=message,
         source_type="watchlist_match",
-        dedupe_key=f"watchlist_match:{match.entry_id}:{match.camera_id}",
+        dedupe_key=f"watchlist_match:{match.entry_id}:{match.camera_id}:{bucket}",
         plate=match.plate,
         camera_id=match.camera_id,
         location_name=match.location_name,
