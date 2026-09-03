@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { AddWatchlistModal } from '@/components/watchlist/AddWatchlistModal';
 import { CrossCameraJourneyPanel } from '@/components/investigation/CrossCameraJourneyPanel';
@@ -63,6 +63,7 @@ const defaultFilters: InvestigationFilters = {
  */
 export function Investigation() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const clock = formatClock(useLiveClock());
 
   /* ---------------- target state ---------------- */
@@ -96,6 +97,23 @@ export function Investigation() {
     setNotice(message);
     noticeTimer.current = window.setTimeout(() => setNotice(null), 3200);
   }, []);
+
+  /* ---------------- deep link (from global search) ---------------- */
+  const paramPlate = searchParams.get('plate');
+  useEffect(() => {
+    if (!paramPlate) return;
+    const next = paramPlate.toUpperCase();
+    setTargetPlate(next);
+    setPlate(next);
+    setStatus('active');
+    setCaseRef(null);
+    setAcknowledged([]);
+    setSightingQuery(defaultSightingQuery);
+    setActiveStep(null);
+    setFrameToken((token) => token + 1);
+    flash(`Dossier loaded for ${next}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramPlate]);
 
   const mockDossier = investigationDossiers[targetPlate] ?? investigationDossiers[defaultTargetPlate];
   const { dossier, live: dossierLive, createCase } = useInvestigationDossier(targetPlate, mockDossier);

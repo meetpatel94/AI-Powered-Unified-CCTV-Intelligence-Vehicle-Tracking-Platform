@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { AlertDetailsPanel, type AlertDetailAction } from '@/components/alerts/AlertDetailsPanel';
 import { AlertsFilterBar, type AlertScopeId, type AlertStatusFilter, type AlertWindow } from '@/components/alerts/AlertsFilterBar';
@@ -37,6 +37,7 @@ const PROGRESS_STATUSES: AlertStatus[] = ['acknowledged', 'investigating', 'esca
  */
 export function Alerts() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const intel = useAlertsConsole();
   const activity = useAiActivity(24);
   const [alerts, setAlerts] = useState<AlertRecord[]>(seedAlerts);
@@ -68,6 +69,12 @@ export function Alerts() {
     setNotice(message);
     noticeTimer.current = window.setTimeout(() => setNotice(null), 2600);
   };
+
+  // Deep link from the global search / notification bell: open a specific alert.
+  const paramAlert = searchParams.get('alert');
+  useEffect(() => {
+    if (paramAlert) setSelectedId(paramAlert);
+  }, [paramAlert]);
 
   const kpis = useMemo(() => computeKpis(alerts), [alerts]);
 
