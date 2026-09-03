@@ -1,15 +1,10 @@
 import { useRef, useState } from 'react';
 
 import { AiEventsByTypePanel } from '@/components/analytics/AiEventsByTypePanel';
+import { AnalyticsActivityMap } from '@/components/analytics/AnalyticsActivityMap';
 import { AnalyticsHeader } from '@/components/analytics/AnalyticsHeader';
 import { AnalyticsKpiRow } from '@/components/analytics/AnalyticsKpiRow';
-import { AnprPerformancePanel } from '@/components/analytics/AnprPerformancePanel';
-import { CameraActivityPanel } from '@/components/analytics/CameraActivityPanel';
-import { DetailedReportDrawer } from '@/components/analytics/DetailedReportDrawer';
-import { HourlyActivityHeatmap } from '@/components/analytics/HourlyActivityHeatmap';
-import { IntelligenceSummaryPanel } from '@/components/analytics/IntelligenceSummaryPanel';
-import { TopDetectionLocationsPanel } from '@/components/analytics/TopDetectionLocationsPanel';
-import { VehicleDetectionTrend } from '@/components/analytics/VehicleDetectionTrend';
+import { CameraActivityInsightsPanel } from '@/components/analytics/CameraActivityInsightsPanel';
 import { VehicleTypesPanel } from '@/components/analytics/VehicleTypesPanel';
 import { WatchlistMatchTrendPanel } from '@/components/analytics/WatchlistMatchTrendPanel';
 import { defaultAnalyticsFilters } from '@/data/analyticsData';
@@ -33,6 +28,9 @@ function exportSnapshot(snapshot: AnalyticsSnapshot) {
     `active_cameras,${snapshot.kpis.cameras}`,
     `anpr_confidence_pct,${snapshot.anpr.confidence}`,
     `anpr_unreadable,${snapshot.anpr.unreadable}`,
+    '',
+    'watchlist_trend_date,matches,critical',
+    ...snapshot.watchlistTrend.map((point) => `${point.label},${point.matches},${point.critical}`),
     '',
     'vehicle_type,count',
     ...snapshot.vehicleTypes.map((slice) => `${slice.label},${slice.value}`),
@@ -58,15 +56,23 @@ function exportSnapshot(snapshot: AnalyticsSnapshot) {
 }
 
 /**
- * AI ANALYTICS & INTELLIGENCE workspace: KPI strip, dense chart grid and an
- * auto-generated briefing. `/api/analytics/summary` + `/api/dashboard/activity`
- * feed a real `AnalyticsSnapshot` merged over the mock `computeAnalytics`
- * baseline, so every panel keeps rendering when the backend is unreachable.
+ * AI ANALYTICS & INTELLIGENCE workspace, ordered by operator priority:
+ *   1. header + date/location/camera filters (+ refresh / CSV export)
+ *   2. compact KPI cards (vehicles · ANPR · AI events · watchlist · cameras)
+ *   3. watchlist match trend (left) + AI events by type (right)
+ *   4. GIS / activity map — camera activity, detection locations,
+ *      watchlist-match locations and AI-event hotspots
+ *   5. vehicle type distribution (left) + camera / activity insights (right)
+ * `/api/analytics/summary` + `/api/dashboard/activity` feed a real
+ * `AnalyticsSnapshot` merged over the mock `computeAnalytics` baseline, and the
+ * map reuses the live `/api/gis/cameras` fleet, so every section keeps
+ * rendering when the backend is unreachable. Normal document flow, vertical
+ * scroll, minmax(0,1fr) grid tracks — no horizontal overflow, no clipped
+ * fixed-height content.
  */
 export function Analytics() {
   const [filters, setFilters] = useState<AnalyticsFilters>(defaultAnalyticsFilters);
   const [refreshing, setRefreshing] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimer = useRef<number | undefined>(undefined);
   const clock = formatClock(useLiveClock());
@@ -81,6 +87,11 @@ export function Analytics() {
 
   const patchFilters = (next: Partial<AnalyticsFilters>) => {
     setFilters((prev) => ({ ...prev, ...next }));
+  };
+
+  /** Map markers and camera lists toggle the page-wide camera filter. */
+  const toggleCameraFilter = (code: string) => {
+    patchFilters({ camera: filters.camera === code ? 'all' : code });
   };
 
   const handleRefresh = () => {
@@ -108,75 +119,37 @@ export function Analytics() {
         clock={clock}
       />
 
-      {/* Hierarchy: header → filters → KPIs → primary distribution panels →
-          secondary trends → compact supporting metrics → remaining analytics.
-          Normal document flow, vertical scroll, minmax(0,…) grid tracks so no
-          column can collapse or force horizontal overflow. */}
+      {/* 1 · Compact KPI strip: vehicles · ANPR reads · AI events · watchlist · cameras */}
       <AnalyticsKpiRow kpis={snapshot.kpis} />
 
-      {/* 1 — Primary analytics: vehicle mix (left) + AI event distribution (right).
-          Balanced two-column row — both panels keep full chart/legend space. */}
-      <div className="responsive-band responsive-band-mid grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="min-w-0">
-          <VehicleTypesPanel types={snapshot.vehicleTypes} total={snapshot.kpis.vehicles} windowNote={snapshot.windowNote} />
-        </div>
-        <div className="min-w-0">
-          <AiEventsByTypePanel events={snapshot.eventTypes} total={snapshot.kpis.events} windowNote={snapshot.windowNote} />
-        </div>
+      {/* 2 · Priority analytics row: watchlist match trend (left) + AI events by
+          type (right). minmax(0,1fr) tracks keep both charts equal and
+          overflow-free; collapses to one column below xl. */}
+      <div className="responsive-band responsive-band-chart grid min-h-0 shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <WatchlistMatchTrendPanel series={snapshot.watchlistTrend} windowNote={snapshot.windowNote} />
+        <AiEventsByTypePanel events={snapshot.eventTypes} total={snapshot.kpis.events} windowNote={snapshot.windowNote} />
       </div>
 
-      {/* 2 — Secondary analytics: the two time-series charts side by side
-          (detection flow gets the wider track; watchlist trend the narrower). */}
-      <div className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <div className="min-w-0">
-          <VehicleDetectionTrend snapshot={snapshot} showLegend={false} />
-        </div>
-        <div className="min-w-0">
-          <WatchlistMatchTrendPanel series={snapshot.watchlistTrend} windowNote={snapshot.windowNote} />
-        </div>
-      </div>
+      {/* 3 · GIS / activity map: camera activity, detection locations,
+          watchlist-match locations and AI-event hotspots on the shared SVG
+          world. Analytics-focused — pan/zoom + click-to-filter only, the full
+          Camera Map tooling stays on /camera-map. */}
+      <AnalyticsActivityMap snapshot={snapshot} onSelectCamera={toggleCameraFilter} />
 
-      {/* 3 — Compact supporting metrics: ANPR performance indicators, camera
-          activity ranking and top detection locations in a three-column row.
-          Collapses to 2 columns on tablets and 1 column on phones. */}
-      <div className="grid shrink-0 grid-cols-1 gap-[var(--page-gap)] md:grid-cols-2 xl:grid-cols-3">
-        <div className="min-w-0">
-          <AnprPerformancePanel anpr={snapshot.anpr} />
-        </div>
-        <div className="min-w-0">
-          <CameraActivityPanel cameras={snapshot.cameras} onSelectCamera={(camera) => patchFilters({ camera })} />
-        </div>
-        <div className="min-w-0 md:col-span-2 xl:col-span-1">
-          <TopDetectionLocationsPanel
-            locations={snapshot.locations}
-            onSelectLocation={(location) => patchFilters({ location, camera: 'all' })}
-          />
-        </div>
-      </div>
-
-      {/* 4 — Remaining analytics: the 7-day × 24-hour intensity heatmap uses the
-          full width so every hour cell stays readable. */}
-      <div className="responsive-band responsive-band-chart grid shrink-0 grid-cols-1 gap-[var(--page-gap)]">
-        <div className="min-w-0">
-          <HourlyActivityHeatmap grid={snapshot.heatmap} />
-        </div>
-      </div>
-
-      {/* 5 — Operational briefing */}
-      <div className="shrink-0">
-        <IntelligenceSummaryPanel
-          insights={snapshot.insights}
+      {/* 4 · Supporting row: vehicle type distribution (left) + compact
+          camera / activity insights (right). */}
+      <div className="responsive-band responsive-band-mid grid min-h-0 shrink-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <VehicleTypesPanel types={snapshot.vehicleTypes} total={snapshot.kpis.vehicles} windowNote={snapshot.windowNote} />
+        <CameraActivityInsightsPanel
+          cameras={snapshot.cameras}
+          anpr={snapshot.anpr}
           unusual={snapshot.unusual}
-          generatedAt={snapshot.generatedAt}
-          onViewReport={() => setReportOpen(true)}
+          peakLabel={snapshot.peakLabel}
+          peakValue={snapshot.peakValue}
+          peakUnit={snapshot.vehicleTrendUnit}
+          onSelectCamera={toggleCameraFilter}
         />
       </div>
-
-      <DetailedReportDrawer
-        snapshot={reportOpen ? snapshot : null}
-        onClose={() => setReportOpen(false)}
-        onExport={handleExport}
-      />
 
       {notice ? (
         <div className="fixed bottom-4 right-4 z-[60] animate-flash-in rounded-[6px] border border-accent-green/50 bg-[#0b2e26] px-3 py-2 text-[12.5px] font-medium text-[#6fe0b0] shadow-glow">
