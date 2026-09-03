@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
@@ -15,6 +15,8 @@ from app.core.permissions import (
     PIPELINE_READ,
 )
 from app.db.session import get_db
+from app.models.audit import ACTION_PIPELINE_START, ACTION_PIPELINE_STOP
+from app.services import audit as audit_service
 from app.schemas.vehicle import (
     JourneyPointOut,
     PipelineActionResult,
@@ -98,8 +100,9 @@ def pipeline_summary(
 @router.post("/pipeline/{camera_id}/start", response_model=PipelineActionResult)
 def pipeline_start(
     camera_id: str,
+    request: Request,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission(PIPELINE_CONTROL)),
+    principal: Principal = Depends(require_permission(PIPELINE_CONTROL)),
 ) -> PipelineActionResult:
     if get_camera(db, camera_id) is None:
         raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
@@ -107,6 +110,16 @@ def pipeline_start(
         status = manager.start(camera_id)
     except RuntimeError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    audit_service.record(
+        db=db,
+        action=ACTION_PIPELINE_START,
+        principal=principal,
+        resource_type="pipeline_worker",
+        resource_id=camera_id,
+        detail=f"AI pipeline started for {camera_id}",
+        context={"camera_id": camera_id},
+        request=request,
+    )
     return PipelineActionResult(
         camera_id=camera_id, action="start", status=PipelineWorkerStatus(**status)
     )
@@ -115,11 +128,23 @@ def pipeline_start(
 @router.post("/pipeline/{camera_id}/stop", response_model=PipelineActionResult)
 def pipeline_stop(
     camera_id: str,
-    _: Principal = Depends(require_permission(PIPELINE_CONTROL)),
+    request: Request,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission(PIPELINE_CONTROL)),
 ) -> PipelineActionResult:
     status = manager.stop(camera_id)
     if status is None:
         raise HTTPException(status_code=404, detail=f"No pipeline worker for {camera_id}")
+    audit_service.record(
+        db=db,
+        action=ACTION_PIPELINE_STOP,
+        principal=principal,
+        resource_type="pipeline_worker",
+        resource_id=camera_id,
+        detail=f"AI pipeline stopped for {camera_id}",
+        context={"camera_id": camera_id},
+        request=request,
+    )
     return PipelineActionResult(
         camera_id=camera_id, action="stop", status=PipelineWorkerStatus(**status)
     )

@@ -25,12 +25,34 @@ import {
   scheduledReports,
 } from '@/data/reportsData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
+import { useReports, type RealReportView } from '@/hooks/useReports';
+import { readStoredToken } from '@/services/realtime';
 import type {
   GenerateReportConfig,
   ReportFilters,
   ReportRecord,
   ScheduledReport,
 } from '@/types/reports';
+
+/** Merge a real backend report view into the page's ReportRecord shape. */
+function realToRecord(r: RealReportView): ReportRecord {
+  return {
+    id: r.id,
+    name: r.name,
+    type: r.type,
+    generatedAt: r.generatedAt,
+    createdBy: r.createdBy,
+    creatorRank: r.creatorRank,
+    status: r.status,
+    sizeMb: r.sizeMb,
+    format: r.format,
+    pages: r.pages,
+    classification: r.classification,
+    scope: r.scope,
+    cameras: r.cameras,
+    records: r.records,
+  };
+}
 
 function downloadBlob(content: string, mime: string, filename: string) {
   const url = URL.createObjectURL(new Blob([content], { type: mime }));
@@ -55,10 +77,25 @@ export function Reports() {
 
   /* ---------------- state ---------------- */
 
+  // Real backend reports (PostgreSQL) with the bundled demo fixtures shown
+  // only until/unless the API is reachable — same fallback pattern as every
+  // other workspace screen.
+  const { reports: realReports, backendLive, generate: generateReal, downloadUrl, load: reloadReports } =
+    useReports();
+
   const [filters, setFilters] = useState<ReportFilters>(defaultReportFilters);
   const [reports, setReports] = useState<ReportRecord[]>(recentReports);
   const [schedules, setSchedules] = useState<ScheduledReport[]>(scheduledReports);
   const [selectedId, setSelectedId] = useState<string | null>(recentReports[0]?.id ?? null);
+
+  // When real reports arrive, make them the registry (real rows first).
+  useEffect(() => {
+    if (backendLive) {
+      const rows = realReports.map(realToRecord);
+      setReports(rows.length ? rows : recentReports);
+      setSelectedId((cur) => cur ?? rows[0]?.id ?? recentReports[0]?.id ?? null);
+    }
+  }, [backendLive, realReports]);
   const [query, setQuery] = useState('');
   const [downloadStates, setDownloadStates] = useState<Record<string, DownloadState>>({});
 
@@ -137,6 +174,33 @@ export function Reports() {
       return;
     }
 
+    // Real backend: generate over PostgreSQL data.
+    generateReal({
+      uiType: config.type,
+      name: config.name,
+      format: config.format,
+      classification: config.classification,
+      camera: config.camera,
+    })
+      .then((created) => {
+        if (created) {
+          setSelectedId(created.id);
+          setGeneratedDelta((prev) => prev + 1);
+          flash(
+            created.raw.status === 'completed'
+              ? `${created.id} generated · ${created.records} records from live data · ${config.format} ready`
+              : `${created.id} queued on the report engine · ${type.label}`,
+          );
+          void reloadReports();
+        } else {
+          runMockGeneration(config);
+        }
+      })
+      .catch(() => runMockGeneration(config));
+  };
+
+  /** Demo-fixture generation used only when the backend is unreachable. */
+  const runMockGeneration = (config: GenerateReportConfig) => {
     const id = nextReportId();
     const record: ReportRecord = {
       id,
@@ -156,10 +220,9 @@ export function Reports() {
     };
     setReports((prev) => [record, ...prev]);
     setSelectedId(id);
-    flash(`${id} queued on the report engine · ${type.label} · ~${type.etaSec}s render`);
+    flash(`${id} queued on the report engine · ${reportTypeById(config.type).label} · demo data`);
 
-    // Simulated render completion — production replaces this with the
-    // `report:status` WebSocket event from the report engine.
+    // Simulated render completion (demo fixtures only).
     const timer = window.setTimeout(() => {
       setReports((prev) =>
         prev.map((row) =>
@@ -182,6 +245,33 @@ export function Reports() {
 
   const handleDownload = (report: ReportRecord) => {
     if (report.status !== 'completed') return;
+    // Real backend report (RPT-…): stream the actual generated CSV document.
+    if (report.id.startsWith('RPT-')) {
+      setDownloadStates((prev) => ({ ...prev, [report.id]: 'busy' }));
+      const token = readStoredToken();
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      fetch(downloadUrl(report.id), { headers })
+        .then((res) => {
+          if (!res.ok) throw new Error(`download failed ${res.status}`);
+          return res.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${report.id}-${report.type}.csv`;
+          link.click();
+          URL.revokeObjectURL(url);
+          setDownloadStates((prev) => ({ ...prev, [report.id]: 'done' }));
+          flash(`${report.id} · ${report.format} downloaded · access logged to the audit trail`);
+        })
+        .catch(() => {
+          setDownloadStates((prev) => ({ ...prev, [report.id]: 'idle' }));
+          flash(`${report.id} · download unavailable`);
+        });
+      return;
+    }
     setDownloadStates((prev) => ({ ...prev, [report.id]: 'busy' }));
     const timer = window.setTimeout(() => {
       downloadBlob(

@@ -27,6 +27,8 @@ class EventHub:
         self._subscribers: set[asyncio.Queue] = set()
         self._recent: deque[dict[str, Any]] = deque(maxlen=history)
         self._lock = asyncio.Lock()
+        # Metrics: how many realtime frames had to be dropped for slow clients.
+        self._dropped = 0
 
     def bind_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         self._loop = loop
@@ -39,6 +41,15 @@ class EventHub:
     def unsubscribe(self, queue: asyncio.Queue) -> None:
         self._subscribers.discard(queue)
 
+    def subscriber_count(self) -> int:
+        return len(self._subscribers)
+
+    def history_depth(self) -> int:
+        return len(self._recent)
+
+    def dropped_count(self) -> int:
+        return self._dropped
+
     def recent(self) -> list[dict[str, Any]]:
         return list(self._recent)
 
@@ -50,7 +61,9 @@ class EventHub:
                 q.put_nowait(frame)
             except asyncio.QueueFull:
                 # Drop for slow consumers rather than blocking inference.
-                pass
+                # (Only realtime *display* frames are affected — every ANPR /
+                # watchlist event is already persisted to the database.)
+                self._dropped += 1
             except Exception:
                 dead.append(q)
         for q in dead:

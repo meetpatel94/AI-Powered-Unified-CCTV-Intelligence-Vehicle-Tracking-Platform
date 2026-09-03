@@ -4,14 +4,20 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
 from app.core.permissions import WATCHLIST_READ, WATCHLIST_WRITE
 from app.db.session import get_db
+from app.models.audit import (
+    ACTION_WATCHLIST_CREATE,
+    ACTION_WATCHLIST_DELETE,
+    ACTION_WATCHLIST_UPDATE,
+)
 from app.schemas.auth import WatchlistEntryCreate, WatchlistEntryUpdate
+from app.services import audit as audit_service
 from app.services import watchlist as wl
 from app.services.auth import Principal
 
@@ -51,6 +57,7 @@ def list_entries(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_entry(
     payload: WatchlistEntryCreate,
+    request: Request,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(WATCHLIST_WRITE)),
 ) -> dict:
@@ -69,6 +76,16 @@ def create_entry(
         )
     except wl.WatchlistError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    audit_service.record(
+        db=db,
+        action=ACTION_WATCHLIST_CREATE,
+        principal=principal,
+        resource_type="watchlist_entry",
+        resource_id=entry.id,
+        detail=f"Watchlist entry created: '{entry.label}' ({entry.plate or entry.entry_type})",
+        context={"plate": entry.plate, "category": entry.category, "priority": entry.priority},
+        request=request,
+    )
     return wl.entry_dict(entry)
 
 
@@ -128,6 +145,7 @@ def get_entry(
 def update_entry(
     entry_id: int,
     payload: WatchlistEntryUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(WATCHLIST_WRITE)),
 ) -> dict:
@@ -139,17 +157,39 @@ def update_entry(
         entry = wl.update_entry(db, entry, actor=principal.username, **fields)
     except wl.WatchlistError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    audit_service.record(
+        db=db,
+        action=ACTION_WATCHLIST_UPDATE,
+        principal=principal,
+        resource_type="watchlist_entry",
+        resource_id=entry.id,
+        detail=f"Watchlist entry #{entry.id} updated ({entry.label})",
+        context={"changed_fields": sorted(fields.keys())},
+        request=request,
+    )
     return wl.entry_dict(entry)
 
 
 @router.delete("/{entry_id}")
 def delete_entry(
     entry_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(WATCHLIST_WRITE)),
 ) -> dict:
     entry = wl.get_entry(db, entry_id)
     if entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Watchlist entry not found")
+    label, plate = entry.label, entry.plate
     wl.delete_entry(db, entry, actor=principal.username)
+    audit_service.record(
+        db=db,
+        action=ACTION_WATCHLIST_DELETE,
+        principal=principal,
+        resource_type="watchlist_entry",
+        resource_id=entry_id,
+        detail=f"Watchlist entry deleted: '{label}' ({plate or entry.entry_type})",
+        context={"plate": plate},
+        request=request,
+    )
     return {"deleted": entry_id}

@@ -8,10 +8,19 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
+from fastapi import Request
+
 from app.api.deps import require_permission
 from app.core.permissions import CAMERAS_CONTROL, STREAMS_READ
 from app.db.session import get_db
+from app.models.audit import (
+    ACTION_CAMERA_START,
+    ACTION_CAMERA_STOP,
+    RESULT_FAILURE,
+    RESULT_SUCCESS,
+)
 from app.schemas.stream import StreamActionResult, StreamStatus
+from app.services import audit as audit_service
 from app.services.auth import Principal
 from app.services.cameras import get_camera, list_cameras
 from app.services.stream_gateway import StreamState, gateway
@@ -66,8 +75,9 @@ def stream_status(
 @router.post("/{camera_id}/start", response_model=StreamActionResult)
 def start_stream(
     camera_id: str,
+    request: Request,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission(CAMERAS_CONTROL)),
+    principal: Principal = Depends(require_permission(CAMERAS_CONTROL)),
 ) -> StreamActionResult:
     camera = get_camera(db, camera_id)
     if camera is None:
@@ -80,7 +90,27 @@ def start_stream(
     try:
         snap = gateway.start(camera.camera_id, camera.rtsp_url)
     except RuntimeError as exc:
+        audit_service.record(
+            db=db,
+            action=ACTION_CAMERA_START,
+            principal=principal,
+            resource_type="camera",
+            resource_id=camera_id,
+            result=RESULT_FAILURE,
+            detail=f"Stream start failed: {exc}",
+            request=request,
+        )
         raise HTTPException(status_code=429, detail=str(exc)) from exc
+    audit_service.record(
+        db=db,
+        action=ACTION_CAMERA_START,
+        principal=principal,
+        resource_type="camera",
+        resource_id=camera_id,
+        detail=f"Stream started for {camera_id} ({camera.location_name})",
+        context={"camera_id": camera_id, "location": camera.location_name},
+        request=request,
+    )
     return StreamActionResult(
         camera_id=camera_id,
         action="start",
@@ -91,11 +121,23 @@ def start_stream(
 @router.post("/{camera_id}/stop", response_model=StreamActionResult)
 def stop_stream(
     camera_id: str,
-    _: Principal = Depends(require_permission(CAMERAS_CONTROL)),
+    request: Request,
+    db: Session = Depends(get_db),
+    principal: Principal = Depends(require_permission(CAMERAS_CONTROL)),
 ) -> StreamActionResult:
     snap = gateway.stop(camera_id)
     if snap is None:
         raise HTTPException(status_code=404, detail=f"No active stream for {camera_id}")
+    audit_service.record(
+        db=db,
+        action=ACTION_CAMERA_STOP,
+        principal=principal,
+        resource_type="camera",
+        resource_id=camera_id,
+        detail=f"Stream stopped for {camera_id}",
+        context={"camera_id": camera_id},
+        request=request,
+    )
     return StreamActionResult(
         camera_id=camera_id,
         action="stop",

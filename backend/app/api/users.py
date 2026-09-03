@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -14,8 +14,14 @@ from app.core.permissions import (
     USERS_WRITE,
 )
 from app.db.session import get_db
+from app.models.audit import (
+    ACTION_USER_CREATE,
+    ACTION_USER_PASSWORD_RESET,
+    ACTION_USER_UPDATE,
+)
 from app.models.auth import User
 from app.schemas.auth import SetPasswordRequest, UserCreateRequest, UserUpdateRequest
+from app.services import audit as audit_service
 from app.services import auth as auth_service
 from app.services.auth import Principal
 
@@ -41,6 +47,7 @@ def list_users(
 @router.post("/users", status_code=status.HTTP_201_CREATED)
 def create_user(
     payload: UserCreateRequest,
+    request: Request,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(USERS_WRITE)),
 ) -> dict:
@@ -61,6 +68,16 @@ def create_user(
         )
     except auth_service.AuthError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    audit_service.record(
+        db=db,
+        action=ACTION_USER_CREATE,
+        principal=principal,
+        resource_type="user",
+        resource_id=user.id,
+        detail=f"User '{user.username}' created with role {user.role_id}",
+        context={"username": user.username, "role": user.role_id},
+        request=request,
+    )
     return auth_service.user_dict(user)
 
 
@@ -80,6 +97,7 @@ def get_user(
 def update_user(
     user_id: int,
     payload: UserUpdateRequest,
+    request: Request,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(USERS_WRITE)),
 ) -> dict:
@@ -101,10 +119,21 @@ def update_user(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Cannot remove the last active administrator",
             )
+    old_role = user.role_id
     try:
         user = auth_service.update_user(db, user, **fields)
     except auth_service.AuthError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    audit_service.record(
+        db=db,
+        action=ACTION_USER_UPDATE,
+        principal=principal,
+        resource_type="user",
+        resource_id=user.id,
+        detail=f"User '{user.username}' updated (role {old_role} → {user.role_id})",
+        context={"username": user.username, "changed_fields": sorted(fields.keys())},
+        request=request,
+    )
     return auth_service.user_dict(user)
 
 
@@ -112,6 +141,7 @@ def update_user(
 def set_password(
     user_id: int,
     payload: SetPasswordRequest,
+    request: Request,
     db: Session = Depends(get_db),
     principal: Principal = Depends(require_permission(USERS_WRITE)),
 ) -> dict:
@@ -119,6 +149,17 @@ def set_password(
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     auth_service.set_password(db, user, payload.new_password)
+    audit_service.record(
+        db=db,
+        action=ACTION_USER_PASSWORD_RESET,
+        principal=principal,
+        resource_type="user",
+        resource_id=user.id,
+        detail=f"Password reset for '{user.username}' by {principal.username} "
+        f"(all sessions revoked)",
+        context={"username": user.username},
+        request=request,
+    )
     return {"changed": True, "by": principal.username}
 
 

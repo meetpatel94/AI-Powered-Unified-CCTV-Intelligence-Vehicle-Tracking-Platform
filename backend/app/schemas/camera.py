@@ -4,6 +4,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class CameraRead(BaseModel):
+    """Camera Registry projection for API clients.
+
+    Stream URLs (which may embed credentials) are NEVER serialized — clients
+    see only whether a stream source is configured. The backend keeps the URLs
+    server-side and hands them to FFmpeg internally.
+    """
+
     model_config = ConfigDict(from_attributes=True)
 
     camera_id: str
@@ -18,9 +25,10 @@ class CameraRead(BaseModel):
     connectivity: str | None = None
     vms: str | None = None
     owner: str | None = None
-    rtsp_url: str | None = None
-    webrtc_url: str | None = None
-    hls_url: str | None = None
+    # Capability flags — never the URLs themselves.
+    rtsp_configured: bool = False
+    webrtc_configured: bool = False
+    hls_configured: bool = False
     created_at: datetime
     updated_at: datetime
 

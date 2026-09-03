@@ -33,6 +33,11 @@ USERS_WRITE = "users:write"
 ROLES_READ = "roles:read"
 ROLES_WRITE = "roles:write"
 INGEST_CONTROL = "ingest:control"
+# Phase 4 — production hardening.
+REPORTS_READ = "reports:read"
+REPORTS_GENERATE = "reports:generate"
+AUDIT_READ = "audit:read"
+SYSTEM_METRICS_READ = "system:metrics"
 
 ALL_PERMISSIONS: tuple[str, ...] = (
     DASHBOARD_READ,
@@ -60,6 +65,10 @@ ALL_PERMISSIONS: tuple[str, ...] = (
     ROLES_READ,
     ROLES_WRITE,
     INGEST_CONTROL,
+    REPORTS_READ,
+    REPORTS_GENERATE,
+    AUDIT_READ,
+    SYSTEM_METRICS_READ,
 )
 
 _READ_PERMISSIONS: tuple[str, ...] = (
@@ -77,6 +86,8 @@ _READ_PERMISSIONS: tuple[str, ...] = (
     INVESTIGATION_READ,
     EVIDENCE_READ,
     ROLES_READ,
+    REPORTS_READ,
+    SYSTEM_METRICS_READ,
 )
 
 # --- System role definitions ------------------------------------------------ #
@@ -102,6 +113,7 @@ ROLE_DEFINITIONS: dict[str, dict] = {
             CAMERAS_CONTROL,
             PIPELINE_CONTROL,
             INGEST_CONTROL,
+            REPORTS_GENERATE,
             USERS_READ,
         ],
     },
@@ -114,6 +126,7 @@ ROLE_DEFINITIONS: dict[str, dict] = {
             ALERTS_ACKNOWLEDGE,
             INVESTIGATION_WRITE,
             EVIDENCE_WRITE,
+            REPORTS_GENERATE,
         ],
     },
     "OPERATOR": {

@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.alerts import router as alerts_router
+from app.api.audit import router as audit_router
 from app.api.auth import router as auth_router
 from app.api.camera_health import router as camera_health_router
 from app.api.cameras import router as cameras_router
@@ -16,14 +17,21 @@ from app.api.gis import router as gis_router
 from app.api.health import router as health_router
 from app.api.intelligence import router as intelligence_router
 from app.api.investigation import router as investigation_router
+from app.api.reports import router as reports_router
 from app.api.streams import router as streams_router
+from app.api.system import router as system_router
 from app.api.users import router as users_router
 from app.api.vehicles import router as vehicles_router
 from app.api.watchlist import router as watchlist_router
-from app.core.config import get_settings
+from app.core.config import ConfigError, get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
-from app.db.session import SessionLocal
+from app.core.middleware import (
+    ErrorCaptureMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
+from app.db.session import SessionLocal, check_database
 from app.services.bootstrap import bootstrap_streams
 from app.services.camera_health import monitor as health_monitor
 from app.services.evidence import retention_task
@@ -33,6 +41,9 @@ from app.services.stream_gateway import gateway
 
 configure_logging()
 settings = get_settings()
+
+# Fail fast on an unsafe configuration (production secrets, AUTH, etc.).
+settings.validate_startup()
 
 
 @asynccontextmanager
@@ -86,28 +97,43 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.2.0",
+    version="0.4.0",
     description=(
         "Gujarat Police Unified CCTV Intelligence Platform. Camera catalogue is loaded "
         "dynamically from Sentinel /api/ingest; RTSP is the primary AI/inference feed. "
         "Modules: Camera Registry, Stream Gateway, Vehicle Intelligence (YOLO/ANPR/"
         "tracking/journeys), Watchlist, Real-Time Alerts, GIS, Camera Health, Dashboard "
-        "Analytics, Investigation, Evidence Snapshots and Auth/RBAC."
+        "Analytics, Investigation, Evidence Snapshots, Auth/RBAC, Audit Logging, Reports "
+        "and System Monitoring."
     ),
     lifespan=lifespan,
 )
 
+# --- Middleware (order: outermost first) ----------------------------------- #
+# Security headers on every response.
+app.add_middleware(SecurityHeadersMiddleware)
+# Capture 5xx into the metrics error ring.
+app.add_middleware(ErrorCaptureMiddleware)
+# Rate limiting on sensitive endpoints (login, writes).
+app.add_middleware(RateLimitMiddleware)
+
+_cors_origins = settings.cors_origin_list
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origin_list or ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Production requires an explicit allow-list; dev open-mode falls back to "*"
+    # for localhost convenience only.
+    allow_origins=_cors_origins or (["*"] if not settings.is_production else []),
+    allow_credentials=settings.is_production or "*" not in (_cors_origins or ["*"]),
+    allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
 )
 
 register_error_handlers(app)
 
 app.include_router(health_router)
+app.include_router(system_router)
+app.include_router(audit_router)
+app.include_router(reports_router)
 # NOTE: camera_health_router must be registered BEFORE cameras_router — its
 # /api/cameras/health routes would otherwise be captured by the generic
 # /api/cameras/{camera_id} path parameter route.
@@ -130,8 +156,11 @@ app.include_router(evidence_router)
 def root() -> dict[str, str]:
     return {
         "service": settings.app_name,
+        "version": "0.4.0",
         "docs": "/docs",
         "health": "/health",
+        "readiness": "/api/system/readiness",
+        "metrics": "/api/system/metrics",
         "status": "/api/status",
         "cameras": "/api/cameras",
         "ingest": "/api/ingest",
@@ -144,17 +173,10 @@ def root() -> dict[str, str]:
         "watchlist": "/api/watchlist",
         "alerts": "/api/alerts/recent",
         "gis_cameras": "/api/gis/cameras",
-        "gis_route": "/api/gis/vehicle/{plate}/route",
-        "gis_nearby": "/api/gis/nearby?lat=&lng=",
         "camera_health": "/api/cameras/health",
-        "dashboard_kpis": "/api/dashboard/kpis",
-        "analytics": "/api/analytics/summary",
-        "investigation": "/api/investigation/{plate}/timeline",
-        "cases": "/api/investigation/cases",
-        "evidence": "/api/evidence",
+        "reports": "/api/reports",
+        "audit_logs": "/api/audit-logs",
         "auth": "/api/auth/login",
         "users": "/api/users",
-        "roles": "/api/roles",
         "realtime_ws": "/api/ws",
     }
-

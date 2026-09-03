@@ -1,10 +1,23 @@
-"""Environment-based application configuration. Secrets never live in code."""
+"""Environment-based application configuration. Secrets never live in code.
+
+All deployment-specific values (database credentials, JWT secret, Sentinel
+keys, RTSP URLs) come from environment variables / ``.env`` — nothing secret is
+ever committed. ``validate_startup()`` is invoked once at boot and fails fast
+on an unsafe production configuration.
+"""
 
 from functools import lru_cache
 from typing import List
 
+import structlog
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = structlog.get_logger(__name__)
+
+
+class ConfigError(RuntimeError):
+    """Fatal configuration problem detected at startup validation."""
 
 
 class Settings(BaseSettings):
@@ -26,6 +39,15 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg2://cctv:cctv@localhost:5432/cctv_intelligence"
 
+    # --- Database pool / query hardening --------------------------------- #
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_pool_timeout_seconds: float = 30.0
+    db_pool_recycle_seconds: int = 1800
+    # Abort any single statement running longer than this (ms) — protects the
+    # API from runaway queries. 0 disables.
+    db_statement_timeout_ms: int = 15000
+
     sentinel_base_url: str = "https://sentinel.gujarat.gov.in"
     sentinel_ingest_path: str = "/api/ingest"
     sentinel_api_key: str = ""
@@ -45,6 +67,43 @@ class Settings(BaseSettings):
     stream_auto_start: bool = True
     stream_auto_start_limit: int = 1
     stream_max_workers: int = 32
+
+    # --- Multi-camera concurrency / back-pressure ------------------------ #
+    # Max number of cameras running inference SIMULTANEOUSLY across the whole
+    # process (a global semaphore). Bounded to keep CPU/GPU within limits even
+    # when many more streams are live; frame *sampling* (vehicle_infer_fps)
+    # limits per-camera load. Important events (ANPR/watchlist) are never
+    # dropped — this only limits how many models run at once.
+    ai_max_concurrent_inference: int = 4
+    # Max frames buffered between the gateway and a consumer before the oldest
+    # are discarded for *live display* only (the DB/AI path is unaffected).
+    stream_frame_queue_max: int = 32
+    # Interval (seconds) at which worker stats are rolled up for /metrics.
+    stats_rollup_seconds: float = 5.0
+
+    # --- Rate limiting (sensitive endpoints) ----------------------------- #
+    # Fixed-window, in-memory limiter (per client IP). 0 disables a given
+    # limiter. Scales horizontally with a shared store (e.g. Redis) if needed.
+    rate_limit_enabled: bool = True
+    rate_limit_login_per_minute: int = 10
+    rate_limit_token_per_minute: int = 30
+    rate_limit_write_per_minute: int = 120
+    rate_limit_generic_per_minute: int = 600
+
+    # --- Reports ---------------------------------------------------------- #
+    reports_enabled: bool = True
+    # Directory where generated report files (CSV) are stored.
+    reports_dir: str = "shots/reports"
+    reports_max_rows: int = 50_000
+    reports_retention_days: int = 90
+
+    # --- Audit logging ---------------------------------------------------- #
+    audit_enabled: bool = True
+    # Retention for audit rows (days). 0 keeps forever. Cleanup is best-effort.
+    audit_retention_days: int = 365
+
+    # --- System metrics / monitoring ------------------------------------- #
+    metrics_recent_errors: int = 100
 
     # ------------------------------------------------------------------ #
     # Vehicle Intelligence Pipeline
@@ -177,6 +236,89 @@ class Settings(BaseSettings):
     def _normalize_path(cls, v: str) -> str:
         v = v.strip() or "/api/ingest"
         return v if v.startswith("/") else f"/{v}"
+
+    # ------------------------------------------------------------------ #
+    # Derived helpers
+    # ------------------------------------------------------------------ #
+    @property
+    def is_production(self) -> bool:
+        return self.app_env.strip().lower() in ("production", "prod")
+
+    # ------------------------------------------------------------------ #
+    # Startup validation — fail fast on unsafe configuration.
+    # ------------------------------------------------------------------ #
+    def validate_startup(self) -> list[str]:
+        """Validate configuration at boot.
+
+        Raises :class:`ConfigError` on fatal problems (unsafe *production*
+        configuration). Non-fatal issues are logged as warnings and their
+        messages returned so the operator can see them. Never blocks local
+        development.
+        """
+        warnings: list[str] = []
+        errors: list[str] = []
+
+        if not self.database_url or "://" not in self.database_url:
+            errors.append("DATABASE_URL is missing or malformed")
+        elif self.database_url.startswith("sqlite"):
+            warnings.append(
+                "DATABASE_URL uses SQLite — PostGIS/PostgreSQL is the production "
+                "database; SQLite is a development-only fallback."
+            )
+
+        if self.auth_enabled:
+            if not self.jwt_secret_key or self.jwt_secret_key in ("CHANGE-ME-IN-PRODUCTION", ""):
+                errors.append(
+                    "AUTH_ENABLED=true but JWT_SECRET_KEY is unset/default — "
+                    "generate one with: python -c \"import secrets; print(secrets.token_urlsafe(48))\""
+                )
+            elif len(self.jwt_secret_key) < 32:
+                errors.append("JWT_SECRET_KEY must be at least 32 characters")
+            if self.access_token_expire_minutes > 24 * 60:
+                warnings.append("ACCESS_TOKEN_EXPIRE_MINUTES is unusually long (>24h)")
+        else:
+            warnings.append(
+                "AUTH_ENABLED=false — running in OPEN MODE (implicit admin). "
+                "Set AUTH_ENABLED=true in production."
+            )
+
+        if self.is_production:
+            if not self.auth_enabled:
+                errors.append("APP_ENV=production requires AUTH_ENABLED=true")
+            if self.app_debug:
+                errors.append("APP_DEBUG must be false in production")
+            if self.vehicle_allow_synthetic_fallback:
+                errors.append(
+                    "VEHICLE_ALLOW_SYNTHETIC_FALLBACK must be false in production "
+                    "(synthetic/random-weight detections are development-only)"
+                )
+            if "*" in self.cors_origin_list:
+                errors.append("CORS_ORIGINS must not contain '*' in production")
+            if self.auto_create_tables:
+                warnings.append(
+                    "AUTO_CREATE_TABLES=true in production — prefer `alembic upgrade head`"
+                )
+            if not self.cors_origins.strip():
+                errors.append("CORS_ORIGINS must be explicitly configured in production")
+            if "cctv:cctv@" in self.database_url and "localhost" not in self.database_url:
+                warnings.append("DATABASE_URL uses the default cctv/cctv credentials")
+
+        if self.vehicle_infer_fps <= 0:
+            errors.append("VEHICLE_INFER_FPS must be > 0")
+        if self.stream_max_workers < 1:
+            errors.append("STREAM_MAX_WORKERS must be >= 1")
+        if self.ai_max_concurrent_inference < 1:
+            errors.append("AI_MAX_CONCURRENT_INFERENCE must be >= 1")
+
+        for msg in warnings:
+            logger.warning("config.startup_warning", warning=msg)
+        if errors:
+            for msg in errors:
+                logger.error("config.startup_error", error=msg)
+            raise ConfigError(
+                "Invalid startup configuration:\n  - " + "\n  - ".join(errors)
+            )
+        return warnings
 
 
 @lru_cache

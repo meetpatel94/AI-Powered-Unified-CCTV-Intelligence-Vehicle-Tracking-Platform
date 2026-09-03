@@ -4,13 +4,19 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_permission
 from app.core.permissions import EVIDENCE_READ
 from app.db.session import get_db
+from app.models.audit import (
+    ACTION_EVIDENCE_ACCESS,
+    ACTION_EVIDENCE_DOWNLOAD,
+    ACTION_EVIDENCE_VERIFY,
+)
+from app.services import audit as audit_service
 from app.services import evidence as evidence_service
 from app.services.auth import Principal
 
@@ -59,21 +65,33 @@ def list_evidence(
 @router.get("/{evidence_id}")
 def get_evidence(
     evidence_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission(EVIDENCE_READ)),
+    principal: Principal = Depends(require_permission(EVIDENCE_READ)),
 ) -> dict:
     snap = evidence_service.get_evidence(db, evidence_id)
     if snap is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evidence not found")
+    audit_service.record(
+        db=db,
+        action=ACTION_EVIDENCE_ACCESS,
+        principal=principal,
+        resource_type="evidence",
+        resource_id=snap.id,
+        detail=f"Evidence metadata accessed: {snap.event_type} for {snap.plate or snap.camera_id}",
+        context={"event_type": snap.event_type, "camera_id": snap.camera_id, "plate": snap.plate},
+        request=request,
+    )
     return evidence_service.evidence_dict(snap)
 
 
 @router.get("/{evidence_id}/image")
 def evidence_image(
     evidence_id: int,
+    request: Request,
     download: bool = Query(False),
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission(EVIDENCE_READ)),
+    principal: Principal = Depends(require_permission(EVIDENCE_READ)),
 ) -> FileResponse:
     """Stream the JPEG. The stored path is resolved strictly under the
     configured evidence directory (path-traversal safe)."""
@@ -86,6 +104,19 @@ def evidence_image(
             status_code=status.HTTP_410_GONE,
             detail="Evidence file is no longer available (retention cleanup or missing)",
         )
+    audit_service.record(
+        db=db,
+        action=ACTION_EVIDENCE_DOWNLOAD if download else ACTION_EVIDENCE_ACCESS,
+        principal=principal,
+        resource_type="evidence",
+        resource_id=snap.id,
+        detail=(
+            f"Evidence image {'downloaded' if download else 'viewed'}: "
+            f"{snap.event_type} for {snap.plate or snap.camera_id}"
+        ),
+        context={"event_type": snap.event_type, "camera_id": snap.camera_id, "plate": snap.plate},
+        request=request,
+    )
     filename = f"GP-EVIDENCE-{snap.id:06d}-{snap.camera_id}.jpg"
     return FileResponse(
         full_path,
@@ -104,8 +135,9 @@ def evidence_image(
 @router.get("/{evidence_id}/verify")
 def verify_evidence(
     evidence_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    _: Principal = Depends(require_permission(EVIDENCE_READ)),
+    principal: Principal = Depends(require_permission(EVIDENCE_READ)),
 ) -> dict:
     """Re-compute the SHA-256 of the stored file and compare with the record."""
     import hashlib
@@ -121,4 +153,15 @@ def verify_evidence(
         for chunk in iter(lambda: fh.read(65536), b""):
             digest.update(chunk)
     match = digest.hexdigest() == snap.sha256
+    audit_service.record(
+        db=db,
+        action=ACTION_EVIDENCE_VERIFY,
+        principal=principal,
+        resource_type="evidence",
+        resource_id=snap.id,
+        detail=f"Evidence integrity verification {'MATCHED' if match else 'MISMATCHED'}",
+        context={"match": match, "event_type": snap.event_type},
+        result="success" if match else "failure",
+        request=request,
+    )
     return {"evidence_id": snap.id, "verifiable": True, "match": match, "sha256": snap.sha256}

@@ -60,9 +60,10 @@ export interface RegistryCamera {
   connectivity: string | null;
   vms: string | null;
   owner: string | null;
-  rtsp_url: string | null;
-  webrtc_url: string | null;
-  hls_url: string | null;
+  /** Secret-free capability flags — stream URLs are NEVER sent to the browser. */
+  rtsp_configured: boolean;
+  webrtc_configured: boolean;
+  hls_configured: boolean;
 }
 
 export interface StreamStatusDto {
@@ -637,6 +638,127 @@ export interface InvestigationDossierDto {
   cases: CaseDto[];
 }
 
+/* ------------------------------------------------------------------ *
+ * Phase 4 — Reports, Audit logs, System monitoring (real backend).
+ * ------------------------------------------------------------------ */
+export type RealReportType =
+  | 'anpr_activity'
+  | 'vehicle_journey'
+  | 'watchlist_alerts'
+  | 'camera_health'
+  | 'investigation';
+
+export interface ReportDto {
+  id: number;
+  report_id: string;
+  name: string;
+  type: RealReportType;
+  status: 'completed' | 'generating' | 'failed';
+  format: string;
+  classification: string;
+  date_from: string | null;
+  date_to: string | null;
+  camera_id: string | null;
+  plate: string | null;
+  alert_type: string | null;
+  created_by: string | null;
+  created_by_role: string | null;
+  row_count: number;
+  camera_count: number;
+  file_size_bytes: number | null;
+  error: string | null;
+  summary: Record<string, unknown> | null;
+  created_at: string | null;
+  completed_at: string | null;
+  expires_at: string | null;
+  download_url: string;
+  preview_url: string;
+}
+
+export interface ReportPage {
+  items: ReportDto[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ReportGenerateInput {
+  type: RealReportType;
+  name?: string;
+  format?: string;
+  classification?: string;
+  date_from?: string | null;
+  date_to?: string | null;
+  camera_id?: string | null;
+  plate?: string | null;
+  alert_type?: string | null;
+}
+
+export interface AuditLogDto {
+  id: number;
+  user_id: string | null;
+  username: string | null;
+  role: string | null;
+  action: string;
+  resource_type: string | null;
+  resource_id: string | null;
+  result: string;
+  detail: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  method: string | null;
+  path: string | null;
+  context: Record<string, unknown> | null;
+  created_at: string | null;
+}
+
+export interface AuditLogPage {
+  items: AuditLogDto[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface SystemMetricsDto {
+  generated_at: string;
+  service: string;
+  environment: string;
+  status: string;
+  database: {
+    status: string;
+    postgis_available: boolean;
+    pool: { size: number | null; checked_out: number | null; overflow: number | null };
+  };
+  registry: { total: number; with_rtsp: number };
+  streams: {
+    workers_total: number;
+    live: number;
+    by_state: Record<string, number>;
+    avg_fps: number;
+    sum_fps: number;
+    frames_dropped_total: number;
+    reconnect_attempts_total: number;
+    max_workers_configured: number;
+  };
+  pipeline: {
+    workers_total: number;
+    workers_active: number;
+    detector_ready_any: boolean;
+    synthetic_any: boolean;
+    frames_processed_total: number;
+    frames_skipped_total: number;
+    detections_total: number;
+    anpr_reads_total: number;
+    avg_inference_ms: number | null;
+    avg_anpr_ms: number | null;
+    queue_depth_total: number;
+    max_workers_configured: number;
+    max_concurrent_inference_configured: number;
+  };
+  websocket: { clients: number; history_depth: number; dropped_frames_total: number };
+  recent_errors: Array<{ at: string; source: string; path: string | null; message: string }>;
+}
+
 export interface LoginResponse {
   access_token: string;
   token_type: string;
@@ -757,14 +879,13 @@ export const api = {
       method: 'POST',
     }),
 
-  /* Reports workspace. `data/reportsData.ts` serves these exact shapes today.
-     The generation flow is: POST /reports/generate → 202 with the new report
-     id → `report:status` WebSocket events until `completed` → the signed
-     download URL from GET /reports/:id/download streams the rendered PDF. */
-  getReports: (limit = 25) => request<ReportRecord[]>(`/reports?limit=${limit}`),
-  generateReport: (config: GenerateReportConfig) =>
+  /* Reports workspace (legacy v1 mock stubs). The LIVE implementations are the
+     `/api/reports...` methods on the `apiRoot` surface below (real PostgreSQL
+     data). These remain only as typed placeholders for the mock-only path. */
+  getReportsMock: (limit = 25) => request<ReportRecord[]>(`/reports?limit=${limit}`),
+  generateReportMock: (config: GenerateReportConfig) =>
     request<ReportRecord>('/reports/generate', { method: 'POST', body: JSON.stringify(config) }),
-  getReportPreview: (reportId: string) =>
+  getReportPreviewMock: (reportId: string) =>
     request<ReportPreviewDoc>(`/reports/${encodeURIComponent(reportId)}/preview`),
   getReportDownloadUrl: (reportId: string) =>
     request<{ url: string; expiresAt: string }>(`/reports/${encodeURIComponent(reportId)}/download`),
@@ -950,6 +1071,52 @@ export const api = {
   createUser: (payload: CreateUserInput) =>
     apiRoot<UserDto>('/users', { method: 'POST', body: JSON.stringify(payload) }),
   getRoles: () => apiRoot<RoleDto[]>('/roles'),
+
+  /* ---- Reports (real PostgreSQL data) ---- */
+  getReports: (params?: {
+    type?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const search = new URLSearchParams();
+    if (params?.type) search.set('type', params.type);
+    if (params?.status) search.set('status', params.status);
+    search.set('limit', String(params?.limit ?? 50));
+    search.set('offset', String(params?.offset ?? 0));
+    return apiRoot<ReportPage>(`/reports?${search.toString()}`);
+  },
+  generateReport: (payload: ReportGenerateInput) =>
+    apiRoot<ReportDto>('/reports/generate', { method: 'POST', body: JSON.stringify(payload) }),
+  getReportPreview: (reportId: string) =>
+    apiRoot<ReportDto & { columns: string[]; rows: Record<string, unknown>[]; row_preview_count: number }>(
+      `/reports/${encodeURIComponent(reportId)}/preview`,
+    ),
+  // Download URL (same-origin via the proxy).
+  reportDownloadUrl: (reportId: string) => `${API_ROOT}/reports/${encodeURIComponent(reportId)}/download`,
+
+  /* ---- Audit logs (admin) ---- */
+  getAuditLogs: (params?: {
+    action?: string;
+    resource_type?: string;
+    username?: string;
+    result?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const search = new URLSearchParams();
+    if (params?.action) search.set('action', params.action);
+    if (params?.resource_type) search.set('resource_type', params.resource_type);
+    if (params?.username) search.set('username', params.username);
+    if (params?.result) search.set('result', params.result);
+    search.set('limit', String(params?.limit ?? 100));
+    search.set('offset', String(params?.offset ?? 0));
+    return apiRoot<AuditLogPage>(`/audit-logs?${search.toString()}`);
+  },
+
+  /* ---- System monitoring ---- */
+  getSystemMetrics: () => apiRoot<SystemMetricsDto>('/system/metrics'),
+  getSystemHealth: () => apiRoot<Record<string, unknown>>('/system/health'),
 };
 
 /** Fire-and-forget wrapper used by the console until the gateway exists. */
