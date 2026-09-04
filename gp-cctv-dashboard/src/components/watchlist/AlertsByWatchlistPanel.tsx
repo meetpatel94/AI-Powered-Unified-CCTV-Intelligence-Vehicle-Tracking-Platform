@@ -1,10 +1,9 @@
 import { Panel } from '@/components/common/Panel';
-import { alertsByWatchlist } from '@/data/watchlistData';
 import type { AlertsByWatchlistBar } from '@/types/watchlist';
 
 /** Bottom row left: active alerts raised per watchlist category. */
 export function AlertsByWatchlistPanel({
-  bars = alertsByWatchlist,
+  bars = [],
   windowLabel,
 }: {
   bars?: AlertsByWatchlistBar[];
@@ -57,7 +56,7 @@ export function AlertsByWatchlistPanel({
           </div>
 
           <div className="absolute inset-x-0 bottom-0 flex h-[16px] items-center justify-around gap-2 px-1">
-            {alertsByWatchlist.map((bar) => (
+            {bars.map((bar) => (
               <span key={bar.id} className="flex-1 truncate text-center text-[10px] text-[#8ea1c0]">
                 {bar.label}
               </span>

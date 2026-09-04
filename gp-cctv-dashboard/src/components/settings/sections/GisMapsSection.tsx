@@ -144,7 +144,7 @@ export function GisMapsSection({ cfg, patch, pending }: GisMapsSectionProps) {
       <div className="flex items-center gap-2 border-t border-edge/40 pt-2.5 text-[11px] text-ink-faint">
         <MapPin size={12} className="shrink-0 text-[#5eead4]" />
         Active layers: <span className="text-[#c3cfe2]">{cfg.layers.map(layerLabel).join(' · ') || 'none'}</span> · camera markers:{' '}
-        <span className="tnum text-[#c3cfe2]">12,842</span>
+        <span className="tnum text-[#c3cfe2]">backend</span>
       </div>
     </SectionPanel>
   );

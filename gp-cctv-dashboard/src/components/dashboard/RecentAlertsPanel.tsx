@@ -1,5 +1,4 @@
 import { Panel, ViewAll } from '@/components/common/Panel';
-import { recentAlerts } from '@/data/mockData';
 import type { AlertItem, Severity } from '@/types';
 
 const severityStyles: Record<
@@ -66,7 +65,7 @@ function AlertRow({ alert }: { alert: AlertItem }) {
   );
 }
 
-export function RecentAlertsPanel({ alerts = recentAlerts }: { alerts?: AlertItem[] }) {
+export function RecentAlertsPanel({ alerts = [] }: { alerts?: AlertItem[] }) {
   return (
     <Panel
       title="Recent Alerts"
@@ -74,9 +73,16 @@ export function RecentAlertsPanel({ alerts = recentAlerts }: { alerts?: AlertIte
       className="h-full min-h-0"
       bodyClassName="flex flex-col justify-between gap-1.5 overflow-y-auto px-2 pb-2 pt-0.5"
     >
-      {alerts.map((alert) => (
-        <AlertRow key={alert.id} alert={alert} />
-      ))}
+      {alerts.length ? (
+        alerts.map((alert) => <AlertRow key={alert.id} alert={alert} />)
+      ) : (
+        <div className="grid min-h-[220px] place-items-center rounded-[5px] border border-dashed border-edge bg-[#071120] px-4 text-center">
+          <div>
+            <div className="text-[13px] font-semibold text-white">No alerts</div>
+            <div className="mt-1 text-[11.5px] text-ink-dim">The backend has not reported any active or recent alerts.</div>
+          </div>
+        </div>
+      )}
     </Panel>
   );
 }

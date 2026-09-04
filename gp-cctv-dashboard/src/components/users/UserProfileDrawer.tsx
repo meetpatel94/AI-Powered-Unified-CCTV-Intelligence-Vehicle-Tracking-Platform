@@ -182,7 +182,7 @@ export function UserProfileDrawer({ user, onClose, onAction }: UserProfileDrawer
             </div>
             {user.cameraLabels[0] === 'ALL ZONES' ? (
               <div className="rounded-[4px] border border-accent-purple/40 bg-accent-purple/10 px-2.5 py-1.5 text-[12px] font-semibold text-[#d0a4f7]">
-                Unrestricted — all 12,842 cameras across Gujarat commands
+                Unrestricted — all backend-registered cameras across Gujarat commands
               </div>
             ) : (
               <div className="flex flex-wrap gap-1.5">

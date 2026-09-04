@@ -1,6 +1,5 @@
 import { BellRing, CalendarClock, FileCheck2, FileClock, FileText, Siren } from 'lucide-react';
 
-import { reportKpis } from '@/data/reportsData';
 
 interface KpiCard {
   id: string;
@@ -13,13 +12,13 @@ interface KpiCard {
 }
 
 /** Five-card KPI strip for the report registry. */
-export function ReportsKpiRow({ extraGenerated = 0 }: { extraGenerated?: number }) {
+export function ReportsKpiRow({ total = 0, pending = 0, investigation = 0, alert = 0, scheduled = 0, extraGenerated = 0 }: { total?: number; pending?: number; investigation?: number; alert?: number; scheduled?: number; extraGenerated?: number }) {
   const cards: KpiCard[] = [
     {
       id: 'generated',
       label: 'Reports Generated',
-      value: reportKpis.generated + extraGenerated,
-      hint: 'Last 30 days · all commands · +12 today',
+      value: total + extraGenerated,
+      hint: 'Backend report registry',
       color: '#22d3ee',
       icon: FileText,
       sharePct: 100,
@@ -27,7 +26,7 @@ export function ReportsKpiRow({ extraGenerated = 0 }: { extraGenerated?: number 
     {
       id: 'pending',
       label: 'Pending Reports',
-      value: reportKpis.pending,
+      value: pending,
       hint: 'Queued or rendering on the report engine',
       color: '#f59e0b',
       icon: FileClock,
@@ -36,7 +35,7 @@ export function ReportsKpiRow({ extraGenerated = 0 }: { extraGenerated?: number 
     {
       id: 'investigation',
       label: 'Investigation Reports',
-      value: reportKpis.investigation,
+      value: investigation,
       hint: 'Case-grade journey & dossier documents',
       color: '#a855f7',
       icon: Siren,
@@ -45,7 +44,7 @@ export function ReportsKpiRow({ extraGenerated = 0 }: { extraGenerated?: number 
     {
       id: 'alert',
       label: 'Alert Reports',
-      value: reportKpis.alert,
+      value: alert,
       hint: 'Severity digests & escalation reviews',
       color: '#ef4444',
       icon: BellRing,
@@ -54,8 +53,8 @@ export function ReportsKpiRow({ extraGenerated = 0 }: { extraGenerated?: number 
     {
       id: 'scheduled',
       label: 'Scheduled Reports',
-      value: reportKpis.scheduled,
-      hint: 'Active recurring jobs · next run 18:00 IST',
+      value: scheduled,
+      hint: 'Active recurring jobs from backend',
       color: '#22c55e',
       icon: CalendarClock,
       sharePct: 18,

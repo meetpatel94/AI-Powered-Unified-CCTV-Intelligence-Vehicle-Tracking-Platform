@@ -253,7 +253,7 @@ export function MaintenanceSection({ cfg, patch, pending, onRunComplete }: Maint
                     ? 'Reload detection models and OCR pipelines on all inference nodes? Detection pauses for roughly 90 seconds per node.'
                     : confirmAction.id === 'backup'
                       ? 'Create a full encrypted backup snapshot of evidence, metadata and watchlist state?'
-                      : 'Run a connectivity sweep across all 12,842 registered camera feeds?'
+                      : 'Run a connectivity sweep across all registered backend camera feeds?'
             : ''
         }
         detail={

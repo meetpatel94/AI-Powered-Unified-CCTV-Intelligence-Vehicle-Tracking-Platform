@@ -158,7 +158,7 @@ export function CreateCaseModal({ open, dossier, evidence, suggestedRef, onClose
                 id="case-fir"
                 value={fir}
                 onChange={(event) => setFir(event.target.value)}
-                placeholder="e.g. FIR 214/2026 · Shahibaug PS"
+                placeholder="e.g. FIR 214/2026 · Police Station"
                 className={`${inputCls} tnum`}
               />
             </div>

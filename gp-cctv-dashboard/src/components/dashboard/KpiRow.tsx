@@ -1,6 +1,5 @@
 import { ArrowUp } from 'lucide-react';
 
-import { kpiStats } from '@/data/mockData';
 import type { AccentTone, KpiStat } from '@/types';
 
 const toneStyles: Record<
@@ -66,7 +65,7 @@ function KpiCard({ stat }: { stat: KpiStat }) {
   );
 }
 
-export function KpiRow({ stats = kpiStats }: { stats?: KpiStat[] }) {
+export function KpiRow({ stats = [] }: { stats?: KpiStat[] }) {
   return (
     <div className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-5">
       {stats.map((stat) => (

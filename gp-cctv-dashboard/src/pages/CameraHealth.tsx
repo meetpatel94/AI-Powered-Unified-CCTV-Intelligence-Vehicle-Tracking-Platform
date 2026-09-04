@@ -22,10 +22,8 @@ import {
   filterCameras,
   fleetHealth,
   fleetReadout,
-  healthCameras,
   healthEvents,
   healthReportCsv,
-  liveCamera,
   locationHealth,
   resolutionOptions,
   sortCameras,
@@ -39,7 +37,6 @@ import { useCameraHealthFleet } from '@/hooks/useIntelligence';
 
 import type { CriticalCamera, HealthCamera, HealthEvaluation, HealthFilters, HealthSettings, HealthSortKey, SortDir } from '@/types/cameraHealth';
 
-const DEFAULT_CAMERA = 'C-001';
 
 /**
  * CAMERA HEALTH & STREAM MONITORING workspace: fleet KPIs, the dense monitor
@@ -58,7 +55,7 @@ export function CameraHealth() {
   const [filters, setFilters] = useState<HealthFilters>(defaultHealthFilters);
   const [sortKey, setSortKey] = useState<HealthSortKey>('status');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
-  const [selectedId, setSelectedId] = useState<string>(DEFAULT_CAMERA);
+  const [selectedId, setSelectedId] = useState<string>('');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -87,20 +84,12 @@ export function CameraHealth() {
   /* ---------------- derived telemetry ---------------- */
 
   const cameras: HealthCamera[] = useMemo(() => {
-    if (fleet.live && fleet.cameras) {
-      return fleet.cameras.map((camera) => {
-        const override = overrides[camera.id];
-        if (!override) return camera;
-        return { ...camera, ...override, ai: override.ai ? { ...camera.ai, ...override.ai } : camera.ai };
-      });
-    }
-    return healthCameras.map((camera) => {
-      const drifted = liveCamera(camera, tick);
+    return (fleet.cameras ?? []).map((camera) => {
       const override = overrides[camera.id];
-      if (!override) return drifted;
-      return { ...drifted, ...override, ai: override.ai ? { ...drifted.ai, ...override.ai } : drifted.ai };
+      if (!override) return camera;
+      return { ...camera, ...override, ai: override.ai ? { ...camera.ai, ...override.ai } : camera.ai };
     });
-  }, [fleet.live, fleet.cameras, tick, overrides]);
+  }, [fleet.cameras, overrides]);
 
   const evaluations = useMemo(
     () =>

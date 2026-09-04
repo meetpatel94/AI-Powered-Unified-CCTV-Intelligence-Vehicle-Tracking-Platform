@@ -1,19 +1,18 @@
 import { TrendingUp } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
-import { matchesOverTime } from '@/data/watchlistData';
 import type { MatchesPoint } from '@/types/watchlist';
 
 /** Bottom row center: watchlist matches per day, last 14 days. */
 export function MatchesOverTimePanel({
-  series = matchesOverTime,
-  trendLabel = '+38% vs previous 14d',
+  series = [],
+  trendLabel = 'backend series',
 }: {
   series?: MatchesPoint[];
   trendLabel?: string;
 }) {
-  const data = series.length > 1 ? series : matchesOverTime;
-  const max = Math.max(20, ...data.map((p) => p.value));
+  const data = series;
+  const max = Math.max(1, ...data.map((p) => p.value));
   const step = Math.max(1, Math.round(max / 4));
   const TICKS = [max, max - step, max - 2 * step, Math.max(1, max - 3 * step), 0];
   const points = data.map((point, index) => ({

@@ -1,5 +1,4 @@
 import { Panel, ViewAll } from '@/components/common/Panel';
-import { watchlistAlerts } from '@/data/watchlistData';
 import type { WatchlistAlertItem } from '@/types/watchlist';
 
 const severityStyles: Record<
@@ -67,7 +66,7 @@ function AlertRow({ alert }: { alert: WatchlistAlertItem }) {
 }
 
 /** Right rail top: live watchlist-triggered alerts. */
-export function WatchlistAlertsPanel({ alerts = watchlistAlerts }: { alerts?: WatchlistAlertItem[] }) {
+export function WatchlistAlertsPanel({ alerts = [] }: { alerts?: WatchlistAlertItem[] }) {
   return (
     <Panel
       title="Recent Alerts"

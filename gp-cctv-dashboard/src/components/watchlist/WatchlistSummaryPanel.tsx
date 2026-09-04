@@ -1,5 +1,4 @@
 import { Panel } from '@/components/common/Panel';
-import { watchlistSummary } from '@/data/watchlistData';
 import type { WatchlistSummarySlice } from '@/types/watchlist';
 
 const SIZE = 92;
@@ -8,7 +7,7 @@ const RADIUS = (SIZE - STROKE) / 2;
 const CIRC = 2 * Math.PI * RADIUS;
 
 /** Right rail bottom: donut split of entries by entity type. */
-export function WatchlistSummaryPanel({ slices = watchlistSummary }: { slices?: WatchlistSummarySlice[] }) {
+export function WatchlistSummaryPanel({ slices = [] }: { slices?: WatchlistSummarySlice[] }) {
   const total = slices.reduce((sum, slice) => sum + slice.count, 0);
 
   /* Precompute dash offsets per render (live data arrives as new arrays). */
