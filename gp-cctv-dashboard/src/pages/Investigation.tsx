@@ -17,16 +17,12 @@ import {
   buildEvidence,
   buildRouteLegs,
   cameraOptionsOf,
-  caseBundle,
   computeRouteAnalysis,
   defaultSightingQuery,
-  defaultTargetPlate,
   dossierLegs,
   filterSightings,
-  investigationDossiers,
   nextCaseRef,
   primaryRoute,
-  searchCandidates,
   sortSightings,
 } from '@/data/investigationData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
@@ -40,14 +36,39 @@ import type {
   SightingSortDir,
   SightingSortKey,
   VehicleSighting,
+  InvestigationDossier,
 } from '@/types/investigation';
 
 const defaultFilters: InvestigationFilters = {
-  date: '2026-09-01',
+  date: '2026-09-04',
   range: 'day',
   location: 'all',
   camera: 'all',
 };
+
+function emptyDossier(plate: string): InvestigationDossier {
+  return {
+    caseId: '—',
+    title: plate ? `Backend dossier — ${plate}` : 'No vehicle selected',
+    openedBy: 'Vehicle Intelligence Pipeline',
+    openedAt: '—',
+    unit: 'Real-Time ANPR Records',
+    status: 'active',
+    priority: 'low',
+    target: {
+      id: plate || 'none',
+      plate: plate || '—',
+      make: '—', model: '—', variant: '', label: 'No backend sightings', color: '—', year: 0,
+      vehicleClass: '—', fuel: '—', registeredOwner: '—', registrationState: '—', insuranceExpiry: '—', fitnessExpiry: '—',
+      snapshot: '', confidence: 0, meanConfidence: 0, status: 'lost',
+      watchlist: { match: false, category: 'Not on watchlist', categoryId: 'none', priority: 'low', entryId: '', addedOn: '—', action: 'No standing instruction.' },
+      attributes: [], history: [],
+    },
+    sightings: [],
+    events: [],
+    associations: [],
+  };
+}
 
 /**
  * INVESTIGATION & VEHICLE INTELLIGENCE workspace. Reading order:
@@ -67,8 +88,9 @@ export function Investigation() {
   const clock = formatClock(useLiveClock());
 
   /* ---------------- target state ---------------- */
-  const [targetPlate, setTargetPlate] = useState(defaultTargetPlate);
-  const [plate, setPlate] = useState(defaultTargetPlate);
+  const initialPlate = searchParams.get('plate')?.toUpperCase() ?? '';
+  const [targetPlate, setTargetPlate] = useState(initialPlate);
+  const [plate, setPlate] = useState(initialPlate);
 
   /* ---------------- workspace state ---------------- */
   const [filters, setFilters] = useState<InvestigationFilters>(defaultFilters);
@@ -76,7 +98,7 @@ export function Investigation() {
   const [includeReReads, setIncludeReReads] = useState(true);
   const [sortKey, setSortKey] = useState<SightingSortKey>('time');
   const [sortDir, setSortDir] = useState<SightingSortDir>('asc');
-  const [activeStep, setActiveStep] = useState<number | null>(4);
+  const [activeStep, setActiveStep] = useState<number | null>(null);
   const [frameToken, setFrameToken] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,8 +137,7 @@ export function Investigation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paramPlate]);
 
-  const mockDossier = investigationDossiers[targetPlate] ?? investigationDossiers[defaultTargetPlate];
-  const { dossier, live: dossierLive, createCase } = useInvestigationDossier(targetPlate, mockDossier);
+  const { dossier, live: dossierLive, createCase } = useInvestigationDossier(targetPlate, emptyDossier(targetPlate));
 
   /* ---------------- derived intelligence ---------------- */
 
@@ -155,16 +176,6 @@ export function Investigation() {
   const evidence = useMemo(() => buildEvidence(scopedSightings), [scopedSightings]);
 
   /** Plate index used to resolve a header search that is not an exact plate. */
-  const candidates = useMemo(() => {
-    const needle = plate.trim().toLowerCase();
-    return searchCandidates.filter((candidate) => {
-      if (candidate.kind !== 'vehicle') return false;
-      if (!needle) return true;
-      const haystack = `${candidate.label} ${candidate.sub} ${candidate.meta}`.toLowerCase();
-      return haystack.includes(needle);
-    });
-  }, [plate]);
-
   const selectedSighting = useMemo(
     () => (evidenceId ? scopedSightings.find((sighting) => sighting.id === evidenceId) ?? null : null),
     [evidenceId, scopedSightings],
@@ -188,69 +199,21 @@ export function Investigation() {
 
   /* ---------------- interactions ---------------- */
 
-  const selectTarget = useCallback(
-    (nextPlate: string, message: string) => {
-      const next = investigationDossiers[nextPlate];
-      // Mock dossiers are always loadable; any other plate needs the live
-      // investigation service to be reachable.
-      if (!next && !dossierLive) {
-        flash(`No dossier indexed for ${nextPlate.toUpperCase()} in this window`);
-        return;
-      }
-      setTargetPlate(nextPlate);
-      setPlate(nextPlate);
-      setStatus(next?.status ?? 'active');
-      setCaseRef(null);
-      setAcknowledged([]);
-      setSightingQuery(defaultSightingQuery);
-      setActiveStep(next ? primaryRoute(next.sightings).at(-1)?.journeyStep ?? null : null);
-      setFrameToken((token) => token + 1);
-      flash(message);
-    },
-    [flash, dossierLive],
-  );
+  const selectTarget = useCallback((nextPlate: string, message: string) => {
+    setTargetPlate(nextPlate);
+    setPlate(nextPlate);
+    setStatus('active');
+    setCaseRef(null);
+    setAcknowledged([]);
+    setSightingQuery(defaultSightingQuery);
+    setActiveStep(null);
+    setFrameToken((token) => token + 1);
+    flash(message);
+  }, [flash]);
 
   const handleSearch = () => {
-    const value = plate.trim();
-    const exact = Object.keys(investigationDossiers).find(
-      (key) => key.toLowerCase() === value.toLowerCase(),
-    );
-    if (exact) {
-      selectTarget(exact, `Dossier loaded · ${exact} · ${investigationDossiers[exact].sightings.length} sightings reconstructed`);
-      return;
-    }
-    if (dossierLive && value) {
-      selectTarget(value.toUpperCase(), `Dossier loaded · ${value.toUpperCase()} · live ANPR reconstruction`);
-      return;
-    }
-    const candidate = candidates[0];
-    if (candidate) {
-      selectTarget(candidate.targetId, `${candidate.label} resolved to ${candidate.targetId} · ${candidate.meta}`);
-      return;
-    }
-    flash(`No index match for “${value}” — try a partial plate`);
-  };
-
-  const handleStep = (step: number) => {
-    setActiveStep(step);
-    setFrameToken((token) => token + 1);
-  };
-
-  const openEvidence = (sightingId: string, fullscreen = false) => {
-    setEvidenceId(sightingId);
-    setFullscreenRequest(fullscreen);
-  };
-
-  const stepEvidence = (direction: -1 | 1) => {
-    if (scopedSightings.length === 0) return;
-    const index = scopedSightings.findIndex((sighting) => sighting.id === evidenceId);
-    const next = scopedSightings[(index + direction + scopedSightings.length) % scopedSightings.length];
-    setEvidenceId(next.id);
-  };
-
-  const handleTrackLive = () => {
-    navigate('/camera-map');
-    flash(`Live tracking handed to the GIS map · ${dossier.target.plate}`);
+    const value = plate.trim().toUpperCase();
+    if (value) selectTarget(value, `Dossier loaded · ${value} · backend ANPR reconstruction`);
   };
 
   const handleRefresh = () => {
@@ -262,13 +225,7 @@ export function Investigation() {
   };
 
   const handleExportCase = () => {
-    const bundle = caseBundle(
-      dossier,
-      caseRef ? `${dossier.target.plate} — ${dossier.title}` : `${dossier.target.plate} — ${dossier.title} (draft)`,
-      status === 'closed' ? 'low' : dossier.priority,
-      `${dossier.caseId} exported from the investigation console at ${clock}.`,
-      evidence.map((item) => item.id),
-    );
+    const bundle = { dossier, status, exportedAt: clock, evidenceIds: evidence.map((item) => item.id) };
     const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -360,6 +317,30 @@ export function Investigation() {
     setStatus('active');
     setPlaying(false);
     flash('New investigation opened · enter a plate to begin the reconstruction');
+  };
+
+
+  const openEvidence = (id: string) => {
+    setEvidenceId(id);
+    setFrameToken((token) => token + 1);
+  };
+
+  const handleStep = (step: number) => {
+    setActiveStep(step);
+    const sighting = nodes.find((node) => node.journeyStep === step);
+    if (sighting) openEvidence(sighting.id);
+  };
+
+  const handleTrackLive = () => {
+    setPlaying(true);
+    flash(`Live backend tracking view opened for ${dossier.target.plate}`);
+  };
+
+  const stepEvidence = (direction: 1 | -1) => {
+    if (!scopedSightings.length) return;
+    const index = Math.max(0, scopedSightings.findIndex((sighting) => sighting.id === evidenceId));
+    const next = scopedSightings[(index + direction + scopedSightings.length) % scopedSightings.length];
+    if (next) openEvidence(next.id);
   };
 
   const handleSort = (key: SightingSortKey) => {
@@ -501,9 +482,9 @@ export function Investigation() {
         status={status}
         caseRef={caseRef}
         evidenceCount={evidence.length}
-        lastCamera={lastSighting.cameraId}
+        lastCamera={lastSighting?.cameraId ?? '—'}
         onTrackLive={handleTrackLive}
-        onViewCamera={() => viewCamera(lastSighting.cameraId)}
+        onViewCamera={() => { if (lastSighting) viewCamera(lastSighting.cameraId); }}
         onAddToWatchlist={() => setWatchlistOpen(true)}
         onCreateCase={() => {
           setCaseToken((token) => token + 1);

@@ -61,7 +61,7 @@ export interface MapCamera {
   id: string;
   x: number;
   y: number;
-  state: 'online' | 'warning' | 'critical';
+  state: 'online' | 'warning' | 'critical' | 'offline';
 }
 
 export interface RoutePoint {

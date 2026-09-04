@@ -1,5 +1,4 @@
 import { Panel } from '@/components/common/Panel';
-import { journeyStops, trackedVehicle } from '@/data/mockData';
 import type { JourneyStop } from '@/types';
 
 function StopCard({ stop }: { stop: JourneyStop }) {
@@ -44,8 +43,8 @@ function spanMinutesBetween(from: string, to: string): number {
 
 /** Chronological camera-to-camera reconstruction of the tracked vehicle's route. */
 export function JourneyTimelinePanel({
-  stops = journeyStops,
-  plate = trackedVehicle.plate,
+  stops = [],
+  plate = null,
   spanLabel,
 }: {
   stops?: JourneyStop[];
@@ -70,6 +69,15 @@ export function JourneyTimelinePanel({
       className="h-full"
       bodyClassName="flex flex-col px-3 pb-2.5 pt-1"
     >
+      {stops.length === 0 ? (
+        <div className="grid min-h-[170px] flex-1 place-items-center rounded-[5px] border border-dashed border-edge bg-[#071120] px-4 text-center">
+          <div>
+            <div className="text-[13px] font-semibold text-white">No vehicle journeys</div>
+            <div className="mt-1 text-[11.5px] text-ink-dim">The backend has not reported cross-camera journey points.</div>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* node rail */}
       <div className="relative mb-1.5 h-[18px] shrink-0">
         <div className="absolute left-[12%] right-[38%] top-[9px] h-px border-t border-dashed border-[#2c4468]" />
@@ -97,6 +105,8 @@ export function JourneyTimelinePanel({
           <StopCard key={stop.step} stop={stop} />
         ))}
       </div>
+      </>
+      )}
     </Panel>
   );
 }

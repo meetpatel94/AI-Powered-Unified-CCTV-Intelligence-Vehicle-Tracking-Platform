@@ -40,7 +40,7 @@ export function CameraStreamsSection({ cfg, patch, pending }: CameraStreamsSecti
       title={meta.label}
       blurb={meta.blurb}
       pendingChanges={pending}
-      headerNote={<StateChip tone="cyan">fleet 12,842 · edge 214 nodes</StateChip>}
+      headerNote={<StateChip tone="cyan">backend camera fleet</StateChip>}
     >
       <SectionSubhead right="applies per stream URL">
         <span className="flex items-center gap-1.5">

@@ -240,7 +240,7 @@ export function Users() {
       .toUpperCase();
     const cameraCount =
       input.cameraScope === 'all'
-        ? 12842
+        ? 0
         : input.cameras.reduce((acc, value) => {
             const option = cameraAssignOptions.find((opt) => opt.value === value);
             const match = option ? /(\d+)\s*cameras/.exec(option.label) : null;
@@ -269,7 +269,7 @@ export function Users() {
       phone: input.phone || '—',
       lastActiveMinutes: input.accountState === 'invited' ? null : 0,
       lastLogin: input.accountState === 'invited' ? 'Never — invite pending' : '02 Sep 2026 · just now',
-      assignedCameras: cameraCount || (input.cameraScope === 'all' ? 12842 : 0),
+      assignedCameras: cameraCount,
       cameraLabels,
       activeInvestigations: 0,
       alertsHandled: 0,

@@ -13,7 +13,7 @@ import { TopAlertLocationsPanel } from '@/components/alerts/TopAlertLocationsPan
 import { AlertFeedPanel, type AlertSortMode } from '@/components/alerts/AlertFeedPanel';
 import { severityRank } from '@/components/alerts/tones';
 import { LiveActivityPanel } from '@/components/alerts/LiveActivityPanel';
-import { alerts as seedAlerts, computeKpis } from '@/data/alertsData';
+import { computeKpis } from '@/data/alertsData';
 import { formatClock } from '@/hooks/useLiveClock';
 import { useAlertsConsole, useAiActivity } from '@/hooks/useIntelligence';
 import type { AlertRecord, AlertResponseEvent, AlertStatus } from '@/types/alerts';
@@ -40,8 +40,8 @@ export function Alerts() {
   const [searchParams] = useSearchParams();
   const intel = useAlertsConsole();
   const activity = useAiActivity(24);
-  const [alerts, setAlerts] = useState<AlertRecord[]>(seedAlerts);
-  const [syncedAt, setSyncedAt] = useState('10:46 AM');
+  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
+  const [syncedAt, setSyncedAt] = useState('—');
   const [liveFeed, setLiveFeed] = useState(false);
 
   // Adopt backend alerts whenever the console hook pulls a fresh page.
@@ -80,7 +80,7 @@ export function Alerts() {
 
   // Real camera locations ranked by live alert volume (mock ranking offline).
   const topLocations = useMemo(() => {
-    if (!liveFeed) return undefined;
+    if (!liveFeed) return [];
     const byLocation = new Map<string, { count: number; city: string }>();
     alerts.forEach((alert) => {
       const hit = byLocation.get(alert.location);
@@ -438,7 +438,7 @@ export function Alerts() {
                     label: point.bucket.slice(11, 13),
                     value: point.alerts,
                   }))
-                : undefined
+                : []
             }
           />
         </div>

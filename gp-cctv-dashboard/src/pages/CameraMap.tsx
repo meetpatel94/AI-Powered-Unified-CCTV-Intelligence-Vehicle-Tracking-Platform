@@ -72,7 +72,7 @@ export function CameraMap() {
   const [layerMenuOpen, setLayerMenuOpen] = useState(false);
   const [filters, setFilters] = useState<CameraMapFilters>(defaultFilters);
   const [filtersOpen, setFiltersOpen] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>('C-038');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [popupId, setPopupId] = useState<string | null>(null);
   const [activePlate, setActivePlate] = useState<string | null>(trackedRoute.plate);
   /** Real route when the backend has one for the active plate, else the mock journey. */
@@ -169,7 +169,7 @@ export function CameraMap() {
 
   const handleSelectStep = useCallback(
     (step: number) => {
-      const node = route.nodes.find((n) => n.step === step);
+      const node = route?.nodes.find((n) => n.step === step);
       if (!node) return;
       setActiveStep(step);
       setSelectedId(node.cameraId);
@@ -381,7 +381,7 @@ export function CameraMap() {
           )}
 
           {/* tracked vehicle route */}
-          {layers.route && activePlate === route.plate && (
+          {route && layers.route && activePlate === route.plate && (
             <RouteLayer
               route={route}
               project={project}
@@ -475,7 +475,7 @@ export function CameraMap() {
 
       {/* ---------- Vehicle Journey (normal document flow, below the map) ---------- */}
       <JourneyPanel
-        route={route}
+        route={route ?? undefined}
         activePlate={activePlate}
         onSelectPlate={(plate) => {
           setActivePlate(plate);

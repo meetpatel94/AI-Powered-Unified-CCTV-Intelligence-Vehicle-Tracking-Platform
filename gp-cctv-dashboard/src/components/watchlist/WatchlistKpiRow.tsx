@@ -1,4 +1,3 @@
-import { watchlistKpis } from '@/data/watchlistData';
 import type { AccentTone, KpiStat } from '@/types';
 import type { WatchlistKpi } from '@/types/watchlist';
 
@@ -59,7 +58,7 @@ function KpiCard({ stat }: { stat: KpiStat }) {
 }
 
 /** Five-card watchlist KPI strip styled like the dashboard KPI row. */
-export function WatchlistKpiRow({ kpis = watchlistKpis }: { kpis?: WatchlistKpi[] }) {
+export function WatchlistKpiRow({ kpis = [] }: { kpis?: WatchlistKpi[] }) {
   return (
     <div className="grid shrink-0 grid-cols-2 gap-[var(--page-gap)] md:grid-cols-3 xl:grid-cols-5">
       {kpis.map((stat) => (

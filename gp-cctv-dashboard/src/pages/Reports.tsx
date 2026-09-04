@@ -17,12 +17,9 @@ import {
   defaultReportFilters,
   frequencyLabel,
   nextReportId,
-  recentReports,
   reportDownloadBody,
   reportTypeById,
   reportsRegistryCsv,
-  sampleReportPreview,
-  scheduledReports,
 } from '@/data/reportsData';
 import { formatClock, useLiveClock } from '@/hooks/useLiveClock';
 import { useReports, type RealReportView } from '@/hooks/useReports';
@@ -32,7 +29,24 @@ import type {
   ReportFilters,
   ReportRecord,
   ScheduledReport,
+  ReportPreviewDoc,
 } from '@/types/reports';
+
+const emptyReportPreview: ReportPreviewDoc = {
+  reportId: '—',
+  title: 'No report selected',
+  subtitle: 'Generate or select a backend report to preview its contents.',
+  generatedAt: '—',
+  generatedBy: 'Backend report service',
+  classification: 'internal',
+  vehicle: { plate: '—', description: '—', owner: '—', watchlist: '—', snapshot: '', confidence: 0 },
+  journey: [],
+  alertSummary: [],
+  stats: [],
+  evidence: [],
+  route: [],
+  findings: [],
+};
 
 /** Merge a real backend report view into the page's ReportRecord shape. */
 function realToRecord(r: RealReportView): ReportRecord {
@@ -84,16 +98,16 @@ export function Reports() {
     useReports();
 
   const [filters, setFilters] = useState<ReportFilters>(defaultReportFilters);
-  const [reports, setReports] = useState<ReportRecord[]>(recentReports);
-  const [schedules, setSchedules] = useState<ScheduledReport[]>(scheduledReports);
-  const [selectedId, setSelectedId] = useState<string | null>(recentReports[0]?.id ?? null);
+  const [reports, setReports] = useState<ReportRecord[]>([]);
+  const [schedules, setSchedules] = useState<ScheduledReport[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // When real reports arrive, make them the registry (real rows first).
   useEffect(() => {
     if (backendLive) {
       const rows = realReports.map(realToRecord);
-      setReports(rows.length ? rows : recentReports);
-      setSelectedId((cur) => cur ?? rows[0]?.id ?? recentReports[0]?.id ?? null);
+      setReports(rows);
+      setSelectedId((cur) => cur ?? rows[0]?.id ?? null);
     }
   }, [backendLive, realReports]);
   const [query, setQuery] = useState('');
@@ -215,12 +229,12 @@ export function Reports() {
       pages: 0,
       classification: config.classification,
       scope: config.location,
-      cameras: config.camera === 'All Cameras' ? 12842 : 1,
+      cameras: config.camera === 'All Cameras' ? 0 : 1,
       records: 0,
     };
     setReports((prev) => [record, ...prev]);
     setSelectedId(id);
-    flash(`${id} queued on the report engine · ${reportTypeById(config.type).label} · demo data`);
+    flash(`${id} queued on the report engine · ${reportTypeById(config.type).label}`);
 
     // Simulated render completion (demo fixtures only).
     const timer = window.setTimeout(() => {
@@ -363,7 +377,14 @@ export function Reports() {
         onRefresh={handleRefresh}
       />
 
-      <ReportsKpiRow extraGenerated={generatedDelta} />
+      <ReportsKpiRow
+        total={reports.length}
+        pending={reports.filter((report) => report.status === 'pending' || report.status === 'generating').length}
+        investigation={reports.filter((report) => report.type === 'cross-camera-journey').length}
+        alert={reports.filter((report) => report.type === 'alert-summary' || report.type === 'watchlist-activity').length}
+        scheduled={schedules.length}
+        extraGenerated={generatedDelta}
+      />
 
       {/* builder + registry | preview */}
       <div className="grid min-w-0 gap-[var(--page-gap)] xl:grid-cols-[minmax(0,1fr)_minmax(340px,384px)]">
@@ -386,7 +407,7 @@ export function Reports() {
         <div className="relative min-w-0 xl:min-h-[560px]">
           <div className="xl:absolute xl:inset-0">
             <ReportPreviewPanel
-              doc={sampleReportPreview}
+              doc={emptyReportPreview}
               selectedReportId={selectedId}
               onExpand={() => setViewerReport(selectedReport ?? reports[0] ?? null)}
             />
@@ -441,7 +462,7 @@ export function Reports() {
       <ReportViewerModal
         open={viewerReport !== null}
         report={viewerReport}
-        doc={sampleReportPreview}
+        doc={emptyReportPreview}
         onClose={() => setViewerReport(null)}
         onDownload={handleDownload}
         onShare={handleShare}

@@ -53,10 +53,6 @@ import type {
 } from '@/services/api';
 import { createRealtimeChannel } from '@/services/realtime';
 import { toLiveFrameUrl } from '@/services/streams';
-import { alerts as seedAlerts } from '@/data/alertsData';
-import { computeAnalytics } from '@/data/analyticsData';
-import { cameraHealth as mockHealthSlices, journeyStops, kpiStats, recentAlerts as mockRecentAlerts } from '@/data/mockData';
-import { trackedRoute as mockRoute } from '@/data/cameraMapData';
 import { latLngToWorld } from '@/data/gisProjection';
 import { formatClock } from '@/hooks/useLiveClock';
 import type { AlertItem, AnalyticsBar, HealthSlice, JourneyStop, KpiStat, MapCamera, Severity } from '@/types';
@@ -116,6 +112,16 @@ function tsOf(iso: string | null | undefined): number {
 
 const fmtInt = (value: number) => value.toLocaleString('en-IN');
 
+function emptyKpis(hours = 24): KpiStat[] {
+  return [
+    { id: 'cameras', label: 'Total Cameras', value: '0', footnote: 'Live: 0 (0%) · monitored 0', tone: 'blue', icon: Camera },
+    { id: 'vehicles', label: 'Vehicles Detected', labelSuffix: `(${hours}h)`, value: '0', footnote: '0 unique vehicles tracked', tone: 'green', icon: Car },
+    { id: 'alerts', label: 'Alerts', labelSuffix: `(${hours}h)`, value: '0', footnote: '0 new · 0 active', tone: 'orange', icon: Bell },
+    { id: 'watchlist', label: 'Watchlist Matches', labelSuffix: `(${hours}h)`, value: '0', footnote: '0 active entries', tone: 'red', icon: ShieldAlert },
+    { id: 'anpr', label: 'ANPR Hits', labelSuffix: `(${hours}h)`, value: '0', footnote: 'Offline cameras: 0', tone: 'purple', icon: Gauge },
+  ];
+}
+
 /* ------------------------------------------------------------------ *
  * Dashboard — KPI row, recent alerts, camera health, journey, activity
  * ------------------------------------------------------------------ */
@@ -146,7 +152,7 @@ export function useDashboardKpis(hours = 24) {
   }, [hours]);
 
   const stats: KpiStat[] = useMemo(() => {
-    if (!raw) return kpiStats;
+    if (!raw) return emptyKpis(hours);
     const onlinePct = raw.total_cameras > 0 ? Math.round((raw.live_cameras / raw.total_cameras) * 100) : 0;
     return [
       {
@@ -220,7 +226,7 @@ export function alertTitleOf(type: string | null | undefined): string {
 }
 
 export function useRecentAlerts(limit = 5) {
-  const [items, setItems] = useState<AlertItem[]>(mockRecentAlerts);
+  const [items, setItems] = useState<AlertItem[]>([]);
   const [live, setLive] = useState(false);
   const seenLive = useRef(false);
 
@@ -242,7 +248,7 @@ export function useRecentAlerts(limit = 5) {
       api
         .getAlerts({ limit })
         .then((page) => {
-          if (cancelled || !page.items.length) return;
+          if (cancelled) return;
           seenLive.current = true;
           setLive(true);
           setItems(page.items.slice(0, limit).map(mapDto));
@@ -269,7 +275,7 @@ export function useRecentAlerts(limit = 5) {
 }
 
 export function useCameraHealthSummary() {
-  const [slices, setSlices] = useState<HealthSlice[]>(mockHealthSlices);
+  const [slices, setSlices] = useState<HealthSlice[]>([]);
   const [live, setLive] = useState(false);
 
   useEffect(() => {
@@ -278,7 +284,7 @@ export function useCameraHealthSummary() {
       api
         .getCameraHealthFleet()
         .then((fleet) => {
-          if (cancelled || !fleet.summary.total) return;
+          if (cancelled) return;
           setLive(true);
           const counts = fleet.summary.counts;
           const liveCount = (counts.LIVE ?? 0) + (counts.DEGRADED ?? 0);
@@ -318,7 +324,7 @@ export function useCameraHealthSummary() {
 
 export function useJourneyTimeline() {
   const [plate, setPlate] = useState<string | null>(null);
-  const [stops, setStops] = useState<JourneyStop[]>(journeyStops);
+  const [stops, setStops] = useState<JourneyStop[]>([]);
   const [live, setLive] = useState(false);
 
   useEffect(() => {
@@ -329,7 +335,7 @@ export function useJourneyTimeline() {
         .then((rows) => {
           if (cancelled) return;
           const best = rows.find((row) => row.stops.length >= 2) ?? rows[0];
-          if (!best || !best.stops.length) return;
+          if (!best || !best.stops.length) { setLive(true); setPlate(null); setStops([]); return; }
           setLive(true);
           setPlate(best.plate);
           setStops(
@@ -382,18 +388,15 @@ export function useAiActivity(hours = 24) {
             { id: 'truck', label: 'Truck / Bus', color: '#f59e0b', glow: 'rgba(245,158,11,0.45)' },
             { id: 'other', label: 'Other Vehicles', color: '#a855f7', glow: 'rgba(168,85,247,0.45)' },
           ];
-          const total = Object.values(types).reduce((a, b) => a + b, 0);
-          if (total > 0) {
-            setBars(
-              palette.map((meta) => ({
-                id: meta.id,
-                label: meta.label,
-                value: types[meta.id] ?? 0,
-                color: meta.color,
-                glow: meta.glow,
-              })),
-            );
-          }
+          setBars(
+            palette.map((meta) => ({
+              id: meta.id,
+              label: meta.label,
+              value: types[meta.id] ?? 0,
+              color: meta.color,
+              glow: meta.glow,
+            })),
+          );
         } else {
           setLive(false);
         }
@@ -514,7 +517,7 @@ export interface AlertsConsole {
 }
 
 export function useAlertsConsole(): AlertsConsole {
-  const [alerts, setAlerts] = useState<AlertRecord[]>(seedAlerts);
+  const [alerts, setAlerts] = useState<AlertRecord[]>([]);
   const [stats, setStats] = useState<AlertStatsDto | null>(null);
   const [live, setLive] = useState(false);
   const seenLive = useRef(false);
@@ -523,7 +526,6 @@ export function useAlertsConsole(): AlertsConsole {
     api
       .getAlerts({ limit: 200 })
       .then((page) => {
-        if (!page.items.length) return;
         seenLive.current = true;
         setLive(true);
         setAlerts(page.items.map(mapAlertDto));
@@ -693,7 +695,7 @@ export function useWatchlistConsole() {
       api.getWatchlist({ limit: 500 }).catch(() => null),
       api.getWatchlistStats(168).catch(() => null),
     ]).then(([page, statsDto]) => {
-      if (page && page.items.length) {
+      if (page) {
         setLive(true);
         setEntries(page.items.map(mapWatchlistEntry));
       } else {
@@ -920,7 +922,7 @@ export function useCameraHealthFleet(): {
       api.getCameraHealthFleet().catch(() => null),
       api.getCameraHealthEvents(80).catch(() => null),
     ]).then(([fleet, healthEvents]) => {
-      if (!fleet || !fleet.items.length) {
+      if (!fleet) {
         setLive(false);
         return;
       }
@@ -999,7 +1001,7 @@ export function useGisCameras() {
       api
         .getGisCameras()
         .then((geo) => {
-          if (cancelled || !geo.count) return;
+          if (cancelled) return;
           setLive(true);
           setRaw(geo);
           setNodes(
@@ -1146,12 +1148,38 @@ export function useGisRoute(plate: string | null) {
     };
   }, [plate]);
 
-  return route ?? mockRoute;
+  return route;
 }
 
 /* ------------------------------------------------------------------ *
  * Analytics
  * ------------------------------------------------------------------ */
+function emptyAnalyticsSnapshot(filters: AnalyticsFilters): AnalyticsSnapshot {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  return {
+    filters,
+    rangeLabel: filters.range === '7d' ? 'Last 7 days' : filters.range === '30d' ? 'Last 30 days' : 'Last 24 hours',
+    locationLabel: filters.location === 'all' ? 'All Gujarat' : filters.location,
+    cameraLabel: filters.camera === 'all' ? 'All Cameras' : filters.camera,
+    windowNote: 'Backend-driven empty state',
+    generatedAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+    kpis: { vehicles: 0, vehiclesDelta: 0, anpr: 0, anprShare: 0, events: 0, eventsOpen: 0, watchlist: 0, watchlistCritical: 0, cameras: 0, camerasPct: 0, fleet: 0 },
+    vehicleTrend: [],
+    vehicleTrendUnit: filters.range === '7d' || filters.range === '30d' ? 'day' : 'hour',
+    vehicleTypes: [],
+    eventTypes: [],
+    anpr: { processed: 0, successful: 0, unreadable: 0, confidence: 0, high: 0, medium: 0, low: 0, latencyMs: 0 },
+    cameras: [],
+    locations: [],
+    watchlistTrend: [],
+    heatmap: { days, dayKeys: days, hours: Array.from({ length: 24 }, (_, i) => i), cells: days.map(() => Array(24).fill(0)), max: 1 },
+    insights: [],
+    unusual: [],
+    peakLabel: '—',
+    peakValue: 0,
+  };
+}
+
 export function useAnalyticsSnapshot(filters: AnalyticsFilters): {
   snapshot: AnalyticsSnapshot;
   live: boolean;
@@ -1184,7 +1212,7 @@ export function useAnalyticsSnapshot(filters: AnalyticsFilters): {
   }, [pull]);
 
   const snapshot = useMemo(() => {
-    const base = computeAnalytics(filters);
+    const base = emptyAnalyticsSnapshot(filters);
     if (!real || !series || !live) return base;
     const kpis = real.kpis;
     const detectionsTotal = series.points.reduce((acc, p) => acc + p.detections, 0);
@@ -1202,7 +1230,7 @@ export function useAnalyticsSnapshot(filters: AnalyticsFilters): {
             { id: 'heavy' as const, label: 'Heavy Vehicles', value: real.vehicle_types.truck ?? 0, color: '#f59e0b' },
             { id: 'buses' as const, label: 'Buses', value: real.vehicle_types.bus ?? 0, color: '#a855f7' },
           ].filter((slice) => slice.value > 0)
-        : base.vehicleTypes;
+        : [];
     const heatmap = base.heatmap;
     if (real.hourly_histogram.some((v) => v > 0)) {
       heatmap.cells = heatmap.cells.map((row, dayIndex) =>
@@ -1220,7 +1248,7 @@ export function useAnalyticsSnapshot(filters: AnalyticsFilters): {
             : 'Last 30 days',
       generatedAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       kpis: {
-        vehicles: detectionsTotal || base.kpis.vehicles,
+        vehicles: detectionsTotal,
         vehiclesDelta: base.kpis.vehiclesDelta,
         anpr: kpis.anpr_hits,
         anprShare: kpis.vehicles_detected > 0 ? (kpis.anpr_hits / kpis.vehicles_detected) * 100 : 0,
@@ -1232,7 +1260,7 @@ export function useAnalyticsSnapshot(filters: AnalyticsFilters): {
         camerasPct: kpis.total_cameras > 0 ? (kpis.live_cameras / kpis.total_cameras) * 100 : 0,
         fleet: kpis.total_cameras,
       },
-      vehicleTrend: trend.length ? trend : base.vehicleTrend,
+      vehicleTrend: trend,
       vehicleTrendUnit: filters.range === '7d' || filters.range === '30d' ? ('day' as const) : ('hour' as const),
       vehicleTypes,
       anpr: {

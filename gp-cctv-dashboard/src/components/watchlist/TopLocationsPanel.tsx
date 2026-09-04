@@ -1,7 +1,6 @@
 import { ArrowDown, ArrowUp, MapPin, Minus } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
-import { topLocations } from '@/data/watchlistData';
 import type { TopLocation } from '@/types/watchlist';
 
 
@@ -16,7 +15,7 @@ const trendTone = { up: 'text-accent-green', down: 'text-accent-red', flat: 'tex
 
 /** Bottom row right: ranked list of cameras/areas producing the most matches. */
 export function TopLocationsPanel({
-  locations = topLocations,
+  locations = [],
   windowLabel = 'this month',
 }: {
   locations?: TopLocation[];

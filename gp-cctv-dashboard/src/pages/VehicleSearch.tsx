@@ -47,7 +47,6 @@ import {
   matchesOverTime,
   movementSummary,
   relatedEvents,
-  searchKpis,
   searchTypeOptions,
   sightings,
   vehicleProfile,
@@ -77,7 +76,7 @@ export function VehicleSearch() {
   const clock = formatClock(useLiveClock());
 
   /* ---------------- search state ---------------- */
-  const [plate, setPlate] = useState(() => searchParams.get('plate')?.toUpperCase() ?? 'GJ01AB1234');
+  const [plate, setPlate] = useState(() => searchParams.get('plate')?.toUpperCase() ?? '');
   const [searchType, setSearchType] = useState<SearchType>('plate');
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -85,7 +84,7 @@ export function VehicleSearch() {
   const [refreshing, setRefreshing] = useState(false);
 
   /* ---------------- workspace state ---------------- */
-  const [selectedSighting, setSelectedSighting] = useState<Sighting | null>(sightings[0]);
+  const [selectedSighting, setSelectedSighting] = useState<Sighting | null>(null);
   const [focusedNode, setFocusedNode] = useState<number>(4);
   const [liveTracking, setLiveTracking] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -124,7 +123,7 @@ export function VehicleSearch() {
   const handleRefresh = () => {
     setRefreshing(true);
     window.setTimeout(() => setRefreshing(false), 900);
-    flash(`Intelligence refreshed · ${searchKpis.totalMatches} sightings synced at ${clock}`);
+    flash(`Intelligence refreshed from backend at ${clock}`);
   };
 
   const handleExport = () => setExportOpen(true);
@@ -140,12 +139,12 @@ export function VehicleSearch() {
 
   const handleTrackLive = () => {
     setLiveTracking(true);
-    flash(`Live tracking activated · ${vehicleProfile.plate} · ${vehicleProfile.currentCamera} ${vehicleProfile.currentLocation}`);
+    if (profile) flash(`Live tracking activated · ${profile.plate} · ${profile.currentCamera} ${profile.currentLocation}`);
   };
 
-  const handleViewCamera = () => navigate(`/live-view?camera=${vehicleProfile.currentCamera}`);
+  const handleViewCamera = () => { if (profile) navigate(`/live-view?camera=${profile.currentCamera}`); };
 
-  const handleInvestigate = () => navigate(`/investigation?plate=${vehicleProfile.plate}`);
+  const handleInvestigate = () => { if (profile) navigate(`/investigation?plate=${profile.plate}`); };
 
   const handleAddToWatchlist = () => navigate('/watchlist');
 
@@ -163,9 +162,9 @@ export function VehicleSearch() {
      searched plate; otherwise fall back to the bundled sample so the Gujarat
      Police workspace always renders. */
   const useLive = live.found && !!live.profile;
-  const profile = useLive && live.profile ? { ...vehicleProfile, ...live.profile } : vehicleProfile;
-  const nodes = useLive && live.journeyNodes.length ? live.journeyNodes : journeyNodes;
-  const tableSightings = useLive && live.sightings.length ? live.sightings : sightings;
+  const profile = useLive && live.profile ? { ...vehicleProfile, ...live.profile, snapshot: live.profile.snapshot || '' } : null;
+  const nodes = useLive ? live.journeyNodes : [];
+  const tableSightings = useLive ? live.sightings : [];
 
   useEffect(() => {
     if (live.found && live.profile) {
@@ -174,7 +173,7 @@ export function VehicleSearch() {
           (live.anomalies ? ` · ${live.anomalies} travel anomaly flagged` : ''),
       );
     } else if (live.error && searchTrigger > 0) {
-      flash('No live backend record — showing sample dossier');
+      flash('No backend vehicle record found.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live.found, live.error, searchTrigger]);
@@ -220,7 +219,7 @@ export function VehicleSearch() {
       {/* ==================== MAIN 3-COLUMN WORKSPACE ==================== */}
       <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] xl:grid-cols-[minmax(300px,32fr)_minmax(360px,40fr)_minmax(280px,28fr)]">
         {/* LEFT — Vehicle Profile */}
-        <VehicleProfilePanel profile={profile} onViewCamera={handleViewCamera} />
+        {profile ? <VehicleProfilePanel profile={profile} onViewCamera={handleViewCamera} /> : <EmptyVehiclePanel />}
 
         {/* CENTER — Vehicle Journey (GIS Map) */}
         <VehicleJourneyPanel
@@ -230,14 +229,20 @@ export function VehicleSearch() {
         />
 
         {/* RIGHT — Vehicle Intelligence */}
-        <VehicleIntelligencePanel
-          profile={profile}
-          liveTracking={liveTracking}
-          onTrackLive={handleTrackLive}
-          onViewCamera={handleViewCamera}
-          onAddToWatchlist={handleAddToWatchlist}
-          onInvestigate={handleInvestigate}
-        />
+        {profile ? (
+          <VehicleIntelligencePanel
+            profile={profile}
+            liveTracking={liveTracking}
+            onTrackLive={handleTrackLive}
+            onViewCamera={handleViewCamera}
+            onAddToWatchlist={handleAddToWatchlist}
+            onInvestigate={handleInvestigate}
+          />
+        ) : (
+          <Panel title="Vehicle Intelligence" className="min-h-[320px]" bodyClassName="grid place-items-center px-4 py-6">
+            <div className="text-center text-[12px] text-ink-dim">No backend vehicle dossier loaded.</div>
+          </Panel>
+        )}
       </div>
 
       {/* ==================== SIGHTING HISTORY TABLE ==================== */}
@@ -249,19 +254,19 @@ export function VehicleSearch() {
 
       {/* ==================== EVIDENCE GALLERY ==================== */}
       <EvidenceGallery
-        frames={evidenceFrames}
+        frames={[]}
         onPreview={(id) => setEvidencePreview(id)}
       />
 
       {/* ==================== RELATED EVENTS ==================== */}
-      <RelatedEventsPanel events={relatedEvents} />
+      <RelatedEventsPanel events={[]} />
 
       {/* ==================== SEARCH ANALYTICS ==================== */}
       <div className="grid min-w-0 grid-cols-1 gap-[var(--page-gap)] lg:grid-cols-2 xl:grid-cols-[minmax(320px,35fr)_minmax(280px,30fr)_minmax(180px,17fr)_minmax(180px,18fr)]">
-        <MatchesOverTimeChart data={matchesOverTime} />
-        <DetectionsByCameraChart data={detectionsByCamera} />
-        <LocationsVisitedRank data={locationsVisited} />
-        <MovementSummaryCard data={movementSummary} />
+        <MatchesOverTimeChart data={[]} />
+        <DetectionsByCameraChart data={[]} />
+        <LocationsVisitedRank data={[]} />
+        <MovementSummaryCard data={{ camerasCrossed: 0, journeyDuration: '—', estimatedDistance: '—', avgTimeBetweenSightings: '—' }} />
       </div>
 
       {/* ==================== MODALS ==================== */}
@@ -593,11 +598,11 @@ function FilterGroup({ label, children }: { label: string; children: React.React
 
 function KpiStrip() {
   const kpis = [
-    { label: 'Total Matches', value: String(searchKpis.totalMatches), icon: Target, tone: 'blue' as const },
-    { label: 'Cameras Detected', value: String(searchKpis.camerasDetected), icon: Camera, tone: 'cyan' as const },
-    { label: 'First Seen', value: searchKpis.firstSeen, icon: Clock, tone: 'green' as const },
-    { label: 'Last Seen', value: searchKpis.lastSeen, icon: Timer, tone: 'orange' as const },
-    { label: 'Watchlist Matches', value: String(searchKpis.watchlistMatches), icon: ShieldAlert, tone: 'red' as const },
+    { label: 'Total Matches', value: '0', icon: Target, tone: 'blue' as const },
+    { label: 'Cameras Detected', value: '0', icon: Camera, tone: 'cyan' as const },
+    { label: 'First Seen', value: '—', icon: Clock, tone: 'green' as const },
+    { label: 'Last Seen', value: '—', icon: Timer, tone: 'orange' as const },
+    { label: 'Watchlist Matches', value: '0', icon: ShieldAlert, tone: 'red' as const },
   ];
   const toneMap = {
     blue: { bg: 'bg-accent-blue/10', ring: 'ring-accent-blue/25', text: 'text-accent-blue', val: 'text-white' },
@@ -631,6 +636,18 @@ function KpiStrip() {
 /* ================================================================== *
  * VEHICLE PROFILE (LEFT)
  * ================================================================== */
+
+function EmptyVehiclePanel() {
+  return (
+    <Panel title="Vehicle Profile" className="min-h-[320px]" bodyClassName="grid place-items-center px-4 py-6">
+      <div className="text-center">
+        <Search size={28} className="mx-auto mb-3 text-ink-faint" />
+        <div className="text-[14px] font-semibold text-white">No vehicle selected</div>
+        <div className="mt-1 text-[12px] text-ink-dim">Search for a plate present in the backend ANPR database.</div>
+      </div>
+    </Panel>
+  );
+}
 
 function VehicleProfilePanel({
   profile,
@@ -1454,9 +1471,9 @@ function ExportDialog({ onClose, flash }: { onClose: () => void; flash: (m: stri
           </div>
           {/* Summary */}
           <div className="rounded-[5px] border border-edge-soft bg-[#0c1424] p-2.5 text-[11px] text-ink-dim">
-            <div>Plate: <span className="font-semibold text-white">GJ01AB1234</span></div>
-            <div>Sightings: <span className="tnum font-semibold text-white">4</span> · Evidence Frames: <span className="tnum font-semibold text-white">4</span></div>
-            <div>Events: <span className="tnum font-semibold text-white">4</span> · Route Nodes: <span className="tnum font-semibold text-white">4</span></div>
+            <div>Plate: <span className="font-semibold text-white">Backend search result</span></div>
+            <div>Sightings: <span className="tnum font-semibold text-white">0</span> · Evidence Frames: <span className="tnum font-semibold text-white">0</span></div>
+            <div>Events: <span className="tnum font-semibold text-white">0</span> · Route Nodes: <span className="tnum font-semibold text-white">0</span></div>
           </div>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-edge px-4 py-3">

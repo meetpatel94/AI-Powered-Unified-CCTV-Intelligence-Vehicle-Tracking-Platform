@@ -284,7 +284,7 @@ export function AddUserModal({ open, onClose, onCreate }: AddUserModalProps) {
                       : 'border-edge bg-[#0c1424] text-[#8ea3c4] hover:border-edge-strong hover:text-white'
                   }`}
                 >
-                  {scope === 'all' ? 'All zones (12,842 cameras)' : 'Selected camera clusters'}
+                  {scope === 'all' ? 'All backend-registered zones' : 'Selected camera clusters'}
                 </button>
               ))}
             </div>

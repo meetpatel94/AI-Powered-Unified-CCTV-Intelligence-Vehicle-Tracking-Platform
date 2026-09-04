@@ -1,7 +1,6 @@
 import { MoreHorizontal } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
-import { watchlistCategories } from '@/data/watchlistData';
 import type { CategoryTone, WatchlistCategory } from '@/types/watchlist';
 
 const toneIcon: Record<CategoryTone, string> = {
@@ -26,7 +25,7 @@ interface WatchlistCategoriesPanelProps {
 export function WatchlistCategoriesPanel({
   activeCategory,
   onSelectCategory,
-  categories = watchlistCategories,
+  categories = [],
   totalEntries,
 }: WatchlistCategoriesPanelProps) {
   const total = totalEntries ?? categories.reduce((sum, category) => sum + category.entries, 0);

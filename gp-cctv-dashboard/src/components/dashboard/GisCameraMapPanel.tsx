@@ -1,25 +1,20 @@
 import type { ReactNode } from 'react';
 
-import { Camera, Crosshair, Layers, Minus, Navigation, Plus, Settings2, SlidersHorizontal, TriangleAlert, X } from 'lucide-react';
+import { Camera, Crosshair, Layers, Minus, Navigation, Plus, Settings2, SlidersHorizontal, TriangleAlert } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
 import {
   MAP_H,
   MAP_W,
   arterials,
-  criticalMarker,
   greenAreas,
   highways,
-  mapCameras,
   mapLabels,
   minorStreets,
   riverPath,
-  routePath,
-  routePoints,
   secondaries,
   urbanBlocks,
 } from '@/data/mapData';
-import { mapAlert } from '@/data/mockData';
 import type { MapCamera } from '@/types';
 
 const pct = (v: number, total: number) => `${(v / total) * 100}%`;
@@ -49,8 +44,8 @@ function MapControlButton({
   );
 }
 
-/** Dark GIS basemap with camera fleet, tracked vehicle route and live alert popup. */
-export function GisCameraMapPanel({ cameras = mapCameras }: { cameras?: MapCamera[] }) {
+/** Dark GIS basemap with backend camera fleet only; no fabricated route/alert overlays. */
+export function GisCameraMapPanel({ cameras = [] }: { cameras?: MapCamera[] }) {
   return (
     <Panel
       title="GIS Camera Map"
@@ -141,25 +136,6 @@ export function GisCameraMapPanel({ cameras = mapCameras }: { cameras?: MapCamer
           ))}
         </svg>
 
-        {/* ---------------- tracked vehicle route ---------------- */}
-        <svg
-          viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-          preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full"
-        >
-          <path d={routePath} fill="none" stroke="#1d4ed8" strokeWidth="9" strokeLinecap="round" opacity="0.28" />
-          <path d={routePath} fill="none" stroke="#3b82f6" strokeWidth="3.4" strokeLinecap="round" />
-          <path
-            d={routePath}
-            fill="none"
-            stroke="#93c5fd"
-            strokeWidth="1.2"
-            strokeLinecap="round"
-            strokeDasharray="10 14"
-            opacity="0.9"
-          />
-        </svg>
-
         {/* ---------------- place labels ---------------- */}
         {mapLabels.map((label) => (
           <span
@@ -209,84 +185,12 @@ export function GisCameraMapPanel({ cameras = mapCameras }: { cameras?: MapCamer
           );
         })}
 
-        {/* ---------------- critical interception marker ---------------- */}
-        <div
-          className="absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ left: pct(criticalMarker.x, MAP_W), top: pct(criticalMarker.y, MAP_H) }}
-        >
-          <span className="absolute inset-0 rounded-full bg-accent-red/50 animate-ping2" />
-          <span
-            className="relative grid h-[19px] w-[19px] place-items-center rounded-full bg-accent-red ring-2 ring-black/40"
-            style={{ boxShadow: '0 0 12px rgba(239,68,68,0.85)' }}
-          >
-            <Camera size={10} strokeWidth={2.3} className="text-white" />
-          </span>
-        </div>
-
-        {/* ---------------- journey nodes ---------------- */}
-        {routePoints.map((point) =>
-          point.critical ? (
-            <div
-              key={point.step}
-              className="absolute -translate-x-1/2 -translate-y-1/2"
-              style={{ left: pct(point.x, MAP_W), top: pct(point.y, MAP_H) }}
-            >
-              <span className="absolute -inset-1 rounded-full bg-accent-red/40 animate-ping2" />
-              <span
-                className="relative grid h-[27px] w-[27px] place-items-center rounded-full border-[2.5px] border-white/85 bg-accent-red"
-                style={{ boxShadow: '0 0 18px rgba(239,68,68,0.9)' }}
-              >
-                <CarGlyph />
-              </span>
-            </div>
-          ) : (
-            <div
-              key={point.step}
-              className="tnum absolute grid h-[19px] w-[19px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-white/80 bg-[#2563eb] text-[11px] font-bold text-white"
-              style={{
-                left: pct(point.x, MAP_W),
-                top: pct(point.y, MAP_H),
-                boxShadow: '0 0 12px rgba(37,99,235,0.85)',
-              }}
-            >
-              {point.step}
-            </div>
-          ),
+        {cameras.length === 0 && (
+          <div className="absolute left-1/2 top-1/2 w-[260px] -translate-x-1/2 -translate-y-1/2 rounded-[6px] border border-edge bg-[#0b1526]/90 px-4 py-3 text-center shadow-panel">
+            <div className="text-[13px] font-semibold text-white">No geocoded cameras</div>
+            <div className="mt-1 text-[11px] text-ink-dim">Backend camera registry returned an empty map.</div>
+          </div>
         )}
-
-        {/* ---------------- alert popup ---------------- */}
-        <div className="absolute left-[58%] top-[38%] w-[172px] overflow-hidden rounded-[5px] border border-accent-red/80 bg-[#2b0b10]/95 shadow-glow-red backdrop-blur-sm">
-          <div className="flex items-center justify-between gap-1 border-b border-accent-red/40 bg-accent-red/12 px-2 py-1.5">
-            <span className="whitespace-nowrap text-[11.5px] font-bold tracking-wide text-[#ff8b96]">{mapAlert.title}</span>
-            <X size={10} className="shrink-0 cursor-pointer text-[#ff8b96]/70 hover:text-white" />
-          </div>
-          <dl className="space-y-[3px] px-2 py-1.5 text-[11.5px] text-[#e3c6c9]">
-            <div className="flex gap-1">
-              <dt className="text-[#c78d95]">Vehicle:</dt>
-              <dd className="font-semibold text-white">{mapAlert.vehicle}</dd>
-            </div>
-            <div className="flex gap-1">
-              <dt className="text-[#c78d95]">Camera:</dt>
-              <dd className="text-white/90">{mapAlert.camera}</dd>
-            </div>
-            <div className="flex gap-1">
-              <dt className="text-[#c78d95]">Location:</dt>
-              <dd className="text-white/90">{mapAlert.location}</dd>
-            </div>
-            <div className="flex gap-1">
-              <dt className="text-[#c78d95]">Time:</dt>
-              <dd className="tnum text-white/90">{mapAlert.time}</dd>
-            </div>
-          </dl>
-          <div className="px-2 pb-2">
-            <button
-              type="button"
-              className="w-full rounded-[4px] bg-accent-red py-[5px] text-[12px] font-semibold text-white transition-colors hover:bg-[#dc2626]"
-            >
-              View Details
-            </button>
-          </div>
-        </div>
 
         {/* ---------------- map controls ---------------- */}
         <div className="absolute bottom-3 right-2.5 flex flex-col gap-2">
@@ -325,16 +229,5 @@ export function GisCameraMapPanel({ cameras = mapCameras }: { cameras?: MapCamer
         </div>
       </div>
     </Panel>
-  );
-}
-
-function CarGlyph() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 13l1.5-4.2A2 2 0 0 1 8.4 7.5h7.2a2 2 0 0 1 1.9 1.3L19 13" />
-      <path d="M3.5 13h17v4h-17z" />
-      <circle cx="7.5" cy="17.5" r="1.4" />
-      <circle cx="16.5" cy="17.5" r="1.4" />
-    </svg>
   );
 }

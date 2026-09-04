@@ -13,7 +13,6 @@ import { WatchlistFilterBar, type EntrySortMode, type EntryViewMode } from '@/co
 import { WatchlistHeader } from '@/components/watchlist/WatchlistHeader';
 import { WatchlistKpiRow } from '@/components/watchlist/WatchlistKpiRow';
 import { WatchlistSummaryPanel } from '@/components/watchlist/WatchlistSummaryPanel';
-import { watchlistEntries } from '@/data/watchlistData';
 import { mapWatchlistEntry, useWatchlistAlerts, useWatchlistConsole } from '@/hooks/useIntelligence';
 import type { WatchlistEntry } from '@/types/watchlist';
 
@@ -26,7 +25,7 @@ import type { WatchlistEntry } from '@/types/watchlist';
 export function Watchlist() {
   const intel = useWatchlistConsole();
   const wlAlerts = useWatchlistAlerts(200);
-  const [entries, setEntries] = useState<WatchlistEntry[]>(watchlistEntries);
+  const [entries, setEntries] = useState<WatchlistEntry[]>([]);
   const [liveMode, setLiveMode] = useState(false);
 
   // Adopt backend entries whenever the console pulls a fresh page.
@@ -305,7 +304,7 @@ export function Watchlist() {
     });
   }, [liveMode, intel.stats]);
 
-  const railAlerts = liveMode ? (wlAlerts ?? []).slice(0, 6) : undefined;
+  const railAlerts = liveMode ? (wlAlerts ?? []).slice(0, 6) : [];
 
   return (
     <div className="page">
@@ -317,7 +316,7 @@ export function Watchlist() {
         onImportFile={handleImportFile}
       />
 
-      <WatchlistKpiRow kpis={kpis} />
+      <WatchlistKpiRow kpis={kpis ?? []} />
 
       {filtersVisible ? (
         <WatchlistFilterBar
@@ -331,7 +330,7 @@ export function Watchlist() {
           onSort={setSort}
           view={view}
           onView={setView}
-          categories={liveCategories}
+          categories={liveCategories ?? []}
         />
       ) : null}
 
@@ -341,7 +340,7 @@ export function Watchlist() {
           <WatchlistCategoriesPanel
             activeCategory={categoryFilter}
             onSelectCategory={setCategoryFilter}
-            categories={liveCategories}
+            categories={liveCategories ?? []}
           />
         </div>
 

@@ -1,6 +1,5 @@
 import { ArrowUpDown, LayoutGrid, List, Search } from 'lucide-react';
 
-import { watchlistCategories } from '@/data/watchlistData';
 import type { WatchlistCategory } from '@/types/watchlist';
 
 export type EntryViewMode = 'grid' | 'list';
@@ -25,7 +24,7 @@ const selectCls =
 
 /** Filter strip: watchlist + type selects, search, sort and grid/list toggle. */
 export function WatchlistFilterBar({
-  categories = watchlistCategories,
+  categories = [],
   categoryFilter,
   onCategoryFilter,
   typeFilter,

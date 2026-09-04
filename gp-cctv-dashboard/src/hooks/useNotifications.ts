@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { alerts as seedAlerts } from '@/data/alertsData';
 import { api } from '@/services/api';
 import { createRealtimeChannel } from '@/services/realtime';
 import { mapAlertDto } from '@/hooks/useIntelligence';
@@ -36,13 +35,6 @@ function toNotification(alert: AlertRecord): AppNotification {
   };
 }
 
-function seedNotifications(): AppNotification[] {
-  return seedAlerts
-    .filter((alert) => alert.status === 'new')
-    .slice(0, 12)
-    .map(toNotification);
-}
-
 export interface NotificationsState {
   items: AppNotification[];
   count: number;
@@ -59,7 +51,7 @@ export interface NotificationsState {
  * fixtures when the backend is unreachable — never fabricates results.
  */
 export function useNotifications(): NotificationsState {
-  const [items, setItems] = useState<AppNotification[]>(() => seedNotifications());
+  const [items, setItems] = useState<AppNotification[]>([]);
   const [stats, setStats] = useState<Awaited<ReturnType<typeof api.getAlertStats>> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +69,7 @@ export function useNotifications(): NotificationsState {
         setError(null);
         setItems(page.items.slice(0, 15).map(mapAlertDto).map(toNotification));
       } else {
-        // Backend unreachable — keep the bundled fixture notification set.
+        // Backend unreachable — surface offline/empty state, never fixtures.
         setLive(false);
         setError('offline');
       }
