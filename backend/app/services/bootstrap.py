@@ -47,7 +47,7 @@ def bootstrap_streams() -> None:
             if started >= limit:
                 break
             try:
-                gateway.start(camera.camera_id, camera.rtsp_url)  # type: ignore[arg-type]
+                gateway.start(camera.camera_id, camera.rtsp_url, camera.hls_url)  # type: ignore[arg-type]
                 started += 1
                 logger.info(
                     "stream.bootstrap.started",

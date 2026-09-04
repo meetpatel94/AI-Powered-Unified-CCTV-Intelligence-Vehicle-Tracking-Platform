@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.models.camera import Camera
 from app.services.sentinel import SentinelError, fetch_catalogue, normalize_camera
+from app.services.sentinel_grid import fetch_grid_catalogue, normalize_grid_camera
 
 logger = structlog.get_logger(__name__)
 
@@ -45,12 +46,14 @@ def camera_count(db: Session) -> int:
     return int(db.scalar(select(func.count()).select_from(Camera)) or 0)
 
 
-def upsert_cameras(db: Session, records: list[dict[str, Any]]) -> tuple[int, int, list[str]]:
+def upsert_cameras(
+    db: Session, records: list[dict[str, Any]], use_grid: bool = False
+) -> tuple[int, int, list[str]]:
     upserted = 0
     skipped = 0
     errors: list[str] = []
     for raw in records:
-        normalized = normalize_camera(raw)
+        normalized = normalize_grid_camera(raw) if use_grid else normalize_camera(raw)
         if not normalized:
             skipped += 1
             errors.append("Skipped record without camera_id")
@@ -71,12 +74,27 @@ def upsert_cameras(db: Session, records: list[dict[str, Any]]) -> tuple[int, int
 
 
 def ingest_from_sentinel(db: Session) -> dict[str, Any]:
+    """Pull the camera catalogue and upsert the Camera Registry.
+
+    The Sentinel CCTV Camera Grid catalogue (``SENTINEL_CATALOGUE_URL``) is the
+    primary dynamic source. If it is unreachable we fall back to the legacy
+    ``/api/ingest`` catalogue so existing deployments keep working. Camera ids
+    and stream URLs are never hard-coded in either path.
+    """
     settings = get_settings()
+    use_grid = True
+    source = settings.sentinel_catalogue_url
     try:
-        records = fetch_catalogue()
-    except SentinelError:
-        raise
-    upserted, skipped, errors = upsert_cameras(db, records)
+        records = fetch_grid_catalogue()
+    except SentinelError as grid_exc:
+        logger.warning("camera.ingest.grid_failed", error=str(grid_exc))
+        try:
+            records = fetch_catalogue()
+            use_grid = False
+            source = settings.sentinel_ingest_url
+        except SentinelError:
+            raise grid_exc
+    upserted, skipped, errors = upsert_cameras(db, records, use_grid=use_grid)
     logger.info(
         "camera.ingest.complete",
         fetched=len(records),
@@ -84,7 +102,7 @@ def ingest_from_sentinel(db: Session) -> dict[str, Any]:
         skipped=skipped,
     )
     return {
-        "source": settings.sentinel_ingest_url,
+        "source": source,
         "fetched": len(records),
         "upserted": upserted,
         "skipped": skipped,

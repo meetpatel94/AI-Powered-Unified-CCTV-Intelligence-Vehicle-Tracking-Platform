@@ -55,6 +55,26 @@ class Settings(BaseSettings):
     sentinel_timeout_seconds: float = 15.0
     sentinel_verify_tls: bool = True
 
+    # ------------------------------------------------------------------ #
+    # Sentinel CCTV Camera Grid (authorized integrator access).
+    # The camera CATALOGUE is always fetched dynamically from
+    # ``SENTINEL_CATALOGUE_URL`` — camera ids/coordinates are NEVER hard-coded.
+    # Credentials live only here (environment) and never reach the browser.
+    # ------------------------------------------------------------------ #
+    sentinel_catalogue_url: str = "https://cctv.corp8.cloud/cameras.json"
+    sentinel_email: str = ""
+    sentinel_password: str = ""
+    # Per-camera stream endpoint templates. ``{camera_id}`` is substituted with
+    # the id read from the catalogue; ``{email}``/``{password}`` are injected
+    # URL-encoded (server-side only).
+    sentinel_hls_url_template: str = "https://cctv.corp8.cloud/{camera_id}/index.m3u8"
+    sentinel_rtsp_url_template: str = (
+        "rtsp://{email}:{password}@103.250.160.189:8554/stream/{camera_id}"
+    )
+    sentinel_webrtc_url_template: str = (
+        "http://{email}:{password}@103.250.160.189:8889/stream/{camera_id}/whep"
+    )
+
     # Stream gateway — RTSP URLs always come from the Camera Registry / Sentinel.
     ffmpeg_path: str = "ffmpeg"
     stream_rtsp_transport: str = "tcp"
@@ -250,6 +270,11 @@ class Settings(BaseSettings):
         base = self.sentinel_base_url.rstrip("/")
         path = self.sentinel_ingest_path if self.sentinel_ingest_path.startswith("/") else f"/{self.sentinel_ingest_path}"
         return f"{base}{path}"
+
+    @property
+    def sentinel_credentials_configured(self) -> bool:
+        """True when SENTINEL_EMAIL and SENTINEL_PASSWORD are both present."""
+        return bool(self.sentinel_email.strip() and self.sentinel_password.strip())
 
     @field_validator("sentinel_ingest_path")
     @classmethod

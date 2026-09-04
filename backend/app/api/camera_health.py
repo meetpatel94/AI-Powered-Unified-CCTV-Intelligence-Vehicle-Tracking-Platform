@@ -76,7 +76,7 @@ def restart_stream(
     if snap is None:
         gateway.stop(camera_id)
         try:
-            snap = gateway.start(camera.camera_id, camera.rtsp_url)
+            snap = gateway.start(camera.camera_id, camera.rtsp_url, camera.hls_url)
         except RuntimeError as exc:
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)) from exc
     audit_service.record(
@@ -115,7 +115,7 @@ def refresh_stream(
         snap = gateway.restart(camera_id, camera.rtsp_url)
     else:
         try:
-            snap = gateway.start(camera.camera_id, camera.rtsp_url)
+            snap = gateway.start(camera.camera_id, camera.rtsp_url, camera.hls_url)
         except RuntimeError as exc:
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(exc)) from exc
     audit_service.record(
