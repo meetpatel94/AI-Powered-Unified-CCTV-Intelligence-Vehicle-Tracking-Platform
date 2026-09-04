@@ -1287,7 +1287,9 @@ function RelatedEventsPanel({ events }: { events: typeof relatedEvents }) {
  * ================================================================== */
 
 function MatchesOverTimeChart({ data }: { data: typeof matchesOverTime }) {
-  const max = Math.max(...data.map((d) => d.value), 1);
+  const safeData = Array.isArray(data) ? data : [];
+
+  const max = Math.max(...safeData.map((d) => d.value), 1);
   const w = 400;
   const h = 140;
   const padX = 32;
@@ -1295,43 +1297,133 @@ function MatchesOverTimeChart({ data }: { data: typeof matchesOverTime }) {
   const innerW = w - padX * 2;
   const innerH = h - padY * 2;
 
-  const points = data.map((d, i) => ({
-    x: padX + (i / (data.length - 1)) * innerW,
-    y: padY + innerH - (d.value / max) * innerH,
-  }));
+  const points =
+    safeData.length === 1
+      ? [
+          {
+            x: padX + innerW / 2,
+            y: padY + innerH - (safeData[0].value / max) * innerH,
+          },
+        ]
+      : safeData.map((d, i) => ({
+          x: padX + (i / (safeData.length - 1)) * innerW,
+          y: padY + innerH - (d.value / max) * innerH,
+        }));
 
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${padY + innerH} L ${points[0].x} ${padY + innerH} Z`;
+  const linePath = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+    .join(" ");
+
+  const areaPath =
+    points.length > 0
+      ? `${linePath} L ${points[points.length - 1].x} ${
+          padY + innerH
+        } L ${points[0].x} ${padY + innerH} Z`
+      : "";
 
   return (
-    <Panel title="Matches Over Time" tools={<span className="text-[10px] text-ink-faint">Line Chart</span>}>
+    <Panel
+      title="Matches Over Time"
+      tools={
+        <span className="text-[10px] text-ink-faint">Line Chart</span>
+      }
+    >
       <div className="px-2 pb-2">
-        <svg viewBox={`0 0 ${w} ${h}`} className="w-full" preserveAspectRatio="xMidYMid meet">
-          {/* Grid */}
-          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-            <line key={f} x1={padX} y1={padY + innerH * f} x2={padX + innerW} y2={padY + innerH * f} stroke="#152238" strokeWidth={0.5} />
-          ))}
-          {/* Area */}
-          <path d={areaPath} fill="url(#lineAreaGrad)" opacity={0.3} />
-          {/* Line */}
-          <path d={linePath} fill="none" stroke="#2f7dff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-          {/* Dots */}
-          {points.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r={3} fill="#2f7dff" stroke="#0b1222" strokeWidth={1.5} />
-          ))}
-          {/* X labels */}
-          {data.filter((_, i) => i % 3 === 0).map((d, idx) => (
-            <text key={idx} x={padX + ((idx * 3) / (data.length - 1)) * innerW} y={h - 2} textAnchor="middle" fill="#65799b" fontSize={8}>
-              {d.label}
-            </text>
-          ))}
-          <defs>
-            <linearGradient id="lineAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2f7dff" stopOpacity={0.5} />
-              <stop offset="100%" stopColor="#2f7dff" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-        </svg>
+        {safeData.length === 0 ? (
+          <div className="flex h-[140px] items-center justify-center text-xs text-ink-faint">
+            No match data available
+          </div>
+        ) : (
+          <svg
+            viewBox={`0 0 ${w} ${h}`}
+            className="w-full"
+            preserveAspectRatio="xMidYMid meet"
+          >
+            {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+              <line
+                key={f}
+                x1={padX}
+                y1={padY + innerH * f}
+                x2={padX + innerW}
+                y2={padY + innerH * f}
+                stroke="#152238"
+                strokeWidth={0.5}
+              />
+            ))}
+
+            {areaPath && (
+              <path
+                d={areaPath}
+                fill="url(#lineAreaGrad)"
+                opacity={0.3}
+              />
+            )}
+
+            {linePath && (
+              <path
+                d={linePath}
+                fill="none"
+                stroke="#2f7dff"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            )}
+
+            {points.map((p, i) => (
+              <circle
+                key={i}
+                cx={p.x}
+                cy={p.y}
+                r={3}
+                fill="#2f7dff"
+                stroke="#0b1222"
+                strokeWidth={1.5}
+              />
+            ))}
+
+            {safeData
+              .filter((_, i) => i % 3 === 0)
+              .map((d, idx) => (
+                <text
+                  key={idx}
+                  x={
+                    safeData.length === 1
+                      ? padX + innerW / 2
+                      : padX +
+                        ((idx * 3) / (safeData.length - 1)) * innerW
+                  }
+                  y={h - 2}
+                  textAnchor="middle"
+                  fill="#65799b"
+                  fontSize={8}
+                >
+                  {d.label}
+                </text>
+              ))}
+
+            <defs>
+              <linearGradient
+                id="lineAreaGrad"
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
+                <stop
+                  offset="0%"
+                  stopColor="#2f7dff"
+                  stopOpacity={0.5}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="#2f7dff"
+                  stopOpacity={0}
+                />
+              </linearGradient>
+            </defs>
+          </svg>
+        )}
       </div>
     </Panel>
   );
