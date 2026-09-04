@@ -6,9 +6,17 @@ import { api, type RegistryCamera, type StreamStatusDto } from '@/services/api';
 import { toLiveFrameUrl, toLiveMjpegUrl } from '@/services/streams';
 import type { CameraStatus, Codec, LiveCamera, StreamQuality } from '@/types/liveView';
 
+/**
+ * Map a gateway stream state onto the console's existing `CameraStatus`.
+ *
+ * Accepts BOTH the internal worker states (LIVE/RECONNECTING/STOPPED…) and the
+ * Sentinel integrator availability vocabulary (ONLINE/CONNECTING/OFFLINE/ERROR)
+ * so either field can be passed without changing the existing UI.
+ */
 function mapState(state: string | undefined, fallback: CameraStatus): CameraStatus {
   switch ((state ?? '').toUpperCase()) {
     case 'LIVE':
+    case 'ONLINE':
       return 'online';
     case 'CONNECTING':
     case 'RECONNECTING':
@@ -92,12 +100,16 @@ export function mergeLiveCameras(
       const st = byId.get(id);
       const demo = allowDemo ? demoById.get(id) : undefined;
       const loc = splitLocation(cam?.location_name ?? id);
-      const live = st && ['LIVE', 'RECONNECTING', 'CONNECTING'].includes(st.state);
+      const live = st && ['LIVE', 'ONLINE', 'RECONNECTING', 'CONNECTING'].includes(
+        (st.availability ?? st.state).toUpperCase(),
+      );
       const res = st?.resolution || cam?.resolution || '1920x1080';
       // Trust the gateway's live state. Without a stream a registry camera is
       // OFF in production (demo fixtures may seed a cosmetic status only when
       // VITE_DEMO_MODE=true).
-      const status = mapState(st?.state, demo ? demo.status : 'offline');
+      // Prefer the backend's ONLINE/CONNECTING/OFFLINE/ERROR availability when
+      // present; fall back to the raw worker state for older backends.
+      const status = mapState(st?.availability ?? st?.state, demo ? demo.status : 'offline');
       const online = status === 'online';
       return {
         id,
@@ -177,13 +189,16 @@ export function useGatewayLiveCameras(tick: number) {
   const health = useMemo(() => {
     const states = { online: 0, reconnecting: 0, offline: 0, degraded: 0 };
     for (const s of streams) {
-      const u = s.state.toUpperCase();
-      if (u === 'LIVE') states.online += 1;
+      const u = (s.availability ?? s.state).toUpperCase();
+      if (u === 'LIVE' || u === 'ONLINE') states.online += 1;
       else if (u === 'RECONNECTING' || u === 'CONNECTING') states.reconnecting += 1;
       else if (u === 'ERROR') states.degraded += 1;
       else states.offline += 1;
     }
-    const live = streams.filter((s) => s.state === 'LIVE');
+    const live = streams.filter(
+      (s) => (s.availability ?? s.state).toUpperCase() === 'LIVE'
+        || (s.availability ?? s.state).toUpperCase() === 'ONLINE',
+    );
     const avgFps = live.length ? live.reduce((a, s) => a + (s.measured_fps || 0), 0) / live.length : 0;
     return { states, avgFps, liveCount: live.length, gatewayOnline: online };
   }, [streams, online]);

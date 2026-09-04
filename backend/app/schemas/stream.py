@@ -24,6 +24,11 @@ class StreamStatus(BaseModel):
     ai_height: int | None = None
     live_frame_path: str
     live_mjpeg_path: str
+    # Sentinel Grid additions (credential-free).
+    transport: str = "rtsp"
+    hls_configured: bool = False
+    availability: str = "OFFLINE"
+    hls_path: str | None = None
 
 
 class StreamActionResult(BaseModel):

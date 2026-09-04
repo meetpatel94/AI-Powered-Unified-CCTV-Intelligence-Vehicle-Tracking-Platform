@@ -41,6 +41,10 @@ export interface RegistryCamera {
   rtsp_configured: boolean;
   webrtc_configured: boolean;
   hls_configured: boolean;
+  /** Same-origin, credential-free playback paths served by this backend. */
+  hls_path?: string | null;
+  live_frame_path?: string | null;
+  live_mjpeg_path?: string | null;
 }
 
 export interface StreamStatusDto {
@@ -61,6 +65,12 @@ export interface StreamStatusDto {
   next_retry_in_s: number | null;
   live_frame_path: string;
   live_mjpeg_path: string;
+  /** Sentinel Grid: active input transport ("rtsp" | "hls"). */
+  transport?: string;
+  hls_configured?: boolean;
+  /** Dashboard availability: ONLINE | CONNECTING | OFFLINE | ERROR. */
+  availability?: string;
+  hls_path?: string | null;
 }
 
 /** Single request helper targeting the unified `/api` FastAPI base. */

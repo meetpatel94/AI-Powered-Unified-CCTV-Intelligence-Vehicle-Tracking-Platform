@@ -29,6 +29,10 @@ class CameraRead(BaseModel):
     rtsp_configured: bool = False
     webrtc_configured: bool = False
     hls_configured: bool = False
+    # Credential-free playback paths served by this backend.
+    hls_path: str | None = None
+    live_frame_path: str | None = None
+    live_mjpeg_path: str | None = None
     created_at: datetime
     updated_at: datetime
 

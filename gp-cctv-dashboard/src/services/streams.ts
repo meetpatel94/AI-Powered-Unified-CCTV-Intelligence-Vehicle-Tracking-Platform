@@ -22,6 +22,18 @@ export function toHlsUrl(cameraId: string): string {
   return `${STREAM_GATEWAY}/hls/${cameraId.toLowerCase()}/index.m3u8`;
 }
 
+/**
+ * Same-origin HLS proxy served by the FastAPI backend (Sentinel Grid).
+ *
+ * The backend fetches the Sentinel playlist server-side and rewrites its
+ * segment URIs onto this proxy, so the browser never sees the Sentinel origin,
+ * an RTSP URL, or any credential. Preferred over `toHlsUrl` when no external
+ * edge gateway is deployed.
+ */
+export function toBackendHlsUrl(cameraId: string): string {
+  return `${API_BASE}/streams/${encodeURIComponent(cameraId)}/hls/index.m3u8`;
+}
+
 /** WebRTC (WHEP) endpoint for sub-second latency (requires VITE_STREAM_GATEWAY). */
 export function toWhepUrl(cameraId: string): string {
   return `${STREAM_GATEWAY}/whep/${cameraId.toLowerCase()}`;

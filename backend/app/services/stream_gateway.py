@@ -98,6 +98,8 @@ _FATAL_MARKERS = (
 )
 
 
+# Dashboard-facing availability, per the Sentinel integrator contract:
+# ONLINE / CONNECTING / OFFLINE / ERROR.
 class StreamState(str, Enum):
     CONNECTING = "CONNECTING"
     LIVE = "LIVE"
@@ -105,6 +107,16 @@ class StreamState(str, Enum):
     OFFLINE = "OFFLINE"
     ERROR = "ERROR"
     STOPPED = "STOPPED"
+
+
+_AVAILABILITY = {
+    "LIVE": "ONLINE",
+    "CONNECTING": "CONNECTING",
+    "RECONNECTING": "CONNECTING",
+    "ERROR": "ERROR",
+    "OFFLINE": "OFFLINE",
+    "STOPPED": "OFFLINE",
+}
 
 
 @dataclass
@@ -130,6 +142,8 @@ class StreamSnapshot:
     jpeg_bytes: int = 0
     ai_width: int | None = None
     ai_height: int | None = None
+    transport: str = "rtsp"
+    hls_configured: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         data = {
@@ -153,6 +167,10 @@ class StreamSnapshot:
             "jpeg_bytes": self.jpeg_bytes,
             "ai_width": self.ai_width,
             "ai_height": self.ai_height,
+            "transport": self.transport,
+            "hls_configured": self.hls_configured,
+            "availability": _AVAILABILITY.get(self.state.value, "OFFLINE"),
+            "hls_path": f"/api/streams/{self.camera_id}/hls/index.m3u8",
             "live_frame_path": f"/api/streams/{self.camera_id}/frame.jpg",
             "live_mjpeg_path": f"/api/streams/{self.camera_id}/live",
         }
@@ -162,9 +180,14 @@ class StreamSnapshot:
 class CameraStreamWorker:
     """One FFmpeg process + reconnect loop per camera."""
 
-    def __init__(self, camera_id: str, rtsp_url: str) -> None:
+    def __init__(self, camera_id: str, rtsp_url: str, hls_url: str | None = None) -> None:
         self.camera_id = camera_id
         self._rtsp_url = rtsp_url
+        # Optional HLS playlist used as an automatic fallback when RTSP cannot
+        # be established (see _select_source). Never contains credentials.
+        self._hls_url = hls_url or None
+        self._active_transport = "rtsp"
+        self._consecutive_rtsp_failures = 0
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
@@ -215,8 +238,28 @@ class CameraStreamWorker:
             self.state = StreamState.STOPPED
         logger.info("stream.worker.stopped", camera_id=self.camera_id)
 
-    def update_url(self, rtsp_url: str) -> None:
+    def update_url(self, rtsp_url: str, hls_url: str | None = None) -> None:
         self._rtsp_url = rtsp_url
+        if hls_url is not None:
+            self._hls_url = hls_url or None
+
+    def _select_source(self) -> tuple[str, str]:
+        """Choose the input URL for the next FFmpeg session.
+
+        RTSP (TCP) is the primary AI/inference feed. After two consecutive
+        failed RTSP sessions we alternate to the HLS playlist when the
+        catalogue provides one, then retry RTSP again — so a temporarily
+        blocked RTSP port degrades to HLS instead of going dark.
+        """
+        if not self._rtsp_url and self._hls_url:
+            return self._hls_url, "hls"
+        if (
+            self._hls_url
+            and self._consecutive_rtsp_failures >= 2
+            and self._consecutive_rtsp_failures % 2 == 0
+        ):
+            return self._hls_url, "hls"
+        return self._rtsp_url, "rtsp"
 
     def restart(self) -> None:
         """Stop and restart the worker (operator-initiated camera restart).
@@ -272,6 +315,8 @@ class CameraStreamWorker:
                 jpeg_bytes=len(self._jpeg) if self._jpeg else 0,
                 ai_width=self.width,
                 ai_height=self.height,
+                transport=self._active_transport,
+                hls_configured=bool(self._hls_url),
             )
 
     def _set_state(self, state: StreamState) -> None:
@@ -307,8 +352,8 @@ class CameraStreamWorker:
     def _run_loop(self) -> None:
         attempt = 0
         while not self._stop.is_set():
-            if not self._rtsp_url:
-                self.last_error = "No RTSP URL on camera record"
+            if not self._rtsp_url and not self._hls_url:
+                self.last_error = "No RTSP or HLS URL on camera record"
                 self._set_state(StreamState.ERROR)
                 if self._stop.wait(5):
                     break
@@ -316,12 +361,37 @@ class CameraStreamWorker:
             attempt += 1
             self.reconnect_attempt = attempt
             self._set_state(StreamState.CONNECTING if attempt == 1 else StreamState.RECONNECTING)
+            logger.info(
+                "stream.connect.attempt",
+                camera_id=self.camera_id,
+                attempt=attempt,
+                ts=datetime.now(timezone.utc).isoformat(),
+            )
             ok = self._pump_once()
             if self._stop.is_set():
                 break
             if ok and self.frame_count > 0:
+                logger.info(
+                    "stream.connect.success",
+                    camera_id=self.camera_id,
+                    transport=self._active_transport,
+                    frames=self.frame_count,
+                    ts=datetime.now(timezone.utc).isoformat(),
+                )
                 attempt = 0
                 self.reconnect_attempt = 0
+                self._consecutive_rtsp_failures = 0
+            else:
+                if self._active_transport == "rtsp":
+                    self._consecutive_rtsp_failures += 1
+                logger.warning(
+                    "stream.connect.failure",
+                    camera_id=self.camera_id,
+                    transport=self._active_transport,
+                    attempt=attempt,
+                    last_error=self.last_error,
+                    ts=datetime.now(timezone.utc).isoformat(),
+                )
             delay = self._backoff(max(attempt, 1))
             self.next_retry_in_s = delay
             self._set_state(StreamState.RECONNECTING)
@@ -331,17 +401,39 @@ class CameraStreamWorker:
                 attempt=attempt,
                 delay_s=delay,
                 last_error=self.last_error,
+                ts=datetime.now(timezone.utc).isoformat(),
             )
             if self._stop.wait(delay):
                 break
         if not self._stop.is_set():
             self._set_state(StreamState.OFFLINE)
 
-    def _build_cmd(self) -> list[str]:
+    def _build_cmd(self, source_url: str, transport: str) -> list[str]:
         settings = get_settings()
         ffmpeg_bin = _resolve_ffmpeg(settings.ffmpeg_path)
         timeout_us = int(settings.stream_connect_timeout_seconds * 1_000_000)
         scale = f"scale='min({settings.stream_ai_max_width},iw)':-2"
+        # RTSP MUST use TCP (stream_rtsp_transport defaults to "tcp"); the HLS
+        # fallback is plain HTTP and takes no rtsp_transport flag.
+        transport_args = (
+            [
+                "-rtsp_transport",
+                settings.stream_rtsp_transport,
+                _ffmpeg_timeout_flag(ffmpeg_bin),
+                str(timeout_us),
+            ]
+            if transport == "rtsp"
+            else [
+                "-rw_timeout",
+                str(timeout_us),
+                "-reconnect",
+                "1",
+                "-reconnect_streamed",
+                "1",
+                "-reconnect_delay_max",
+                "5",
+            ]
+        )
         return [
             ffmpeg_bin,
             "-hide_banner",
@@ -349,16 +441,13 @@ class CameraStreamWorker:
             # report H.264 vs H.265 and source geometry; warnings still surface.
             "-loglevel",
             "info",
-            "-rtsp_transport",
-            settings.stream_rtsp_transport,
-            _ffmpeg_timeout_flag(ffmpeg_bin),
-            str(timeout_us),
+            *transport_args,
             "-fflags",
             "nobuffer+discardcorrupt",
             "-flags",
             "low_delay",
             "-i",
-            self._rtsp_url,
+            source_url,
             "-an",
             "-vf",
             scale,
@@ -383,15 +472,23 @@ class CameraStreamWorker:
             self._pending_pts_ms = None
         self._session_frame_total = 0
         self._input_locked = False
-        cmd = self._build_cmd()
+        source_url, transport = self._select_source()
+        self._active_transport = transport
+        cmd = self._build_cmd(source_url, transport)
         logged_cmd = cmd.copy()
-        # Never log the raw RTSP URL (may contain credentials).
+        # Never log the raw source URL (RTSP/WHEP may contain credentials).
         try:
-            idx = logged_cmd.index(self._rtsp_url)
-            logged_cmd[idx] = f"rtsp://***/{self.camera_id}"
+            idx = logged_cmd.index(source_url)
+            logged_cmd[idx] = f"{transport}://***/{self.camera_id}"
         except ValueError:
             pass
-        logger.info("stream.ffmpeg.spawn", camera_id=self.camera_id, cmd=logged_cmd)
+        logger.info(
+            "stream.ffmpeg.spawn",
+            camera_id=self.camera_id,
+            transport=transport,
+            cmd=logged_cmd,
+            ts=datetime.now(timezone.utc).isoformat(),
+        )
         try:
             self._proc = subprocess.Popen(
                 cmd,
@@ -629,19 +726,21 @@ class StreamGateway:
         with self._lock:
             return self._workers.get(camera_id)
 
-    def start(self, camera_id: str, rtsp_url: str) -> StreamSnapshot:
-        if not rtsp_url:
-            raise ValueError("Camera has no RTSP URL from the Sentinel catalogue")
+    def start(
+        self, camera_id: str, rtsp_url: str, hls_url: str | None = None
+    ) -> StreamSnapshot:
+        if not rtsp_url and not hls_url:
+            raise ValueError("Camera has no RTSP or HLS URL from the Sentinel catalogue")
         settings = get_settings()
         with self._lock:
             worker = self._workers.get(camera_id)
             if worker is None:
                 if len(self._workers) >= settings.stream_max_workers:
                     raise RuntimeError(f"Stream worker limit reached ({settings.stream_max_workers})")
-                worker = CameraStreamWorker(camera_id, rtsp_url)
+                worker = CameraStreamWorker(camera_id, rtsp_url, hls_url)
                 self._workers[camera_id] = worker
             else:
-                worker.update_url(rtsp_url)
+                worker.update_url(rtsp_url, hls_url)
         worker.start()
         return worker.snapshot()
 

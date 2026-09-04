@@ -32,6 +32,9 @@ def _camera_out(camera) -> CameraRead:
         rtsp_configured=bool(camera.rtsp_url),
         webrtc_configured=bool(camera.webrtc_url),
         hls_configured=bool(camera.hls_url),
+        hls_path=f"/api/streams/{camera.camera_id}/hls/index.m3u8" if camera.hls_url else None,
+        live_frame_path=f"/api/streams/{camera.camera_id}/frame.jpg",
+        live_mjpeg_path=f"/api/streams/{camera.camera_id}/live",
         created_at=camera.created_at,
         updated_at=camera.updated_at,
     )
