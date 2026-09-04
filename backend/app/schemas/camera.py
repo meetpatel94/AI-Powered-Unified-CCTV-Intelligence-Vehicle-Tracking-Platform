@@ -33,6 +33,9 @@ class CameraRead(BaseModel):
     hls_path: str | None = None
     live_frame_path: str | None = None
     live_mjpeg_path: str | None = None
+    # Backend-owned capability flag: True for seeded DEMO-CAM-* cameras served
+    # by the local demo playback feed (see app.services.demo_stream).
+    demo_playback: bool = False
     created_at: datetime
     updated_at: datetime
 

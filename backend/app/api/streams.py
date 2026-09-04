@@ -29,6 +29,7 @@ from app.schemas.stream import StreamActionResult, StreamStatus
 from app.services import audit as audit_service
 from app.services.auth import Principal
 from app.services.cameras import get_camera, list_cameras
+from app.services.demo_stream import demo_playback_available, demo_stream_status, is_demo_camera
 from app.services.stream_gateway import StreamState, gateway
 
 logger = structlog.get_logger(__name__)
@@ -61,6 +62,11 @@ def _status_or_idle(
     worker = gateway.get_worker(camera_id)
     if worker:
         return StreamStatus(**worker.snapshot().to_dict())
+    if demo_playback_available(camera_id):
+        # Seeded demo camera: no FFmpeg worker is ever created (its URLs are
+        # non-routable by design); the frontend plays the shared local demo
+        # feed through the same per-camera frame/MJPEG endpoints instead.
+        return StreamStatus(**demo_stream_status(camera_id))
     return StreamStatus(
         camera_id=camera_id,
         state=StreamState.OFFLINE.value,
@@ -118,6 +124,15 @@ def start_stream(
     camera = get_camera(db, camera_id)
     if camera is None:
         raise HTTPException(status_code=404, detail=f"Camera {camera_id} not found")
+    if is_demo_camera(camera_id):
+        # Demo cameras resolve to the shared local playback feed — spawning an
+        # FFmpeg worker against their non-routable demo-cctv.invalid URLs
+        # would only burn reconnect loops, so start is a worker-less no-op.
+        return StreamActionResult(
+            camera_id=camera_id,
+            action="demo-playback",
+            stream=StreamStatus(**demo_stream_status(camera_id)),
+        )
     if not camera.rtsp_url and not camera.hls_url:
         raise HTTPException(
             status_code=409,
@@ -192,6 +207,10 @@ async def hls_playlist(camera_id: str, db: Session = Depends(get_db)) -> Respons
     camera = get_camera(db, camera_id)
     if camera is None or not camera.hls_url:
         raise HTTPException(status_code=404, detail=f"No HLS source for {camera_id}")
+    if is_demo_camera(camera_id):
+        # Seeded demo HLS URLs are non-routable placeholders; demo playback is
+        # served through the frame.jpg / MJPEG endpoints instead.
+        raise HTTPException(status_code=404, detail=f"No HLS source for {camera_id}")
     try:
         body = await _sentinel_get(camera.hls_url)
     except httpx.HTTPError as exc:
@@ -227,6 +246,8 @@ async def hls_segment(camera_id: str, u: str, db: Session = Depends(get_db)) -> 
     camera = get_camera(db, camera_id)
     if camera is None or not camera.hls_url:
         raise HTTPException(status_code=404, detail=f"No HLS source for {camera_id}")
+    if is_demo_camera(camera_id):
+        raise HTTPException(status_code=404, detail=f"No HLS source for {camera_id}")
     # Only allow URLs under the camera's own Sentinel HLS origin.
     origin = camera.hls_url.rsplit("/", 1)[0]
     if not u.startswith(origin):
@@ -255,7 +276,9 @@ def live_frame(camera_id: str) -> Response:
 
 @router.get("/{camera_id}/live")
 async def live_mjpeg(camera_id: str) -> StreamingResponse:
-    if gateway.get_worker(camera_id) is None:
+    # Demo cameras have no FFmpeg worker by design; their MJPEG preview reads
+    # the shared local demo feed through the same per-camera endpoint.
+    if gateway.get_worker(camera_id) is None and not demo_playback_available(camera_id):
         raise HTTPException(status_code=404, detail=f"No active stream for {camera_id}")
 
     async def generate():

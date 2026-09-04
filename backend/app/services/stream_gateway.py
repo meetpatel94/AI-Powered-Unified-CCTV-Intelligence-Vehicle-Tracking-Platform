@@ -20,6 +20,7 @@ from typing import Any
 import structlog
 
 from app.core.config import get_settings
+from app.services.demo_stream import get_demo_frame
 
 logger = structlog.get_logger(__name__)
 
@@ -173,6 +174,8 @@ class StreamSnapshot:
             "hls_path": f"/api/streams/{self.camera_id}/hls/index.m3u8",
             "live_frame_path": f"/api/streams/{self.camera_id}/frame.jpg",
             "live_mjpeg_path": f"/api/streams/{self.camera_id}/live",
+            # Real FFmpeg-backed workers are never demo playback.
+            "demo_playback": False,
         }
         return data
 
@@ -772,7 +775,20 @@ class StreamGateway:
 
     def latest_jpeg(self, camera_id: str) -> bytes | None:
         worker = self.get_worker(camera_id)
-        return worker.latest_jpeg() if worker else None
+        if worker:
+            jpeg = worker.latest_jpeg()
+            if jpeg:
+                return jpeg
+        # Seeded DEMO-CAM-* cameras carry non-routable demo-cctv.invalid URLs
+        # so they never have a worker: serve the shared local demo playback
+        # frame instead. Real cameras are unaffected (returns None → 404).
+        return get_demo_frame(camera_id)
+
+    def demo_playback(self, camera_id: str) -> bool:
+        """True when ``camera_id`` is served by the local demo playback feed."""
+        from app.services.demo_stream import demo_playback_available
+
+        return demo_playback_available(camera_id)
 
 
 gateway = StreamGateway()

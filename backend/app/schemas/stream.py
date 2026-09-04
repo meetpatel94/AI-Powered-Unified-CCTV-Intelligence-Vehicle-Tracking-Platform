@@ -24,6 +24,11 @@ class StreamStatus(BaseModel):
     ai_height: int | None = None
     live_frame_path: str
     live_mjpeg_path: str
+    # Backend-owned capability flag: True when the camera is served by the
+    # local demo playback feed (seeded DEMO-CAM-* ids). The frontend shows
+    # demo video with a DEMO badge when True; the physical-camera health
+    # state above is intentionally left untouched.
+    demo_playback: bool = False
     # Sentinel Grid additions (credential-free).
     transport: str = "rtsp"
     hls_configured: bool = False

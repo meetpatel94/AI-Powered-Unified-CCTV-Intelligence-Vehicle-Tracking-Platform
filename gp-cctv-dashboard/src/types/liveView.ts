@@ -49,6 +49,12 @@ export interface LiveCamera {
   /** Latest JPEG from the stream gateway; polled by Live View. */
   liveFrameUrl?: string;
   gatewayState?: string;
+  /**
+   * True when this camera's video comes from the backend demo playback feed
+   * (API `demo_playback` flag). The UI badges these feeds DEMO; the status
+   * field still reflects the physical-camera stream/health state.
+   */
+  isDemoPlayback?: boolean;
   events: CameraEvent[];
 }
 

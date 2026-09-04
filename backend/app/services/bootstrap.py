@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models.camera import Camera
 from app.services.cameras import ingest_from_sentinel
+from app.services.demo_stream import is_demo_camera
 from app.services.sentinel import SentinelError
 from app.services.stream_gateway import gateway
 
@@ -46,6 +47,16 @@ def bootstrap_streams() -> None:
         for camera in cameras:
             if started >= limit:
                 break
+            if is_demo_camera(camera.camera_id):
+                # Seeded demo cameras resolve to the shared local playback feed
+                # (no FFmpeg worker); never auto-start workers against their
+                # non-routable demo-cctv.invalid URLs.
+                logger.info(
+                    "stream.bootstrap.demo_skipped",
+                    camera_id=camera.camera_id,
+                    reason="demo-playback (no worker required)",
+                )
+                continue
             try:
                 gateway.start(camera.camera_id, camera.rtsp_url, camera.hls_url)  # type: ignore[arg-type]
                 started += 1

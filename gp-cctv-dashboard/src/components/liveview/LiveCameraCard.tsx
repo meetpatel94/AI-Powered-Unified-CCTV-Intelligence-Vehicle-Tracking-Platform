@@ -11,6 +11,7 @@ import {
   ZoomIn,
 } from 'lucide-react';
 
+import { StreamPlayer } from '@/components/common/StreamPlayer';
 import { drift } from '@/hooks/useTelemetryTick';
 import type { DetectionBox, LiveCamera } from '@/types/liveView';
 
@@ -92,9 +93,14 @@ export function LiveCameraCard({
   onSelect,
   onToggleMute,
 }: LiveCameraCardProps) {
-  const chip = statusChip[camera.status];
+  // Demo playback feeds (API `demo_playback` flag) render real video through
+  // the backend MJPEG endpoint even though the physical camera is not online.
+  const demoPlayable = camera.isDemoPlayback === true && !!camera.liveFrameUrl;
+  const chip = demoPlayable && (camera.status === 'offline' || camera.status === 'reconnecting')
+    ? { label: 'DEMO', className: 'bg-[#f5b83d] text-black/85', dot: 'bg-black/70' }
+    : statusChip[camera.status];
   const isCritical = camera.status === 'critical';
-  const isDown = camera.status === 'offline' || camera.status === 'reconnecting';
+  const isDown = (camera.status === 'offline' || camera.status === 'reconnecting') && !demoPlayable;
   const liveFps = camera.fps ? drift(camera.fps, 0.6, `${camera.id}-fps`, tick, 1) : 0;
   const liveLatency = camera.latencyMs ? drift(camera.latencyMs, 18, `${camera.id}-lat`, tick) : 0;
 
@@ -112,7 +118,7 @@ export function LiveCameraCard({
     >
       {/* ---------- frame ---------- */}
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-black">
-        {camera.status === 'offline' ? (
+        {isDown ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[#080d16]">
             <div
               className="absolute inset-0 opacity-[0.18]"
@@ -127,13 +133,14 @@ export function LiveCameraCard({
           </div>
         ) : (
           <>
-            <img
-              src={camera.liveFrameUrl ?? camera.thumbnail}
-              alt={`${camera.id} ${camera.location}`}
-              className={`h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04] ${
+            <StreamPlayer
+              kind="mjpeg"
+              url={camera.liveFrameUrl ?? camera.thumbnail}
+              title={`${camera.id} ${camera.location}`}
+              demo={camera.isDemoPlayback === true}
+              mediaClassName={`transition-transform duration-700 group-hover:scale-[1.04] ${
                 camera.status === 'reconnecting' ? 'opacity-35 blur-[2px] grayscale' : 'opacity-95'
               }`}
-              loading="lazy"
             />
 
             {/* scanline + sweep texture */}
