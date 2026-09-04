@@ -45,6 +45,12 @@ export interface RegistryCamera {
   hls_path?: string | null;
   live_frame_path?: string | null;
   live_mjpeg_path?: string | null;
+  /**
+   * Backend-owned capability flag: true when the camera is served by the
+   * local demo playback feed (seeded DEMO-CAM-* ids). The UI shows demo
+   * video with a DEMO badge when true; physical-camera health is separate.
+   */
+  demo_playback?: boolean;
 }
 
 export interface StreamStatusDto {

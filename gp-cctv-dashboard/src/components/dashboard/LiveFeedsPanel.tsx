@@ -1,22 +1,27 @@
 import { Camera, Maximize2, Scan, Video, VideoOff } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
+import { StreamPlayer } from '@/components/common/StreamPlayer';
 import { useGatewayLiveCameras } from '@/hooks/useGatewayLiveCameras';
 import { useTelemetryTick } from '@/hooks/useTelemetryTick';
 import type { LiveCamera } from '@/types/liveView';
 
 function FeedTile({ feed }: { feed: LiveCamera }) {
   const title = feed.city ? `${feed.id} | ${feed.location}, ${feed.city}` : `${feed.id} | ${feed.location}`;
+  // Playable = gateway-live stream OR backend demo playback feed (DEMO badge).
+  // The stream URL itself always comes from the API via useGatewayLiveCameras.
   const online = feed.status === 'online' && !!feed.liveFrameUrl;
+  const playable = !!feed.liveFrameUrl && (online || feed.isDemoPlayback === true);
 
   return (
     <figure className="group relative grid min-h-[110px] overflow-hidden rounded-[5px] border border-edge-soft bg-black">
-      {online ? (
-        <img
-          src={feed.liveFrameUrl ?? feed.thumbnail}
-          alt={title}
-          className="h-full w-full object-cover opacity-95 transition-transform duration-500 group-hover:scale-[1.03]"
-          loading="lazy"
+      {playable ? (
+        <StreamPlayer
+          kind="mjpeg"
+          url={feed.liveFrameUrl ?? null}
+          title={title}
+          demo={feed.isDemoPlayback === true}
+          mediaClassName="opacity-95 transition-transform duration-500 group-hover:scale-[1.03]"
         />
       ) : (
         <div className="grid h-full min-h-[110px] place-items-center bg-[#050914] text-center">
@@ -32,13 +37,13 @@ function FeedTile({ feed }: { feed: LiveCamera }) {
         <figcaption className="max-w-[82%] truncate text-[10px] font-medium text-white/95 drop-shadow">
           {title}
         </figcaption>
-        <span className={`flex items-center gap-1 rounded-[2px] px-1 py-px text-[9.5px] font-bold uppercase tracking-wide ${online ? 'bg-accent-green text-black/85' : 'bg-slate-600 text-white/85'}`}>
-          <span className={`h-1 w-1 rounded-full ${online ? 'bg-black/70 animate-pulse-dot' : 'bg-white/70'}`} />
-          {online ? 'Live' : feed.status === 'reconnecting' ? 'Connecting' : 'Offline'}
+        <span className={`flex items-center gap-1 rounded-[2px] px-1 py-px text-[9.5px] font-bold uppercase tracking-wide ${playable ? 'bg-accent-green text-black/85' : 'bg-slate-600 text-white/85'}`}>
+          <span className={`h-1 w-1 rounded-full ${playable ? 'bg-black/70 animate-pulse-dot' : 'bg-white/70'}`} />
+          {feed.isDemoPlayback && playable ? 'Demo' : playable ? 'Live' : feed.status === 'reconnecting' ? 'Connecting' : 'Offline'}
         </span>
       </div>
 
-      {online && (
+      {playable && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-0 transition-opacity group-hover:opacity-100">
           <div className="h-6 w-full bg-gradient-to-b from-transparent via-cyan-300/15 to-transparent animate-sweep" />
         </div>

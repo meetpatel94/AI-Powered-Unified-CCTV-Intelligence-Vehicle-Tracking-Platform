@@ -55,6 +55,89 @@ export function toLiveMjpegUrl(cameraId: string): string {
   return `${API_BASE}/streams/${encodeURIComponent(cameraId)}/live`;
 }
 
+/* ------------------------------------------------------------------ *
+ * Centralized stream-source resolution.
+ *
+ * This is the ONLY place that decides which browser-compatible stream URL
+ * a camera plays. Dashboard, Live View and the selected-camera panel all
+ * resolve through here — no component sniffs camera ids or hard-codes
+ * stream URLs.
+ *
+ * The decision is driven by backend/API fields (`demo_playback` capability
+ * flag + the credential-free `live_*_path` / `hls_path` playback paths),
+ * never by frontend id prefix checks or hard-coded hosts/ports:
+ *
+ * - Demo-playback cameras (backend `demo_playback: true`) play the shared
+ *   local demo feed through their own per-camera MJPEG endpoint and are
+ *   flagged `isDemoPlayback` so the UI can badge them DEMO. Their
+ *   physical-camera health/availability state is left untouched.
+ * - Real cameras play the live gateway MJPEG endpoint when the gateway
+ *   reports a live/connecting stream, exactly as before.
+ * - Anything else resolves to `kind: 'none'` and the caller renders the
+ *   existing NO STREAM / SIGNAL LOST state (never throws, never a broken
+ *   player element).
+ * ------------------------------------------------------------------ */
+
+export type PlaybackKind = 'mjpeg' | 'hls' | 'none';
+
+export interface PlaybackSource {
+  kind: PlaybackKind;
+  /** Browser-compatible stream URL (MJPEG/HLS) — null when unplayable. */
+  url: string | null;
+  /** Still-frame URL for thumbnails/snapshots. */
+  frameUrl: string;
+  /** True when served by the backend demo playback feed (badge as DEMO). */
+  isDemoPlayback: boolean;
+  /** Same-origin HLS playlist when the backend provides one (real cameras). */
+  hlsUrl: string | null;
+}
+
+interface PlaybackInputs {
+  cameraId: string;
+  registry?: {
+    live_frame_path?: string | null;
+    live_mjpeg_path?: string | null;
+    hls_path?: string | null;
+    demo_playback?: boolean;
+  } | null;
+  stream?: {
+    state?: string;
+    availability?: string;
+    live_frame_path?: string;
+    live_mjpeg_path?: string;
+    hls_path?: string | null;
+    demo_playback?: boolean;
+  } | null;
+  frameBust?: number;
+}
+
+const LIVE_STATES = new Set(['LIVE', 'ONLINE', 'RECONNECTING', 'CONNECTING']);
+
+export function resolvePlaybackSource(inputs: PlaybackInputs): PlaybackSource {
+  const { cameraId, registry, stream, frameBust } = inputs;
+  const mjpegUrl =
+    stream?.live_mjpeg_path ?? registry?.live_mjpeg_path ?? toLiveMjpegUrl(cameraId);
+  const frameUrl =
+    stream?.live_frame_path ??
+    registry?.live_frame_path ??
+    toLiveFrameUrl(cameraId, frameBust);
+  const hlsUrl = stream?.hls_path ?? registry?.hls_path ?? null;
+  const isDemoPlayback = stream?.demo_playback === true || registry?.demo_playback === true;
+
+  // Demo playback resolves purely on the backend capability flag — playable
+  // even though the physical camera health state stays non-online.
+  if (isDemoPlayback) {
+    return { kind: 'mjpeg', url: mjpegUrl, frameUrl, isDemoPlayback: true, hlsUrl };
+  }
+
+  const live = !!stream && LIVE_STATES.has((stream.availability ?? stream.state ?? '').toUpperCase());
+  if (live) {
+    return { kind: 'mjpeg', url: mjpegUrl, frameUrl, isDemoPlayback: false, hlsUrl };
+  }
+
+  return { kind: 'none', url: null, frameUrl, isDemoPlayback: false, hlsUrl };
+}
+
 /** True when an external WebRTC/HLS edge gateway is configured for preview. */
 export function hasEdgeGateway(): boolean {
   return STREAM_GATEWAY.length > 0;

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DEMO_MODE } from '@/config';
 import { liveCameras as demoLiveCameras } from '@/data/liveViewData';
 import { api, type RegistryCamera, type StreamStatusDto } from '@/services/api';
-import { toLiveFrameUrl, toLiveMjpegUrl } from '@/services/streams';
+import { resolvePlaybackSource } from '@/services/streams';
 import type { CameraStatus, Codec, LiveCamera, StreamQuality } from '@/types/liveView';
 
 /**
@@ -100,9 +100,9 @@ export function mergeLiveCameras(
       const st = byId.get(id);
       const demo = allowDemo ? demoById.get(id) : undefined;
       const loc = splitLocation(cam?.location_name ?? id);
-      const live = st && ['LIVE', 'ONLINE', 'RECONNECTING', 'CONNECTING'].includes(
-        (st.availability ?? st.state).toUpperCase(),
-      );
+      // Single centralized stream-source resolution (services/streams.ts):
+      // the backend decides demo-vs-real and hands us the playable URL.
+      const playback = resolvePlaybackSource({ cameraId: id, registry: cam, stream: st, frameBust: tick });
       const res = st?.resolution || cam?.resolution || '1920x1080';
       // Trust the gateway's live state. Without a stream a registry camera is
       // OFF in production (demo fixtures may seed a cosmetic status only when
@@ -110,15 +110,16 @@ export function mergeLiveCameras(
       // Prefer the backend's ONLINE/CONNECTING/OFFLINE/ERROR availability when
       // present; fall back to the raw worker state for older backends.
       const status = mapState(st?.availability ?? st?.state, demo ? demo.status : 'offline');
-      const online = status === 'online';
+      const playable = playback.kind !== 'none' && playback.url != null;
       return {
         id,
         location: loc.location,
         city: loc.city,
         zone: cam?.department ?? 'Command',
         department: cam?.department ?? 'Gujarat Police',
-        thumbnail: live || online ? toLiveMjpegUrl(id) : toLiveFrameUrl(id, tick),
-        liveFrameUrl: live ? toLiveMjpegUrl(id) : undefined,
+        thumbnail: playable && playback.url ? playback.url : playback.frameUrl,
+        liveFrameUrl: playable && playback.url ? playback.url : undefined,
+        isDemoPlayback: playback.isDemoPlayback,
         gatewayState: st?.state,
         status,
         quality: qualityFromRes(res),

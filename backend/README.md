@@ -86,6 +86,33 @@ For a fully offline demo (mock Sentinel + synthetic RTSP + API):
 python devtools/run_demo.py
 ```
 
+### Local demo playback for seeded `DEMO-CAM-*` cameras
+
+The seeded demo cameras (`scripts/seed_demo_data.py`) intentionally carry
+non-routable `demo-cctv.invalid` stream URLs, so the FFmpeg gateway can never
+pull them. `app/services/demo_stream.py` resolves those ids **server-side**
+to one shared, locally generated synthetic motion feed (Pillow, no FFmpeg,
+no network, no database video storage):
+
+* `GET /api/cameras` and `GET /api/streams` expose a backend-owned
+  `demo_playback: true` capability flag plus the usual per-camera
+  `live_frame_path` / `live_mjpeg_path` endpoints. The frontend plays those
+  URLs and badges the tiles DEMO.
+* No FFmpeg worker is ever spawned for a demo camera (bootstrap, start,
+  restart and refresh are worker-less no-ops returning the demo status), so
+  `camera_health_status` keeps reporting the seeded physical-camera states —
+  demo playability never fakes a camera online.
+* The producer is a single daemon thread no matter how many demo cameras or
+  viewers are active; it starts lazily on the first demo request and needs
+  no separate startup command — just run the API:
+
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+Real cameras (`camNN` Sentinel fleet and everything else) are unaffected:
+they keep flowing through RTSP → FFmpeg → MJPEG/HLS exactly as before.
+
 ## Endpoints (v0.2.0 — 14 routers)
 
 | Area | Method + Path | Description |

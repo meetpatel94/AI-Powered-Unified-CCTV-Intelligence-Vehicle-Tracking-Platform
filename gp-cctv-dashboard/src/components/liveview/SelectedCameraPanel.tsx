@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { Panel } from '@/components/common/Panel';
+import { StreamPlayer } from '@/components/common/StreamPlayer';
 import { drift } from '@/hooks/useTelemetryTick';
 import type { LiveCamera } from '@/types/liveView';
 
@@ -61,7 +62,10 @@ function Metric({
 /** Deep-dive readout for whichever tile the operator has selected. */
 export function SelectedCameraPanel({ camera, clock, tick }: SelectedCameraPanelProps) {
   const tone = statusTone[camera.status];
-  const isDown = camera.status === 'offline' || camera.status === 'reconnecting';
+  // Demo playback feeds show real video (badged DEMO) even though the
+  // physical camera is not online — playability ≠ camera health.
+  const demoPlayable = camera.isDemoPlayback === true && !!camera.liveFrameUrl;
+  const isDown = (camera.status === 'offline' || camera.status === 'reconnecting') && !demoPlayable;
   const liveFps = camera.fps ? drift(camera.fps, 0.5, `${camera.id}-sel-fps`, tick, 1) : 0;
   const liveLatency = camera.latencyMs ? drift(camera.latencyMs, 14, `${camera.id}-sel-lat`, tick) : 0;
   const liveBitrate = camera.bitrateMbps ? drift(camera.bitrateMbps, 0.3, `${camera.id}-br`, tick, 1) : 0;
@@ -79,13 +83,19 @@ export function SelectedCameraPanel({ camera, clock, tick }: SelectedCameraPanel
     >
       {/* preview */}
       <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[4px] border border-edge-soft bg-black">
-        {camera.status === 'offline' ? (
+        {isDown ? (
           <div className="grid h-full place-items-center text-[13px] font-semibold tracking-wider text-accent-red/90">
             SIGNAL LOST
           </div>
         ) : (
           <>
-            <img src={camera.liveFrameUrl ?? camera.thumbnail} alt={camera.id} className="h-full w-full object-cover opacity-95" />
+            <StreamPlayer
+              kind="mjpeg"
+              url={camera.liveFrameUrl ?? camera.thumbnail}
+              title={camera.id}
+              demo={camera.isDemoPlayback === true}
+              mediaClassName="opacity-95"
+            />
             {camera.detections
               .filter((d) => d.kind === 'anpr')
               .map((d) => (
@@ -101,9 +111,9 @@ export function SelectedCameraPanel({ camera, clock, tick }: SelectedCameraPanel
               ))}
             <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-1.5 pb-3 pt-1">
               <span className="text-[13px] font-bold text-white">{camera.id}</span>
-              <span className="flex items-center gap-1 rounded-[2px] bg-accent-green px-1.5 py-px text-[11px] font-bold text-black/85">
+              <span className={`flex items-center gap-1 rounded-[2px] px-1.5 py-px text-[11px] font-bold text-black/85 ${demoPlayable ? 'bg-[#f5b83d]' : 'bg-accent-green'}`}>
                 <span className="h-1 w-1 rounded-full bg-black/70 animate-pulse-dot" />
-                LIVE
+                {demoPlayable ? 'DEMO' : 'LIVE'}
               </span>
             </div>
             <div className="tnum absolute bottom-1 right-1.5 text-[12px] text-white/80">{clock}</div>
