@@ -1,13 +1,29 @@
 """Local demo playback feed for ``DEMO-CAM-*`` registry cameras.
 
-Why this module exists
----------------------
+STATUS: DEVELOPMENT / TEST-ONLY MODULE
+--------------------------------------
+This module is retained for automated tests (``tests/test_demo_stream.py``)
+and local development tooling only. Since the production live-camera flow
+was switched to the REAL Sentinel CCTV HLS source, **no production API path
+serves these frames any more**:
+
+* ``StreamGateway.latest_jpeg()`` returns ``None`` for cameras without a live
+  FFmpeg worker — it never falls back to :func:`get_demo_frame`.
+* ``GET /api/streams/{id}/frame.jpg`` and ``GET /api/streams/{id}/live``
+  answer a truthful 404 for cameras without a worker (including every
+  ``DEMO-CAM-*`` row).
+* ``GET /api/streams`` / ``GET /api/cameras`` only expose ``demo_playback``
+  as a marker flag so clients can EXCLUDE seeded demo rows from the
+  production live wall — never as a playability flag.
+
+Why this module exists (historical / dev background)
+----------------------------------------------------
 The seeded demo cameras (``scripts/seed_demo_data.py``) intentionally carry
 non-routable stream URLs on the RFC-2606 reserved host ``demo-cctv.invalid``,
 so the FFmpeg stream gateway can never pull frames for them — and browsers
-cannot play RTSP directly anyway. Rather than touching the seeded database
-rows (which must stay byte-identical), this module resolves demo cameras
-**server-side** to one shared, locally-generated synthetic motion feed.
+cannot play RTSP directly anyway. This module resolves demo cameras
+**server-side** to one shared, locally-generated synthetic motion feed that
+dev tooling (and only dev tooling) may use.
 
 Architecture (production-shaped, offline-capable)
 ------------------------------------------------
@@ -19,13 +35,7 @@ Architecture (production-shaped, offline-capable)
   RTSP → FFmpeg → MJPEG/HLS path untouched.
 * One daemon producer thread renders synthetic CCTV motion frames (Pillow —
   already a runtime dependency) at a modest frame rate into a single shared
-  in-memory JPEG buffer. All 25 demo cameras reuse that buffer through their
-  own per-camera logical endpoints (``/api/streams/{id}/frame.jpg`` and
-  ``/api/streams/{id}/live``), so there is **no** 25-way FFmpeg fan-out and
-  **no** FFmpeg process is ever spawned for a demo camera.
-* No gateway worker is created for demo cameras, so the camera-health
-  monitor keeps reporting the seeded physical-camera states (LIVE/DEGRADED/
-  OFFLINE/…) and demo playability never rewrites ``camera_health_status``.
+  in-memory JPEG buffer.
 * No network access is required (loopback-only, no external hosts) and no
   new environment variables or database columns are needed.
 
@@ -86,11 +96,12 @@ def pillow_available() -> bool:
 
 
 def demo_playback_available(camera_id: str | None) -> bool:
-    """True when ``camera_id`` can be served by the local demo playback feed.
+    """True when ``camera_id`` belongs to the seeded demo dataset.
 
-    This is the backend-owned capability flag surfaced to the frontend as
-    ``demo_playback`` on the camera / stream API payloads, so React never
-    has to sniff camera ids or hard-code stream URLs itself.
+    Surfaced to clients as the ``demo_playback`` marker flag on the camera /
+    stream API payloads so React can EXCLUDE those rows from the production
+    live wall. It is no longer a playability flag: no production endpoint
+    serves the synthetic frames (see the module docstring).
     """
     return is_demo_camera(camera_id) and _PIL_OK
 
@@ -275,11 +286,13 @@ def get_demo_frame(camera_id: str | None) -> bytes | None:
 
 
 def demo_stream_status(camera_id: str) -> dict[str, Any]:
-    """API-facing playback descriptor for a demo camera (no DB, no worker).
+    """DEV/TEST-ONLY descriptor for a demo camera (no DB, no worker).
 
-    Mirrors the ``StreamStatus`` payload shape for the fields the frontend
-    resolver needs; real stream statistics stay zeroed because no physical
-    stream exists — only local demo playback.
+    Mirrors the ``StreamStatus`` payload shape for dev tooling and the
+    demo module's unit tests. No production API path returns this payload
+    any more — the live-camera flow serves only real Sentinel/gateway
+    streams. Real stream statistics stay zeroed because no physical stream
+    exists.
     """
     stats = producer.stats()
     return {
@@ -309,8 +322,8 @@ def demo_stream_status(camera_id: str) -> dict[str, Any]:
         "hls_configured": False,
         "availability": "OFFLINE",
         "hls_path": None,
-        # Backend-owned capability flag: the frontend shows demo playback
-        # (with a DEMO badge) when this is True, without changing the
-        # physical-camera health state above.
+        # Marker flag (dev/test payloads only): identifies a seeded demo row.
+        # Production APIs expose the same field only as an exclusion marker —
+        # it never grants demo playback on the live path.
         "demo_playback": True,
     }

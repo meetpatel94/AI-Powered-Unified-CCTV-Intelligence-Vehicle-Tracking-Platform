@@ -62,10 +62,12 @@ function Metric({
 /** Deep-dive readout for whichever tile the operator has selected. */
 export function SelectedCameraPanel({ camera, clock, tick }: SelectedCameraPanelProps) {
   const tone = statusTone[camera.status];
-  // Demo playback feeds show real video (badged DEMO) even though the
-  // physical camera is not online — playability ≠ camera health.
-  const demoPlayable = camera.isDemoPlayback === true && !!camera.liveFrameUrl;
-  const isDown = (camera.status === 'offline' || camera.status === 'reconnecting') && !demoPlayable;
+  // Playback kind comes from the centralized resolver (via
+  // useGatewayLiveCameras): 'hls' plays the real Sentinel HLS stream through
+  // the backend proxy; the thumbnail fallback keeps dev-mode fixtures working.
+  const playbackKind = camera.playbackKind ?? (camera.thumbnail ? 'mjpeg' : 'none');
+  const playable = playbackKind !== 'none' && !!camera.liveFrameUrl;
+  const isDown = (camera.status === 'offline' || camera.status === 'reconnecting') && !playable;
   const liveFps = camera.fps ? drift(camera.fps, 0.5, `${camera.id}-sel-fps`, tick, 1) : 0;
   const liveLatency = camera.latencyMs ? drift(camera.latencyMs, 14, `${camera.id}-sel-lat`, tick) : 0;
   const liveBitrate = camera.bitrateMbps ? drift(camera.bitrateMbps, 0.3, `${camera.id}-br`, tick, 1) : 0;
@@ -90,10 +92,9 @@ export function SelectedCameraPanel({ camera, clock, tick }: SelectedCameraPanel
         ) : (
           <>
             <StreamPlayer
-              kind="mjpeg"
+              kind={playbackKind}
               url={camera.liveFrameUrl ?? camera.thumbnail}
               title={camera.id}
-              demo={camera.isDemoPlayback === true}
               mediaClassName="opacity-95"
             />
             {camera.detections
@@ -111,9 +112,9 @@ export function SelectedCameraPanel({ camera, clock, tick }: SelectedCameraPanel
               ))}
             <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-1.5 pb-3 pt-1">
               <span className="text-[13px] font-bold text-white">{camera.id}</span>
-              <span className={`flex items-center gap-1 rounded-[2px] px-1.5 py-px text-[11px] font-bold text-black/85 ${demoPlayable ? 'bg-[#f5b83d]' : 'bg-accent-green'}`}>
+              <span className={`flex items-center gap-1 rounded-[2px] px-1.5 py-px text-[11px] font-bold text-black/85 ${playable ? 'bg-accent-green' : 'bg-slate-600 text-white/85'}`}>
                 <span className="h-1 w-1 rounded-full bg-black/70 animate-pulse-dot" />
-                {demoPlayable ? 'DEMO' : 'LIVE'}
+                {playable ? 'LIVE' : 'OFFLINE'}
               </span>
             </div>
             <div className="tnum absolute bottom-1 right-1.5 text-[12px] text-white/80">{clock}</div>

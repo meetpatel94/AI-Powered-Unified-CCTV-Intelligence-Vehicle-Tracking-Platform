@@ -33,8 +33,10 @@ class CameraRead(BaseModel):
     hls_path: str | None = None
     live_frame_path: str | None = None
     live_mjpeg_path: str | None = None
-    # Backend-owned capability flag: True for seeded DEMO-CAM-* cameras served
-    # by the local demo playback feed (see app.services.demo_stream).
+    # Backend-owned marker: True for seeded DEMO-CAM-* registry rows so
+    # clients can EXCLUDE them from the production live-camera flow. It is
+    # NOT a playability flag — live video comes only from the real Sentinel
+    # HLS proxy / gateway endpoints above (see app.services.demo_stream).
     demo_playback: bool = False
     created_at: datetime
     updated_at: datetime

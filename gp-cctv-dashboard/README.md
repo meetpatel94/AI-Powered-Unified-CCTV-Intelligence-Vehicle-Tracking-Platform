@@ -237,7 +237,7 @@ change.
 | --- | --- |
 | `services/api.ts` | Typed REST client for all 14 backend routers (watchlist, alerts, evidence, GIS, camera health, investigation, dashboard/analytics, auth) with `authHeaders()` bearer-token injection |
 | `services/realtime.ts` | WebSocket channel (`/api/ws`) for `alert:new`, `alert:update`, `watchlist:match`, `camera:health`, `camera:state`, `anpr:hit` — auto-appends `?token=` when a JWT is stored |
-| `services/streams.ts` | Live-frame/MJPEG URL helpers for thumbnails (`toLiveFrameUrl`) |
+| `services/streams.ts` | Centralized playback resolver + URL helpers: real cameras play the backend HLS proxy (`hls_path` → Sentinel `index.m3u8`), gateway MJPEG is the fallback, seeded demo rows are never playable; also `toLiveFrameUrl` thumbnails |
 | `hooks/useIntelligence.ts` | The integration layer: DTO → UI-type mappers + polling/WS hooks for every screen (KPIs, recent alerts, health donut, journey timeline, alerts console, watchlist console + CRUD, health fleet, GIS cameras/route, analytics snapshot, investigation dossier + case filing, users/roles) |
 
 Wired screens: **Dashboard** (KPI strip, alert rail, health donut, journey
@@ -267,10 +267,16 @@ route and decks are unchanged.
    endpoints already exist) and add a login screen for `AUTH_ENABLED=true` mode
    (`api.login` / `storeAccessToken` are ready).
 2. Introduce TanStack Query wrapping `services/api.ts`, then delete the mock imports.
-3. Replace wall thumbnails with `<video>` + `hls.js` / WebRTC using `toHlsUrl(camera.id)`
-   or `toWhepUrl(camera.id)` — `LiveCamera.streamUrl` already carries the RTSP source.
-4. Build the next module (Vehicle Search or Reports) and flip its `available` flag in
+3. Build the next module (Vehicle Search or Reports) and flip its `available` flag in
    `data/mockData.ts` to make the sidebar item routable.
+
+> Live wall video is already real: `StreamPlayer` plays each camera's
+> backend-provided `hls_path` (`/api/streams/{id}/hls/index.m3u8`, which the
+> backend resolves to the camera's actual Sentinel `index.m3u8`) through
+> `hls.js` (native HLS on Safari), with the gateway MJPEG preview as
+> fallback. Seeded `DEMO-CAM-*` registry rows are excluded from the wall by
+> the backend `demo_playback` marker — the dashboard never plays a synthetic
+> demo feed.
 
 ---
 

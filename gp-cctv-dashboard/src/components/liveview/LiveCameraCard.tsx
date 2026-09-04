@@ -93,14 +93,17 @@ export function LiveCameraCard({
   onSelect,
   onToggleMute,
 }: LiveCameraCardProps) {
-  // Demo playback feeds (API `demo_playback` flag) render real video through
-  // the backend MJPEG endpoint even though the physical camera is not online.
-  const demoPlayable = camera.isDemoPlayback === true && !!camera.liveFrameUrl;
-  const chip = demoPlayable && (camera.status === 'offline' || camera.status === 'reconnecting')
-    ? { label: 'DEMO', className: 'bg-[#f5b83d] text-black/85', dot: 'bg-black/70' }
-    : statusChip[camera.status];
+  // Playback kind comes from the centralized resolver (via
+  // useGatewayLiveCameras) — 'hls' plays the real Sentinel HLS stream
+  // through the backend proxy. The thumbnail fallback keeps the bundled
+  // dev-mode fixtures rendering.
+  const playbackKind = camera.playbackKind ?? (camera.thumbnail ? 'mjpeg' : 'none');
+  const playable = playbackKind !== 'none' && !!camera.liveFrameUrl;
+  const chip = statusChip[camera.status];
   const isCritical = camera.status === 'critical';
-  const isDown = (camera.status === 'offline' || camera.status === 'reconnecting') && !demoPlayable;
+  // A camera with no playable source and an offline/reconnecting gateway
+  // state renders the SIGNAL LOST state.
+  const isDown = (camera.status === 'offline' || camera.status === 'reconnecting') && !playable;
   const liveFps = camera.fps ? drift(camera.fps, 0.6, `${camera.id}-fps`, tick, 1) : 0;
   const liveLatency = camera.latencyMs ? drift(camera.latencyMs, 18, `${camera.id}-lat`, tick) : 0;
 
@@ -134,10 +137,9 @@ export function LiveCameraCard({
         ) : (
           <>
             <StreamPlayer
-              kind="mjpeg"
+              kind={playbackKind}
               url={camera.liveFrameUrl ?? camera.thumbnail}
               title={`${camera.id} ${camera.location}`}
-              demo={camera.isDemoPlayback === true}
               mediaClassName={`transition-transform duration-700 group-hover:scale-[1.04] ${
                 camera.status === 'reconnecting' ? 'opacity-35 blur-[2px] grayscale' : 'opacity-95'
               }`}
@@ -216,7 +218,7 @@ export function LiveCameraCard({
         )}
 
         {/* ---------- bottom HUD ---------- */}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-1.5 pb-1 pt-5">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/45 to-transparent px-1.5 pb-1 pt-5">
           <div className="mb-[3px] flex items-center justify-between gap-1 text-[9.5px] text-white/75">
             <span className="tnum flex items-center gap-1.5">
               <span className={isDown ? 'text-accent-red' : 'text-accent-green'}>{camera.quality}</span>
@@ -227,7 +229,7 @@ export function LiveCameraCard({
             <span className="tnum">{clock}</span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="pointer-events-auto flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-white/65">
               <IconButton label="Fullscreen">
                 <Maximize2 size={10} strokeWidth={2.2} />

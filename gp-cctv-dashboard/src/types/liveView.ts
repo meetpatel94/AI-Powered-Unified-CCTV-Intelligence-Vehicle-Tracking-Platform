@@ -48,11 +48,18 @@ export interface LiveCamera {
   streamUrl: string;
   /** Latest JPEG from the stream gateway; polled by Live View. */
   liveFrameUrl?: string;
+  /**
+   * Browser-compatible playback kind resolved by `resolvePlaybackSource`
+   * ('hls' = backend Sentinel HLS proxy, 'mjpeg' = gateway preview,
+   * 'none' = no playable stream). Drives which `<StreamPlayer>` branch
+   * renders; undefined falls back to the legacy thumbnail <img>.
+   */
+  playbackKind?: import('@/services/streams').PlaybackKind;
   gatewayState?: string;
   /**
-   * True when this camera's video comes from the backend demo playback feed
-   * (API `demo_playback` flag). The UI badges these feeds DEMO; the status
-   * field still reflects the physical-camera stream/health state.
+   * True when the backend marked this camera as a seeded DEMO-CAM-* row.
+   * Exclusion marker only — such cameras are filtered out of the live wall
+   * and never receive a playable stream.
    */
   isDemoPlayback?: boolean;
   events: CameraEvent[];
