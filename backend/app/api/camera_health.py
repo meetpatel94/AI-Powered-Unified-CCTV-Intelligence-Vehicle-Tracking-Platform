@@ -17,10 +17,35 @@ from app.services import audit as audit_service
 from app.services import camera_health as health_service
 from app.services.auth import Principal
 from app.services.cameras import get_camera
-from app.services.demo_stream import demo_stream_status, is_demo_camera
-from app.services.stream_gateway import gateway
+from app.services.demo_stream import is_demo_camera
+from app.services.stream_gateway import StreamState, gateway
 
 router = APIRouter(prefix="/api/cameras", tags=["camera-health"])
+
+
+def _demo_control_noop(camera_id: str, camera) -> StreamActionResult:
+    """Worker-less no-op for seeded demo cameras (camera-health controls).
+
+    Demo rows carry non-routable ``demo-cctv.invalid`` URLs, so restart /
+    refresh never spawn an FFmpeg worker. The returned status is the honest
+    OFFLINE one (marked ``demo_playback``) — no synthetic/demo stream is ever
+    advertised on the production path.
+    """
+    return StreamActionResult(
+        camera_id=camera_id,
+        action="demo-playback",
+        stream=StreamStatus(
+            camera_id=camera_id,
+            state=StreamState.OFFLINE.value,
+            rtsp_configured=bool(camera.rtsp_url),
+            hls_configured=False,
+            availability="OFFLINE",
+            hls_path=None,
+            live_frame_path=f"/api/streams/{camera_id}/frame.jpg",
+            live_mjpeg_path=f"/api/streams/{camera_id}/live",
+            demo_playback=True,
+        ),
+    )
 
 
 @router.get("/health")
@@ -67,13 +92,9 @@ def restart_stream(
     if camera is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Camera {camera_id} not found")
     if is_demo_camera(camera_id):
-        # Demo cameras have no FFmpeg worker (shared local playback feed), so
-        # restart is a worker-less no-op returning the demo playback status.
-        return StreamActionResult(
-            camera_id=camera_id,
-            action="demo-playback",
-            stream=StreamStatus(**demo_stream_status(camera_id)),
-        )
+        # Demo cameras have no FFmpeg worker (non-routable seeded URLs), so
+        # restart is a worker-less no-op returning the honest OFFLINE status.
+        return _demo_control_noop(camera_id, camera)
     if not camera.rtsp_url:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -117,12 +138,8 @@ def refresh_stream(
     if camera is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Camera {camera_id} not found")
     if is_demo_camera(camera_id):
-        # Demo cameras have no FFmpeg worker (shared local playback feed).
-        return StreamActionResult(
-            camera_id=camera_id,
-            action="demo-playback",
-            stream=StreamStatus(**demo_stream_status(camera_id)),
-        )
+        # Demo cameras have no FFmpeg worker (non-routable seeded URLs).
+        return _demo_control_noop(camera_id, camera)
     if not camera.rtsp_url:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Camera has no RTSP URL")
     worker = gateway.get_worker(camera_id)

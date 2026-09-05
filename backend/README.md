@@ -86,32 +86,56 @@ For a fully offline demo (mock Sentinel + synthetic RTSP + API):
 python devtools/run_demo.py
 ```
 
-### Local demo playback for seeded `DEMO-CAM-*` cameras
+### Live camera video (production flow)
+
+The dashboard's live-camera tiles play the REAL Sentinel CCTV streams:
+
+```
+Control Room / Sentinel
+  → GET SENTINEL_CATALOGUE_URL (https://cctv.corp8.cloud/cameras.json)
+  → real camera id (cam01, cam02, …) upserted into the Camera Registry
+  → hls_url = SENTINEL_HLS_URL_TEMPLATE (https://cctv.corp8.cloud/{camera_id}/index.m3u8)
+  → GET /api/streams/{camera_id}/hls/index.m3u8   (same-origin backend proxy)
+  → frontend HLS player (hls.js / native HLS)
+  → dashboard live camera tile
+```
+
+* The Sentinel catalogue is the source of truth: camera ids are always read
+  dynamically from `cameras.json` — nothing is hard-coded.
+* The backend proxies the Sentinel HLS playlist (and each segment) so the
+  browser never talks to the Sentinel origin directly and never sees
+  RTSP/WHEP credentials. `GET /api/cameras` and `GET /api/streams` hand the
+  frontend the credential-free `hls_path` (`/api/streams/{id}/hls/index.m3u8`),
+  which resolves server-side to the camera's actual Sentinel
+  `https://cctv.corp8.cloud/{camera_id}/index.m3u8` playlist.
+* RTSP remains the primary AI/inference feed (FFmpeg gateway, MJPEG preview
+  fallback); if RTSP is blocked the gateway itself degrades to pulling the
+  HLS source.
+
+#### Seeded `DEMO-CAM-*` rows
 
 The seeded demo cameras (`scripts/seed_demo_data.py`) intentionally carry
 non-routable `demo-cctv.invalid` stream URLs, so the FFmpeg gateway can never
-pull them. `app/services/demo_stream.py` resolves those ids **server-side**
-to one shared, locally generated synthetic motion feed (Pillow, no FFmpeg,
-no network, no database video storage):
+pull frames for them. `app/services/demo_stream.py` (a shared, locally
+generated synthetic feed) is retained **only** for automated tests
+(`tests/test_demo_stream.py`) and dev tooling — it is NOT wired into the
+production live-camera path:
 
-* `GET /api/cameras` and `GET /api/streams` expose a backend-owned
-  `demo_playback: true` capability flag plus the usual per-camera
-  `live_frame_path` / `live_mjpeg_path` endpoints. The frontend plays those
-  URLs and badges the tiles DEMO.
+* `StreamGateway.latest_jpeg()` returns `None` for cameras without a live
+  FFmpeg worker — it never substitutes a synthetic frame.
+* `GET /api/streams/{id}/frame.jpg` and `/live` answer a truthful 404 for
+  worker-less cameras (including every `DEMO-CAM-*`).
+* `GET /api/streams` / `GET /api/cameras` expose `demo_playback: true` only
+  as a marker so clients can EXCLUDE seeded demo rows from the live wall.
+* `POST /api/streams/{id}/start` refuses demo cameras with a 409 instead of
+  faking a playable stream; camera-health restart/refresh remain worker-less
+  no-ops for them.
 * No FFmpeg worker is ever spawned for a demo camera (bootstrap, start,
-  restart and refresh are worker-less no-ops returning the demo status), so
-  `camera_health_status` keeps reporting the seeded physical-camera states —
-  demo playability never fakes a camera online.
-* The producer is a single daemon thread no matter how many demo cameras or
-  viewers are active; it starts lazily on the first demo request and needs
-  no separate startup command — just run the API:
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
+  restart and refresh skip them), so `camera_health_status` keeps reporting
+  the seeded physical-camera states.
 
 Real cameras (`camNN` Sentinel fleet and everything else) are unaffected:
-they keep flowing through RTSP → FFmpeg → MJPEG/HLS exactly as before.
+they flow through RTSP → FFmpeg → MJPEG and the Sentinel HLS proxy.
 
 ## Endpoints (v0.2.0 — 14 routers)
 
@@ -119,7 +143,7 @@ they keep flowing through RTSP → FFmpeg → MJPEG/HLS exactly as before.
 | --- | --- | --- |
 | Platform | `GET /health`, `GET /api/status` | Liveness, DB + Sentinel connectivity |
 | Registry | `GET/POST /api/ingest`, `GET /api/cameras`, `GET /api/cameras/{id}` | Sentinel catalogue → camera registry |
-| Streams | `GET /api/streams`, `POST /api/streams/{id}/start|stop`, `POST /api/cameras/{id}/stream/restart`, `GET /api/streams/{id}/frame.jpg`, `GET /api/streams/{id}/live` | FFmpeg gateway + MJPEG preview |
+| Streams | `GET /api/streams`, `GET /api/streams/{id}/status`, `POST /api/streams/{id}/start\|stop`, `POST /api/cameras/{id}/stream/restart`, `GET /api/streams/{id}/frame.jpg`, `GET /api/streams/{id}/live`, `GET /api/streams/{id}/hls/index.m3u8` (Sentinel HLS proxy for the browser player) | FFmpeg gateway + MJPEG preview + live HLS proxy |
 | Vehicles | `GET /api/vehicles/search`, `GET /api/vehicles/{plate}`, `GET /api/vehicles/{plate}/sightings?since&until&camera_id`, `GET /api/vehicles/{plate}/journey`, `GET /api/vehicles/{plate}/cross-camera` | Real DB observations + deterministic plate-identity cross-camera matching |
 | Pipeline | `GET /api/pipeline`, `GET /api/pipeline/summary`, `GET /api/ai/status` | Per-camera YOLO/ANPR worker state + global model/device/ANPR health |
 | Watchlist | `GET/POST /api/watchlist`, `PATCH/DELETE /api/watchlist/{id}`, `GET /api/watchlist/matches`, `GET /api/watchlist/stats` | Entries CRUD + match log |

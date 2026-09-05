@@ -63,11 +63,18 @@ function splitLocation(name: string | null): { location: string; city: string } 
  * Production contract (`VITE_DEMO_MODE !== 'true'`):
  *   - ONLY cameras present in the real registry / gateway are shown. No
  *     government camera URL, coordinate or feed is hard-coded or fabricated.
+ *   - Seeded DEMO-CAM-* rows are EXCLUDED from the live wall (backend
+ *     `demo_playback` marker) — the dashboard never presents a demo feed as
+ *     a live operational camera.
+ *   - Live video comes from the backend-resolved playback source: real
+ *     cameras play the same-origin HLS proxy (which resolves server-side
+ *     to the camera's actual Sentinel `index.m3u8`); the gateway MJPEG
+ *     preview remains the fallback when no HLS path exists.
  *   - When the registry/gateway is unreachable the result is EMPTY so the UI
  *     surfaces an offline state rather than silently presenting demo feeds as
  *     live operational cameras.
  *   - RTSP is never exposed: browser preview uses the gateway's in-memory
- *     JPEG/MJPEG endpoints (or the external HLS/WHEP gateway when configured).
+ *     JPEG/MJPEG endpoints or the backend HLS proxy.
  * Demo mode (`VITE_DEMO_MODE=true`): the bundled demo fixtures may be shown,
  * but only as an explicitly demo label.
  */
@@ -77,13 +84,20 @@ export function mergeLiveCameras(
   tick: number,
   allowDemo = DEMO_MODE,
 ): LiveCamera[] {
-  const realIds = new Set<string>([
-    ...registry.map((c) => c.camera_id),
-    ...streams.map((s) => s.camera_id),
-  ]);
+  const registryRowById = new Map(registry.map((c) => [c.camera_id, c]));
+  const streamRowById = new Map(streams.map((s) => [s.camera_id, s]));
+  const isDemoRow = (id: string) =>
+    registryRowById.get(id)?.demo_playback === true || streamRowById.get(id)?.demo_playback === true;
+
+  const realIds = Array.from(
+    new Set<string>([
+      ...registry.map((c) => c.camera_id),
+      ...streams.map((s) => s.camera_id),
+    ]),
+  ).filter((id) => !isDemoRow(id)); // seeded DEMO-CAM-* rows never reach the wall
 
   // No real gateway/registry data at all.
-  if (realIds.size === 0) {
+  if (realIds.length === 0) {
     // Development/demo only — never a silent production fallback.
     return allowDemo ? demoLiveCameras : [];
   }
@@ -93,7 +107,7 @@ export function mergeLiveCameras(
   // every value must come from the real registry/gateway.
   const demoById = new Map(demoLiveCameras.map((c) => [c.id, c]));
 
-  return [...realIds]
+  return realIds
     .sort()
     .map((id): LiveCamera => {
       const cam = registry.find((c) => c.camera_id === id);
@@ -101,15 +115,20 @@ export function mergeLiveCameras(
       const demo = allowDemo ? demoById.get(id) : undefined;
       const loc = splitLocation(cam?.location_name ?? id);
       // Single centralized stream-source resolution (services/streams.ts):
-      // the backend decides demo-vs-real and hands us the playable URL.
+      // the backend decides which real stream URL we play (Sentinel HLS
+      // proxy first, gateway MJPEG as fallback) and marks demo rows.
       const playback = resolvePlaybackSource({ cameraId: id, registry: cam, stream: st, frameBust: tick });
       const res = st?.resolution || cam?.resolution || '1920x1080';
-      // Trust the gateway's live state. Without a stream a registry camera is
-      // OFF in production (demo fixtures may seed a cosmetic status only when
-      // VITE_DEMO_MODE=true).
-      // Prefer the backend's ONLINE/CONNECTING/OFFLINE/ERROR availability when
-      // present; fall back to the raw worker state for older backends.
-      const status = mapState(st?.availability ?? st?.state, demo ? demo.status : 'offline');
+      // An HLS-configured camera is viewable straight from Sentinel (no
+      // FFmpeg worker required), so the tile reports it live; the pipeline
+      // state stays visible in Stream Health / Camera Health. Otherwise we
+      // trust the gateway's live state — a registry camera without a
+      // stream is OFF in production (demo fixtures may seed a cosmetic
+      // status only when VITE_DEMO_MODE=true).
+      const status =
+        playback.kind === 'hls'
+          ? 'online'
+          : mapState(st?.availability ?? st?.state, demo ? demo.status : 'offline');
       const playable = playback.kind !== 'none' && playback.url != null;
       return {
         id,
@@ -117,9 +136,10 @@ export function mergeLiveCameras(
         city: loc.city,
         zone: cam?.department ?? 'Command',
         department: cam?.department ?? 'Gujarat Police',
-        thumbnail: playable && playback.url ? playback.url : playback.frameUrl,
+        thumbnail: playback.kind === 'mjpeg' && playback.url ? playback.url : playback.frameUrl,
         liveFrameUrl: playable && playback.url ? playback.url : undefined,
-        isDemoPlayback: playback.isDemoPlayback,
+        playbackKind: playback.kind,
+        isDemoPlayback: false,
         gatewayState: st?.state,
         status,
         quality: qualityFromRes(res),
@@ -140,7 +160,7 @@ export function mergeLiveCameras(
         lastPlate: undefined,
         alertLabel: undefined,
         // Real RTSP (credentials-bearing) is NEVER sent to the browser. The
-        // gateway MJPEG / HLS / WHEP endpoints above are the preview channels.
+        // gateway MJPEG / HLS proxy endpoints above are the preview channels.
         streamUrl: '',
         events: [],
       };

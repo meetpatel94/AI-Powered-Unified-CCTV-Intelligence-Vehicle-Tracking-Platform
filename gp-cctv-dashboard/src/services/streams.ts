@@ -63,18 +63,25 @@ export function toLiveMjpegUrl(cameraId: string): string {
  * resolve through here — no component sniffs camera ids or hard-codes
  * stream URLs.
  *
- * The decision is driven by backend/API fields (`demo_playback` capability
- * flag + the credential-free `live_*_path` / `hls_path` playback paths),
- * never by frontend id prefix checks or hard-coded hosts/ports:
+ * The decision is driven by backend/API fields (the credential-free
+ * `hls_path` / `live_*_path` playback paths + the `demo_playback` marker
+ * flag), never by frontend id prefix checks or hard-coded hosts/ports:
  *
- * - Demo-playback cameras (backend `demo_playback: true`) play the shared
- *   local demo feed through their own per-camera MJPEG endpoint and are
- *   flagged `isDemoPlayback` so the UI can badge them DEMO. Their
- *   physical-camera health/availability state is left untouched.
- * - Real cameras play the live gateway MJPEG endpoint when the gateway
- *   reports a live/connecting stream, exactly as before.
- * - Anything else resolves to `kind: 'none'` and the caller renders the
- *   existing NO STREAM / SIGNAL LOST state (never throws, never a broken
+ * - REAL cameras (Sentinel `camNN` fleet) play the backend's same-origin
+ *   HLS proxy (`hls_path` → `/api/streams/{id}/hls/index.m3u8`), which
+ *   resolves server-side to the real Sentinel playlist
+ *   `https://cctv.corp8.cloud/{camera_id}/index.m3u8`. HLS is the primary
+ *   live source because it comes straight from the Control Room / Sentinel
+ *   infrastructure and needs no FFmpeg worker.
+ * - When no HLS path exists but the stream gateway reports a live worker,
+ *   the in-memory MJPEG preview (`live_mjpeg_path`) is used, exactly as
+ *   before.
+ * - Seeded demo cameras (`demo_playback: true` marker) are NEVER given a
+ *   playable source — the production live wall must only ever play real
+ *   backend-provided streams. They resolve to `kind: 'none'` so the UI
+ *   renders the existing NO STREAM / SIGNAL LOST state (and callers
+ *   exclude them from the camera wall entirely).
+ * - Anything else resolves to `kind: 'none'` (never throws, never a broken
  *   player element).
  * ------------------------------------------------------------------ */
 
@@ -86,7 +93,10 @@ export interface PlaybackSource {
   url: string | null;
   /** Still-frame URL for thumbnails/snapshots. */
   frameUrl: string;
-  /** True when served by the backend demo playback feed (badge as DEMO). */
+  /**
+   * True when the backend marked this camera as a seeded demo row. This is
+   * an exclusion marker only — demo cameras are never playable here.
+   */
   isDemoPlayback: boolean;
   /** Same-origin HLS playlist when the backend provides one (real cameras). */
   hlsUrl: string | null;
@@ -124,12 +134,21 @@ export function resolvePlaybackSource(inputs: PlaybackInputs): PlaybackSource {
   const hlsUrl = stream?.hls_path ?? registry?.hls_path ?? null;
   const isDemoPlayback = stream?.demo_playback === true || registry?.demo_playback === true;
 
-  // Demo playback resolves purely on the backend capability flag — playable
-  // even though the physical camera health state stays non-online.
+  // Seeded demo rows are never playable on the production live path — no
+  // synthetic/demo feed is resolved, regardless of any seeded URL.
   if (isDemoPlayback) {
-    return { kind: 'mjpeg', url: mjpegUrl, frameUrl, isDemoPlayback: true, hlsUrl };
+    return { kind: 'none', url: null, frameUrl, isDemoPlayback: true, hlsUrl: null };
   }
 
+  // Real cameras: the backend HLS proxy is the primary live source. It is
+  // handed to us by the API (never constructed from a camera id here) and
+  // resolves server-side to the camera's actual Sentinel HLS playlist.
+  if (hlsUrl) {
+    return { kind: 'hls', url: hlsUrl, frameUrl, isDemoPlayback: false, hlsUrl };
+  }
+
+  // No HLS source: fall back to the gateway MJPEG preview when the worker
+  // reports a live/connecting stream (RTSP → FFmpeg → MJPEG path).
   const live = !!stream && LIVE_STATES.has((stream.availability ?? stream.state ?? '').toUpperCase());
   if (live) {
     return { kind: 'mjpeg', url: mjpegUrl, frameUrl, isDemoPlayback: false, hlsUrl };

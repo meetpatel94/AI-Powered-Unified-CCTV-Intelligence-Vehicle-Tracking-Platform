@@ -9,7 +9,7 @@ from app.schemas.camera import CameraRead, IngestResult
 from app.services import audit as audit_service
 from app.services.auth import Principal
 from app.services.cameras import get_camera, ingest_from_sentinel, list_cameras
-from app.services.demo_stream import demo_playback_available
+from app.services.demo_stream import is_demo_camera
 from app.services.sentinel import SentinelError
 
 router = APIRouter(prefix="/api", tags=["cameras"])
@@ -36,7 +36,11 @@ def _camera_out(camera) -> CameraRead:
         hls_path=f"/api/streams/{camera.camera_id}/hls/index.m3u8" if camera.hls_url else None,
         live_frame_path=f"/api/streams/{camera.camera_id}/frame.jpg",
         live_mjpeg_path=f"/api/streams/{camera.camera_id}/live",
-        demo_playback=demo_playback_available(camera.camera_id),
+        # Backend-owned marker: True for seeded DEMO-CAM-* registry rows so
+        # clients can EXCLUDE them from the production live wall. It never
+        # means "playable demo video" — live playback comes only from the
+        # real Sentinel HLS / gateway endpoints above.
+        demo_playback=is_demo_camera(camera.camera_id),
         created_at=camera.created_at,
         updated_at=camera.updated_at,
     )

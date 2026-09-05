@@ -46,9 +46,9 @@ export interface RegistryCamera {
   live_frame_path?: string | null;
   live_mjpeg_path?: string | null;
   /**
-   * Backend-owned capability flag: true when the camera is served by the
-   * local demo playback feed (seeded DEMO-CAM-* ids). The UI shows demo
-   * video with a DEMO badge when true; physical-camera health is separate.
+   * Backend-owned marker: true for seeded DEMO-CAM-* registry rows so the
+   * live wall can exclude them. NOT a playability flag — the live path
+   * never serves synthetic demo video.
    */
   demo_playback?: boolean;
 }
@@ -77,6 +77,12 @@ export interface StreamStatusDto {
   /** Dashboard availability: ONLINE | CONNECTING | OFFLINE | ERROR. */
   availability?: string;
   hls_path?: string | null;
+  /**
+   * Backend-owned marker: true for seeded DEMO-CAM-* registry rows so the
+   * live wall can exclude them. It is NOT a playability flag — the live
+   * path never serves synthetic demo video.
+   */
+  demo_playback?: boolean;
 }
 
 /** Single request helper targeting the unified `/api` FastAPI base. */

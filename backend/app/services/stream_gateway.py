@@ -20,7 +20,6 @@ from typing import Any
 import structlog
 
 from app.core.config import get_settings
-from app.services.demo_stream import get_demo_frame
 
 logger = structlog.get_logger(__name__)
 
@@ -774,21 +773,16 @@ class StreamGateway:
             w.stop()
 
     def latest_jpeg(self, camera_id: str) -> bytes | None:
+        """Latest decoded JPEG for a camera, or ``None`` when there is none.
+
+        Only real FFmpeg workers produce frames. A camera without a live
+        worker has NO frame — the API layer reports an honest 404; synthetic
+        / demo frames are never substituted on the production live path.
+        """
         worker = self.get_worker(camera_id)
         if worker:
-            jpeg = worker.latest_jpeg()
-            if jpeg:
-                return jpeg
-        # Seeded DEMO-CAM-* cameras carry non-routable demo-cctv.invalid URLs
-        # so they never have a worker: serve the shared local demo playback
-        # frame instead. Real cameras are unaffected (returns None → 404).
-        return get_demo_frame(camera_id)
-
-    def demo_playback(self, camera_id: str) -> bool:
-        """True when ``camera_id`` is served by the local demo playback feed."""
-        from app.services.demo_stream import demo_playback_available
-
-        return demo_playback_available(camera_id)
+            return worker.latest_jpeg()
+        return None
 
 
 gateway = StreamGateway()

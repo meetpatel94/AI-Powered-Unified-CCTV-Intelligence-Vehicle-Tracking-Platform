@@ -8,19 +8,19 @@ import type { LiveCamera } from '@/types/liveView';
 
 function FeedTile({ feed }: { feed: LiveCamera }) {
   const title = feed.city ? `${feed.id} | ${feed.location}, ${feed.city}` : `${feed.id} | ${feed.location}`;
-  // Playable = gateway-live stream OR backend demo playback feed (DEMO badge).
-  // The stream URL itself always comes from the API via useGatewayLiveCameras.
-  const online = feed.status === 'online' && !!feed.liveFrameUrl;
-  const playable = !!feed.liveFrameUrl && (online || feed.isDemoPlayback === true);
+  // Playable = a real backend-resolved stream (Sentinel HLS proxy, or the
+  // gateway MJPEG preview when the RTSP worker is live). The stream URL
+  // itself always comes from the API via useGatewayLiveCameras.
+  const playbackKind = feed.playbackKind ?? (feed.thumbnail ? 'mjpeg' : 'none');
+  const playable = playbackKind !== 'none' && !!feed.liveFrameUrl;
 
   return (
     <figure className="group relative grid min-h-[110px] overflow-hidden rounded-[5px] border border-edge-soft bg-black">
       {playable ? (
         <StreamPlayer
-          kind="mjpeg"
+          kind={playbackKind}
           url={feed.liveFrameUrl ?? null}
           title={title}
-          demo={feed.isDemoPlayback === true}
           mediaClassName="opacity-95 transition-transform duration-500 group-hover:scale-[1.03]"
         />
       ) : (
@@ -39,7 +39,7 @@ function FeedTile({ feed }: { feed: LiveCamera }) {
         </figcaption>
         <span className={`flex items-center gap-1 rounded-[2px] px-1 py-px text-[9.5px] font-bold uppercase tracking-wide ${playable ? 'bg-accent-green text-black/85' : 'bg-slate-600 text-white/85'}`}>
           <span className={`h-1 w-1 rounded-full ${playable ? 'bg-black/70 animate-pulse-dot' : 'bg-white/70'}`} />
-          {feed.isDemoPlayback && playable ? 'Demo' : playable ? 'Live' : feed.status === 'reconnecting' ? 'Connecting' : 'Offline'}
+          {playable ? 'Live' : feed.status === 'reconnecting' ? 'Connecting' : 'Offline'}
         </span>
       </div>
 
@@ -67,10 +67,14 @@ function FeedTile({ feed }: { feed: LiveCamera }) {
 /** 2 x 2 wall of backend camera feeds. Empty registries render an honest empty state. */
 export function LiveFeedsPanel() {
   const tick = useTelemetryTick(4000);
-  const { cameras, health, gatewayOnline, demoActive } = useGatewayLiveCameras(tick);
+  const { cameras, gatewayOnline, demoActive } = useGatewayLiveCameras(tick);
   const visible = cameras.slice(0, 4);
   const total = cameras.length;
-  const live = health.liveCount;
+  // Cameras with a playable live view (Sentinel HLS proxy or gateway MJPEG)
+  // — not merely configured, and never a demo row.
+  const live = cameras.filter(
+    (c) => !!c.liveFrameUrl && (c.playbackKind ?? 'none') !== 'none' && c.status !== 'offline',
+  ).length;
 
   return (
     <Panel
