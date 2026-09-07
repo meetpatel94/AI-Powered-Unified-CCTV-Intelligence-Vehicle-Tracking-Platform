@@ -1,0 +1,223 @@
+PACKAGE AND LIBRARY INSTALLATION GUIDE
+AI-Powered Unified CCTV Intelligence & Vehicle Tracking Platform
+======================================================================
+
+This project has two sets of dependencies:
+  - Python libraries for the API and AI pipeline in backend/.
+  - JavaScript/TypeScript packages for the dashboard in gp-cctv-dashboard/.
+
+Use the existing dependency files rather than installing libraries one by
+one. The requirements files define Python package versions and ranges;
+the dashboard's package-lock.json records its resolved npm dependencies.
+
+Start each numbered section in the repository root: the folder containing
+backend/ and gp-cctv-dashboard/. Run commands one at a time in a terminal.
+Only follow the commands for your operating system and shell.
+
+
+1. DOWNLOAD AND INSTALL THE BASIC TOOLS
+----------------------------------------------------------------------
+Python:
+  Install 64-bit Python 3.11, matching backend/Dockerfile.
+  Official download: https://www.python.org/downloads/
+  On Windows, enable the installer option to add Python to PATH.
+
+Node.js and npm:
+  Install the latest Node.js 22.x release (at least 22.12.0).
+  The dashboard's Vite dependencies require a supported Node.js version;
+  the frontend Dockerfile also uses Node.js 22. npm comes with Node.js.
+  Official download: https://nodejs.org/en/download
+
+Git (only needed if you still need to clone the repository):
+  Official download: https://git-scm.com/downloads
+
+Verify the tools after installation. Reopen your terminal if necessary.
+  Linux/macOS:          python3.11 --version
+  Windows:              py -3.11 --version
+  All platforms:        node --version
+                        npm --version
+
+Use an internet connection and allow several GB of free disk space.
+AI packages such as PyTorch can involve large downloads.
+
+
+2. INSTALL THE BACKEND PYTHON LIBRARIES
+----------------------------------------------------------------------
+From the repository root:
+  cd backend
+
+Create a virtual environment to keep these libraries separate from other
+Python projects. Choose ONE of the following platform-specific sequences.
+
+Linux/macOS (bash or zsh):
+  python3.11 -m venv .venv
+  source .venv/bin/activate
+
+Windows PowerShell:
+  py -3.11 -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+
+Windows Command Prompt (cmd.exe):
+  py -3.11 -m venv .venv
+  .venv\Scripts\activate.bat
+
+With the virtual environment active, run:
+  python -m pip install --upgrade pip setuptools wheel
+  python -m pip install -r requirements.txt
+
+pip downloads and installs the listed libraries and their dependencies
+into backend/.venv/. Do not use sudo pip or install them globally.
+
+The main library groups are:
+  - FastAPI and Uvicorn: HTTP API and application server.
+  - SQLAlchemy, Alembic, psycopg2-binary, GeoAlchemy2: database access,
+    migrations and geographic data support.
+  - Pydantic and pydantic-settings: validation and configuration.
+  - Ultralytics, torch, torchvision and lapx: vehicle detection/tracking.
+  - opencv-python-headless, NumPy and Pillow: image/frame processing.
+  - rapidocr-onnxruntime and onnxruntime: number plate OCR.
+  - imageio-ffmpeg: a bundled FFmpeg fallback for supported platforms.
+  - PyJWT, bcrypt and email-validator: authentication-related support.
+
+For development and backend tests, also run:
+  python -m pip install -r requirements-dev.txt
+
+requirements-dev.txt includes requirements.txt plus pytest, so you can
+install the development file INSTEAD of the runtime file on a fresh setup.
+
+Check the installation while still in backend/ with the environment active:
+  python -m pip check
+  python -c "import fastapi, torch, cv2, rapidocr_onnxruntime; print('Backend imports OK')"
+
+After installing the development requirements, you can run backend tests:
+  python -m pytest
+
+Reactivate the environment whenever you open a new backend terminal.
+Run deactivate when you want to leave the virtual environment.
+
+
+3. INSTALL THE DASHBOARD PACKAGES
+----------------------------------------------------------------------
+Open a second terminal in the repository root, then run:
+  cd gp-cctv-dashboard
+  npm ci
+
+npm ci downloads and installs packages using package.json and the committed
+package-lock.json, without updating the lockfile. It replaces any existing
+node_modules/ directory. Run it inside gp-cctv-dashboard/, NOT at the
+repository root, which has no package.json.
+
+This installs React, React DOM, React Router, hls.js and lucide-react, plus
+development tools such as TypeScript, Vite, Tailwind CSS and Oxlint.
+Keep development dependencies installed: they are needed to build the app.
+If your shell sets NODE_ENV=production, use npm ci --include=dev instead.
+
+Verify the dashboard can be type-checked and built:
+  npm run build
+
+Optional code-quality check:
+  npm run lint
+
+To start the dashboard development server:
+  npm run dev
+
+Use the URL shown by Vite (or your hosted environment's preview URL).
+The existing Vite configuration binds to 0.0.0.0 and proxies relative /api
+requests to the backend on port 8000. Installing frontend packages does
+not start the backend or database; live features require those services.
+
+Optional browser download for the Playwright screenshot/browser tools:
+  npx playwright install chromium
+
+Run that command from gp-cctv-dashboard/ after npm ci. Browser binaries
+are not required for normal dashboard development or npm run build.
+On Linux, if Playwright reports missing system libraries, use:
+  npx playwright install --with-deps chromium
+This can request administrator privileges to install OS dependencies.
+
+
+4. FFMPEG AND OTHER RUNTIME REQUIREMENTS
+----------------------------------------------------------------------
+FFmpeg is used to decode camera streams. A system installation is
+recommended; the backend also tries the imageio-ffmpeg bundled binary
+when a system FFmpeg is not available.
+
+Ubuntu/Debian:
+  sudo apt update
+  sudo apt install ffmpeg
+
+macOS (with Homebrew already installed):
+  brew install ffmpeg
+
+Windows:
+  Visit https://ffmpeg.org/download.html and choose a linked Windows build.
+  Extract it, add its bin folder to PATH, and open a new terminal.
+
+Check a system FFmpeg installation:
+  ffmpeg -version
+
+Database:
+  pip installs database client libraries, NOT a PostgreSQL server.
+  The repository uses PostgreSQL 16 with PostGIS 3.4 in Docker Compose.
+  To use the included local-development database, first install and start
+  Docker with the Compose plugin: https://docs.docker.com/get-started/get-docker/
+  Then, from the repository root, run:
+    docker compose -f backend/docker-compose.yml up -d db
+  This downloads the database image and starts the database only. This
+  development configuration uses default credentials and publishes port
+  5432; use it only on a trusted development machine, not in production.
+  Configure backend/.env with your database connection and other required
+  settings before running migrations or starting the API. Do not publish
+  credentials or add new secrets to source control.
+
+Model weights and cameras:
+  Python package installation is separate from model weight setup.
+  The repository contains backend/yolov8n.pt. Ensure VEHICLE_MODEL_PATH
+  points to a valid weights file accessible to the backend. Additional
+  weights should come from a trusted source such as the official
+  Ultralytics project: https://docs.ultralytics.com/models/yolov8/
+  Real detections also need accessible camera streams and configuration.
+  See backend/README.md for backend startup and configuration details.
+
+
+5. COMMON INSTALLATION PROBLEMS
+----------------------------------------------------------------------
+'python', 'py', 'node' or 'npm' is not recognized:
+  Reopen the terminal after installation and check PATH. On Linux/macOS,
+  use python3.11 to create the environment, then python after activation.
+
+Python cannot create the virtual environment / ensurepip is unavailable:
+  Install your OS's venv package for the selected Python version (for
+  example python3.11-venv on Debian-based systems where it is available),
+  then create the environment again.
+
+PowerShell blocks Activate.ps1:
+  Use the Command Prompt activation instructions instead. Alternatively,
+  activation is optional: from backend/, use .venv\Scripts\python.exe in
+  place of python in every pip, import-check and pytest command above.
+
+pip reports 'No matching distribution found' or a dependency conflict:
+  Check Python version, OS/CPU support, network access and the configured
+  package index. The repository pins specific AI-library releases; a pin
+  may not be available for your platform or index. Confirm availability
+  before changing anything. Do not silently remove pins or install random
+  latest versions. torch and torchvision must be a compatible pair.
+  For CPU/GPU-specific PyTorch builds and driver requirements, consult:
+    https://pytorch.org/get-started/locally/
+  Keep any selected build compatible with backend/requirements.txt.
+
+npm reports an unsupported engine:
+  Check node --version and install Node.js 22.x version 22.12.0 or newer.
+
+npm ci reports a package.json / package-lock.json mismatch:
+  Restore a matching pair from the same repository revision. Only use
+  npm install to update the lockfile when intentionally changing
+  dependencies, and review that change rather than deleting the lockfile.
+
+Downloads fail because of a proxy or certificate error:
+  Check your connection and approved proxy/CA configuration. Do not disable
+  TLS certificate verification or download libraries from untrusted sites.
+
+Packages install but the application cannot connect or detect vehicles:
+  Check the database, backend environment settings, FFmpeg, model path and
+  camera access. Installing dependencies alone does not configure these.
